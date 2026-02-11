@@ -1,2 +1,0 @@
-# v0-1-q4O7VwqrEBT4jF7I8bmVjGA1-EmEOVPJ9Lmt
-v0 chat EmEOVPJ9Lmt
