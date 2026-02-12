@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Compass, Plus, Bell, User, LayoutGrid } from "lucide-react"
+import { Home, Plus, Bell, User, LayoutGrid } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
