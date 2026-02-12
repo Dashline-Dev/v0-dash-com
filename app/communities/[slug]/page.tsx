@@ -3,6 +3,7 @@ import {
   getCommunityBySlug,
   getCommunityMembers,
 } from "@/lib/actions/community-actions"
+import { getSpacesByCommunity } from "@/lib/actions/space-actions"
 import { CommunityHeader } from "@/components/communities/community-header"
 import { CommunityTabs } from "@/components/communities/community-tabs"
 import type { Metadata } from "next"
@@ -33,7 +34,10 @@ export default async function CommunityDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  const membersResult = await getCommunityMembers(community.id)
+  const [membersResult, spaces] = await Promise.all([
+    getCommunityMembers(community.id),
+    getSpacesByCommunity(slug),
+  ])
 
   return (
     <div>
@@ -46,6 +50,7 @@ export default async function CommunityDetailPage({ params }: PageProps) {
             members={membersResult.data}
             membersCursor={membersResult.nextCursor}
             membersHasMore={membersResult.hasMore}
+            spaces={spaces}
           />
         </div>
       </div>

@@ -4,13 +4,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CommunityAbout } from "./community-about"
 import { MemberList } from "./member-list"
 import { RulesList } from "./rules-list"
+import { CommunitySpaces } from "./community-spaces"
 import type { CommunityWithMeta, CommunityMember } from "@/types/community"
+import type { SpaceWithMeta } from "@/types/space"
 
 interface CommunityTabsProps {
   community: CommunityWithMeta
   members: CommunityMember[]
   membersCursor: string | null
   membersHasMore: boolean
+  spaces: SpaceWithMeta[]
 }
 
 export function CommunityTabs({
@@ -18,6 +21,7 @@ export function CommunityTabs({
   members,
   membersCursor,
   membersHasMore,
+  spaces,
 }: CommunityTabsProps) {
   return (
     <Tabs defaultValue="about" className="w-full">
@@ -35,6 +39,12 @@ export function CommunityTabs({
           Members
         </TabsTrigger>
         <TabsTrigger
+          value="spaces"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
+        >
+          Spaces
+        </TabsTrigger>
+        <TabsTrigger
           value="rules"
           className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
         >
@@ -44,6 +54,10 @@ export function CommunityTabs({
 
       <TabsContent value="about" className="mt-5">
         <CommunityAbout community={community} />
+      </TabsContent>
+
+      <TabsContent value="spaces" className="mt-5">
+        <CommunitySpaces communitySlug={community.slug} spaces={spaces} />
       </TabsContent>
 
       <TabsContent value="members" className="mt-5">
