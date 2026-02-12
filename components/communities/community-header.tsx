@@ -61,25 +61,25 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
 
   return (
     <div>
-      {/* Cover image */}
-      <div className="relative w-full aspect-[16/6] md:aspect-[16/4] bg-secondary overflow-hidden">
+      {/* Cover image - subtle, not the focus */}
+      <div className="relative w-full h-24 md:h-32 bg-secondary overflow-hidden">
         {community.cover_image_url ? (
           <img
             src={community.cover_image_url}
             alt=""
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover opacity-80"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-accent/20" />
+          <div className="w-full h-full bg-gradient-to-br from-primary/15 via-primary/5 to-accent/15" />
         )}
       </div>
 
-      {/* Community info */}
-      <div className="px-4 md:px-6 lg:px-10">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 -mt-6 md:-mt-8">
-          {/* Avatar + text */}
-          <div className="flex items-end gap-4">
-            <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl border-4 border-background bg-card overflow-hidden shadow-sm shrink-0">
+      {/* Community info - sits cleanly below the banner */}
+      <div className="px-4 md:px-6 lg:px-10 border-b border-border bg-card">
+        <div className="flex flex-col gap-4 py-4 md:py-5">
+          <div className="flex items-start gap-3 md:gap-4">
+            {/* Avatar - pulled up to overlap banner slightly */}
+            <div className="w-14 h-14 md:w-16 md:h-16 -mt-10 md:-mt-12 rounded-xl border-3 border-card bg-card overflow-hidden shadow-sm shrink-0">
               {community.avatar_url ? (
                 <img
                   src={community.avatar_url}
@@ -87,27 +87,29 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary text-2xl md:text-3xl font-bold">
+                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary text-xl md:text-2xl font-bold">
                   {community.name.charAt(0)}
                 </div>
               )}
             </div>
-            <div className="pb-1">
+
+            {/* Name + meta -- always below the banner */}
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl md:text-2xl font-bold text-foreground text-balance">
+                <h1 className="text-lg md:text-xl font-bold text-foreground truncate">
                   {community.name}
                 </h1>
                 {community.is_verified && (
-                  <BadgeCheck className="w-5 h-5 text-primary shrink-0" />
+                  <BadgeCheck className="w-4.5 h-4.5 text-primary shrink-0" />
                 )}
               </div>
-              <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+              <div className="flex items-center gap-3 mt-0.5 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Users className="w-3.5 h-3.5" />
                   {community.member_count.toLocaleString()} members
                 </span>
                 {community.location_name && (
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1 hidden sm:flex">
                     <MapPin className="w-3.5 h-3.5" />
                     {community.location_name}
                   </span>
@@ -116,8 +118,8 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2">
+          {/* Actions row - separate line for clarity */}
+          <div className="flex items-center gap-2 flex-wrap">
             {isMember && community.current_user_role !== "owner" && (
               <Badge variant="secondary" className="text-xs">
                 {MEMBER_ROLE_LABELS[community.current_user_role as MemberRole]}
@@ -169,6 +171,12 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
                   <Settings className="w-4 h-4" />
                 </Link>
               </Button>
+            )}
+            {community.location_name && (
+              <span className="flex items-center gap-1 text-sm text-muted-foreground sm:hidden ml-auto">
+                <MapPin className="w-3.5 h-3.5" />
+                {community.location_name}
+              </span>
             )}
           </div>
         </div>
