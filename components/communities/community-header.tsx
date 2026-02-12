@@ -77,9 +77,9 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
       {/* Community info - sits cleanly below the banner */}
       <div className="px-4 md:px-6 lg:px-10 border-b border-border bg-card">
         <div className="flex flex-col gap-4 py-4 md:py-5">
-          <div className="flex items-start gap-3 md:gap-4">
-            {/* Avatar - pulled up to overlap banner slightly */}
-            <div className="w-14 h-14 md:w-16 md:h-16 -mt-10 md:-mt-12 rounded-xl border-3 border-card bg-card overflow-hidden shadow-sm shrink-0">
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Avatar - fully below the banner, no overlap */}
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-card overflow-hidden shadow-sm shrink-0 border border-border">
               {community.avatar_url ? (
                 <img
                   src={community.avatar_url}
