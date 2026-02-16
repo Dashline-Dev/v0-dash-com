@@ -172,7 +172,7 @@ export async function getAreaCommunities(
       ) as tags
     FROM communities c
     JOIN community_areas ca ON ca.community_id = c.id
-    WHERE ca.area_id = $1 AND c.status = 'active' AND c.privacy = 'public'
+    WHERE ca.area_id = $1 AND c.visibility = 'public'
     ORDER BY c.member_count DESC
     LIMIT $2 OFFSET $3`,
     [areaId, limit, offset]
@@ -202,7 +202,7 @@ export async function getAreaEvents(
      JOIN communities c ON c.id = e.community_id
      WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
        AND e.status = 'published'
-       AND c.privacy = 'public'
+       AND c.visibility = 'public'
        ${upcomingFilter}`,
     [areaId]
   )
@@ -219,7 +219,7 @@ export async function getAreaEvents(
     JOIN communities c ON c.id = e.community_id
     WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
       AND e.status = 'published'
-      AND c.privacy = 'public'
+      AND c.visibility = 'public'
       ${upcomingFilter}
     ORDER BY e.start_time ASC, e.id
     LIMIT $2 OFFSET $3`,
@@ -243,8 +243,7 @@ export async function getAreaMapMarkers(areaId: string): Promise<{
      FROM communities c
      JOIN community_areas ca ON ca.community_id = c.id
      WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
-       AND c.status = 'active'
-       AND c.privacy = 'public'
+       AND c.visibility = 'public'
        AND c.latitude IS NOT NULL
        AND c.longitude IS NOT NULL`,
     [areaId]
@@ -262,7 +261,7 @@ export async function getAreaMapMarkers(areaId: string): Promise<{
        AND e.end_time > NOW()
        AND e.latitude IS NOT NULL
        AND e.longitude IS NOT NULL
-       AND c.privacy = 'public'
+       AND c.visibility = 'public'
      ORDER BY e.id, e.start_time ASC`,
     [areaId]
   )
