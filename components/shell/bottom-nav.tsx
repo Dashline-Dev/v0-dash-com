@@ -2,19 +2,28 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Plus, CalendarDays, User, Search } from "lucide-react"
+import { Home, Plus, CalendarDays, User, Search, LogIn } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/explore", label: "Explore", icon: Search },
-  { href: "/communities/create", label: "Create", icon: Plus, isAction: true },
-  { href: "/events", label: "Events", icon: CalendarDays },
-  { href: "/profile", label: "Profile", icon: User },
-]
+interface BottomNavProps {
+  user: { id: string; name: string; avatar: string | null } | null
+}
 
-export function BottomNav() {
+export function BottomNav({ user }: BottomNavProps) {
   const pathname = usePathname()
+  const isAuthenticated = !!user
+
+  const NAV_ITEMS = [
+    { href: "/", label: "Home", icon: Home },
+    { href: "/explore", label: "Explore", icon: Search },
+    ...(isAuthenticated
+      ? [{ href: "/communities/create", label: "Create", icon: Plus, isAction: true }]
+      : []),
+    { href: "/events", label: "Events", icon: CalendarDays },
+    isAuthenticated
+      ? { href: "/profile", label: "Profile", icon: User }
+      : { href: "/signin", label: "Sign in", icon: LogIn },
+  ]
 
   return (
     <nav
@@ -28,8 +37,9 @@ export function BottomNav() {
               ? pathname === "/"
               : pathname.startsWith(item.href)
           const Icon = item.icon
+          const isAction = "isAction" in item && item.isAction
 
-          if (item.isAction) {
+          if (isAction) {
             return (
               <Link
                 key={item.href}
@@ -50,9 +60,7 @@ export function BottomNav() {
               href={item.href}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] px-2 transition-colors",
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground"
+                isActive ? "text-primary" : "text-muted-foreground"
               )}
               aria-label={item.label}
               aria-current={isActive ? "page" : undefined}

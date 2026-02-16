@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AreaMap, MapLegend } from "@/components/maps/area-map" // area-map v2
+import { AreaMap, MapLegend } from "@/components/maps/area-map-view"
 import { GoogleMapsProvider } from "@/components/maps/google-maps-provider"
 import type { AreaWithMeta, AreaNeighborhood, AreaCommunity, AreaEvent } from "@/types/area"
 import { AREA_TYPE_LABELS, areaBoundsToMapBounds } from "@/types/area"

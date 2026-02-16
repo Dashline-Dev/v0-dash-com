@@ -45,8 +45,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           return
         }
       }
-      router.push("/")
-      router.refresh()
+      // Hard navigation to ensure server picks up the new httpOnly session cookie
+      window.location.href = "/"
     } catch {
       setError("Something went wrong. Please try again.")
       setLoading(false)

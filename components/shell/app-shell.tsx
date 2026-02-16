@@ -12,7 +12,7 @@ export async function AppShell({ children }: Readonly<{ children: React.ReactNod
       <main className="flex-1 pb-16 md:pb-0">
         {children}
       </main>
-      <BottomNav />
+      <BottomNav user={isAuthenticated ? user : null} />
     </div>
   )
 }

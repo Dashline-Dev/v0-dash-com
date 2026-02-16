@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { LogOut, Settings, User, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -23,8 +22,6 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ user }: UserMenuProps) {
-  const router = useRouter()
-
   if (!user || user.id === "guest") {
     return (
       <div className="flex items-center gap-2">
@@ -47,8 +44,8 @@ export function UserMenu({ user }: UserMenuProps) {
 
   async function handleSignOut() {
     await signOut()
-    router.push("/")
-    router.refresh()
+    // Hard navigation to ensure server picks up cookie deletion
+    window.location.href = "/"
   }
 
   return (
