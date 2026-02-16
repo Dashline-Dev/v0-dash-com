@@ -1,8 +1,15 @@
+import Link from "next/link"
 import { MapPin, Mail, Globe, Clock } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { CommunityWithMeta } from "@/types/community"
+import type { AreaWithMeta } from "@/types/area"
 
-export function CommunityAbout({ community }: { community: CommunityWithMeta }) {
+interface CommunityAboutProps {
+  community: CommunityWithMeta
+  areas?: AreaWithMeta[]
+}
+
+export function CommunityAbout({ community, areas = [] }: CommunityAboutProps) {
   return (
     <div className="space-y-6">
       {/* Description */}
@@ -70,6 +77,29 @@ export function CommunityAbout({ community }: { community: CommunityWithMeta }) 
           </div>
         </div>
       </div>
+
+      {/* Areas */}
+      {areas.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-2">Areas</h3>
+          <div className="flex flex-wrap gap-2">
+            {areas.map((area) => (
+              <Link key={area.id} href={`/areas/${area.slug}`}>
+                <Badge
+                  variant="secondary"
+                  className="text-xs font-normal hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer gap-1"
+                >
+                  <MapPin className="w-3 h-3" />
+                  {area.name}
+                </Badge>
+              </Link>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Events from this community appear in these areas.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

@@ -11,6 +11,7 @@ import type { CommunityWithMeta, CommunityMember } from "@/types/community"
 import type { SpaceWithMeta } from "@/types/space"
 import type { EventWithMeta } from "@/types/event"
 import type { AnnouncementWithMeta } from "@/types/announcement"
+import type { AreaWithMeta } from "@/types/area"
 
 interface CommunityTabsProps {
   community: CommunityWithMeta
@@ -20,6 +21,7 @@ interface CommunityTabsProps {
   spaces: SpaceWithMeta[]
   events: EventWithMeta[]
   announcements: AnnouncementWithMeta[]
+  areas?: AreaWithMeta[]
 }
 
 export function CommunityTabs({
@@ -30,6 +32,7 @@ export function CommunityTabs({
   spaces,
   events,
   announcements,
+  areas = [],
 }: CommunityTabsProps) {
   return (
     <Tabs defaultValue="about" className="w-full">
@@ -73,7 +76,7 @@ export function CommunityTabs({
       </TabsList>
 
       <TabsContent value="about" className="mt-5">
-        <CommunityAbout community={community} />
+        <CommunityAbout community={community} areas={areas} />
       </TabsContent>
 
       <TabsContent value="announcements" className="mt-5">

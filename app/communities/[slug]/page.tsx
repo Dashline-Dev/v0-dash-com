@@ -6,6 +6,7 @@ import {
 import { getSpacesByCommunity } from "@/lib/actions/space-actions"
 import { getEvents } from "@/lib/actions/event-actions"
 import { getAnnouncements } from "@/lib/actions/announcement-actions"
+import { getCommunityAreas } from "@/lib/actions/area-actions"
 import { CommunityHeader } from "@/components/communities/community-header"
 import { CommunityTabs } from "@/components/communities/community-tabs"
 import type { Metadata } from "next"
@@ -36,11 +37,12 @@ export default async function CommunityDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  const [membersResult, spaces, eventsResult, announcementsResult] = await Promise.all([
+  const [membersResult, spaces, eventsResult, announcementsResult, areas] = await Promise.all([
     getCommunityMembers(community.id),
     getSpacesByCommunity(slug),
     getEvents({ communityId: community.id, limit: 10, upcomingOnly: true }),
     getAnnouncements({ communityId: community.id, limit: 20 }),
+    getCommunityAreas(community.id),
   ])
 
   return (
@@ -57,6 +59,7 @@ export default async function CommunityDetailPage({ params }: PageProps) {
             spaces={spaces}
             events={eventsResult.events}
             announcements={announcementsResult.announcements}
+            areas={areas}
           />
         </div>
       </div>

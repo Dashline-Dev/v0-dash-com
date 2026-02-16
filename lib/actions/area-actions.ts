@@ -1,0 +1,362 @@
+"use server"
+
+import { neon } from "@neondatabase/serverless"
+import type {
+  AreaWithMeta,
+  AreaNeighborhood,
+  AreaCommunity,
+  AreaEvent,
+} from "@/types/area"
+
+const sql = neon(process.env.DATABASE_URL!)
+
+// ── List areas ──────────────────────────────────────────────
+
+export async function getAreas(opts?: {
+  type?: string
+  parentId?: string
+  search?: string
+  limit?: number
+  offset?: number
+}): Promise<{ areas: AreaWithMeta[]; total: number }> {
+  const limit = opts?.limit ?? 20
+  const offset = opts?.offset ?? 0
+
+  const conditions: string[] = ["a.status = 'active'"]
+  const params: unknown[] = []
+  let idx = 1
+
+  if (opts?.type) {
+    conditions.push(`a.type = $${idx++}`)
+    params.push(opts.type)
+  }
+  if (opts?.parentId) {
+    conditions.push(`a.parent_id = $${idx++}`)
+    params.push(opts.parentId)
+  } else if (!opts?.type || opts.type === "city") {
+    // Default: top-level cities (no parent)
+    if (!opts?.parentId && !opts?.search) {
+      conditions.push(`a.parent_id IS NULL`)
+    }
+  }
+  if (opts?.search) {
+    conditions.push(`(a.name ILIKE $${idx} OR a.description ILIKE $${idx})`)
+    params.push(`%${opts.search}%`)
+    idx++
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
+
+  const countResult = await sql(
+    `SELECT COUNT(*) as total FROM areas a ${where}`,
+    params
+  )
+
+  const rows = await sql(
+    `SELECT
+      a.*,
+      p.name as parent_name,
+      p.slug as parent_slug,
+      COALESCE((SELECT COUNT(*) FROM community_areas ca WHERE ca.area_id = a.id), 0) as community_count,
+      COALESCE((
+        SELECT COUNT(DISTINCT e.id)
+        FROM events e
+        JOIN community_areas ca ON ca.community_id = e.community_id
+        WHERE ca.area_id = a.id AND e.status = 'published'
+      ), 0) as event_count,
+      COALESCE((SELECT COUNT(*) FROM areas sub WHERE sub.parent_id = a.id AND sub.status = 'active'), 0) as neighborhood_count,
+      COALESCE(
+        (SELECT json_agg(azc.zip_code ORDER BY azc.zip_code) FROM area_zip_codes azc WHERE azc.area_id = a.id),
+        '[]'::json
+      ) as zip_codes
+    FROM areas a
+    LEFT JOIN areas p ON a.parent_id = p.id
+    ${where}
+    ORDER BY a.name ASC
+    LIMIT $${idx} OFFSET $${idx + 1}`,
+    [...params, limit, offset]
+  )
+
+  return {
+    areas: rows.map((r) => ({
+      ...r,
+      community_count: Number(r.community_count),
+      event_count: Number(r.event_count),
+      neighborhood_count: Number(r.neighborhood_count),
+      zip_codes: Array.isArray(r.zip_codes) ? r.zip_codes : JSON.parse(r.zip_codes as string),
+    })) as AreaWithMeta[],
+    total: Number(countResult[0].total),
+  }
+}
+
+// ── Get area by slug ────────────────────────────────────────
+
+export async function getAreaBySlug(slug: string): Promise<AreaWithMeta | null> {
+  const rows = await sql(
+    `SELECT
+      a.*,
+      p.name as parent_name,
+      p.slug as parent_slug,
+      COALESCE((SELECT COUNT(*) FROM community_areas ca WHERE ca.area_id = a.id), 0) as community_count,
+      COALESCE((
+        SELECT COUNT(DISTINCT e.id)
+        FROM events e
+        JOIN community_areas ca ON ca.community_id = e.community_id
+        WHERE ca.area_id = a.id AND e.status = 'published'
+      ), 0) as event_count,
+      COALESCE((SELECT COUNT(*) FROM areas sub WHERE sub.parent_id = a.id AND sub.status = 'active'), 0) as neighborhood_count,
+      COALESCE(
+        (SELECT json_agg(azc.zip_code ORDER BY azc.zip_code) FROM area_zip_codes azc WHERE azc.area_id = a.id),
+        '[]'::json
+      ) as zip_codes
+    FROM areas a
+    LEFT JOIN areas p ON a.parent_id = p.id
+    WHERE a.slug = $1 AND a.status = 'active'
+    LIMIT 1`,
+    [slug]
+  )
+
+  if (rows.length === 0) return null
+
+  const r = rows[0]
+  return {
+    ...r,
+    community_count: Number(r.community_count),
+    event_count: Number(r.event_count),
+    neighborhood_count: Number(r.neighborhood_count),
+    zip_codes: Array.isArray(r.zip_codes) ? r.zip_codes : JSON.parse(r.zip_codes as string),
+  } as AreaWithMeta
+}
+
+// ── Get neighborhoods for an area ───────────────────────────
+
+export async function getAreaNeighborhoods(areaId: string): Promise<AreaNeighborhood[]> {
+  const rows = await sql(
+    `SELECT
+      a.id, a.name, a.slug, a.description,
+      COALESCE((SELECT COUNT(*) FROM community_areas ca WHERE ca.area_id = a.id), 0) as community_count,
+      COALESCE((
+        SELECT COUNT(DISTINCT e.id)
+        FROM events e
+        JOIN community_areas ca ON ca.community_id = e.community_id
+        WHERE ca.area_id = a.id AND e.status = 'published'
+      ), 0) as event_count
+    FROM areas a
+    WHERE a.parent_id = $1 AND a.status = 'active'
+    ORDER BY a.name ASC`,
+    [areaId]
+  )
+
+  return rows.map((r) => ({
+    ...r,
+    community_count: Number(r.community_count),
+    event_count: Number(r.event_count),
+  })) as AreaNeighborhood[]
+}
+
+// ── Get communities in an area ──────────────────────────────
+
+export async function getAreaCommunities(
+  areaId: string,
+  opts?: { limit?: number; offset?: number }
+): Promise<AreaCommunity[]> {
+  const limit = opts?.limit ?? 20
+  const offset = opts?.offset ?? 0
+
+  const rows = await sql(
+    `SELECT
+      c.id, c.name, c.slug, c.description, c.cover_image_url, c.member_count, c.location_name,
+      COALESCE(
+        (SELECT json_agg(ct.tag) FROM community_tags ct WHERE ct.community_id = c.id),
+        '[]'::json
+      ) as tags
+    FROM communities c
+    JOIN community_areas ca ON ca.community_id = c.id
+    WHERE ca.area_id = $1 AND c.status = 'active' AND c.privacy = 'public'
+    ORDER BY c.member_count DESC
+    LIMIT $2 OFFSET $3`,
+    [areaId, limit, offset]
+  )
+
+  return rows.map((r) => ({
+    ...r,
+    tags: Array.isArray(r.tags) ? r.tags : JSON.parse(r.tags as string),
+  })) as AreaCommunity[]
+}
+
+// ── Get events in an area (from public communities) ─────────
+
+export async function getAreaEvents(
+  areaId: string,
+  opts?: { upcoming?: boolean; limit?: number; offset?: number }
+): Promise<{ events: AreaEvent[]; total: number }> {
+  const limit = opts?.limit ?? 12
+  const offset = opts?.offset ?? 0
+  const upcomingFilter = opts?.upcoming ? `AND e.end_time > NOW()` : ""
+
+  // Also include events from child neighborhoods
+  const countResult = await sql(
+    `SELECT COUNT(DISTINCT e.id) as total
+     FROM events e
+     JOIN community_areas ca ON ca.community_id = e.community_id
+     JOIN communities c ON c.id = e.community_id
+     WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+       AND e.status = 'published'
+       AND c.privacy = 'public'
+       ${upcomingFilter}`,
+    [areaId]
+  )
+
+  const rows = await sql(
+    `SELECT DISTINCT ON (e.start_time, e.id)
+      e.id, e.title, e.slug, e.description, e.event_type,
+      e.start_time, e.end_time, e.timezone,
+      e.location_name, e.location_address, e.latitude, e.longitude,
+      e.virtual_link, e.rsvp_count, e.max_attendees,
+      c.name as community_name, c.slug as community_slug
+    FROM events e
+    JOIN community_areas ca ON ca.community_id = e.community_id
+    JOIN communities c ON c.id = e.community_id
+    WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+      AND e.status = 'published'
+      AND c.privacy = 'public'
+      ${upcomingFilter}
+    ORDER BY e.start_time ASC, e.id
+    LIMIT $2 OFFSET $3`,
+    [areaId, limit, offset]
+  )
+
+  return {
+    events: rows as AreaEvent[],
+    total: Number(countResult[0].total),
+  }
+}
+
+// ── Get map markers for an area ─────────────────────────────
+
+export async function getAreaMapMarkers(areaId: string): Promise<{
+  communities: { id: string; name: string; slug: string; lat: number; lng: number; member_count: number }[]
+  events: { id: string; title: string; slug: string; lat: number; lng: number; start_time: string; community_name: string }[]
+}> {
+  const communities = await sql(
+    `SELECT c.id, c.name, c.slug, c.latitude as lat, c.longitude as lng, c.member_count
+     FROM communities c
+     JOIN community_areas ca ON ca.community_id = c.id
+     WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+       AND c.status = 'active'
+       AND c.privacy = 'public'
+       AND c.latitude IS NOT NULL
+       AND c.longitude IS NOT NULL`,
+    [areaId]
+  )
+
+  const events = await sql(
+    `SELECT DISTINCT ON (e.id)
+      e.id, e.title, e.slug, e.latitude as lat, e.longitude as lng,
+      e.start_time, c.name as community_name
+     FROM events e
+     JOIN community_areas ca ON ca.community_id = e.community_id
+     JOIN communities c ON c.id = e.community_id
+     WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+       AND e.status = 'published'
+       AND e.end_time > NOW()
+       AND e.latitude IS NOT NULL
+       AND e.longitude IS NOT NULL
+       AND c.privacy = 'public'
+     ORDER BY e.id, e.start_time ASC`,
+    [areaId]
+  )
+
+  return {
+    communities: communities as { id: string; name: string; slug: string; lat: number; lng: number; member_count: number }[],
+    events: events as { id: string; title: string; slug: string; lat: number; lng: number; start_time: string; community_name: string }[],
+  }
+}
+
+// ── Search areas by zip code ────────────────────────────────
+
+export async function getAreasByZipCode(zipCode: string): Promise<AreaWithMeta[]> {
+  const rows = await sql(
+    `SELECT
+      a.*,
+      p.name as parent_name,
+      p.slug as parent_slug,
+      COALESCE((SELECT COUNT(*) FROM community_areas ca WHERE ca.area_id = a.id), 0) as community_count,
+      COALESCE((
+        SELECT COUNT(DISTINCT e.id)
+        FROM events e
+        JOIN community_areas ca ON ca.community_id = e.community_id
+        WHERE ca.area_id = a.id AND e.status = 'published'
+      ), 0) as event_count,
+      COALESCE((SELECT COUNT(*) FROM areas sub WHERE sub.parent_id = a.id AND sub.status = 'active'), 0) as neighborhood_count,
+      COALESCE(
+        (SELECT json_agg(azc2.zip_code ORDER BY azc2.zip_code) FROM area_zip_codes azc2 WHERE azc2.area_id = a.id),
+        '[]'::json
+      ) as zip_codes
+    FROM areas a
+    JOIN area_zip_codes azc ON azc.area_id = a.id
+    LEFT JOIN areas p ON a.parent_id = p.id
+    WHERE azc.zip_code = $1 AND a.status = 'active'
+    ORDER BY a.type ASC, a.name ASC`,
+    [zipCode]
+  )
+
+  return rows.map((r) => ({
+    ...r,
+    community_count: Number(r.community_count),
+    event_count: Number(r.event_count),
+    neighborhood_count: Number(r.neighborhood_count),
+    zip_codes: Array.isArray(r.zip_codes) ? r.zip_codes : JSON.parse(r.zip_codes as string),
+  })) as AreaWithMeta[]
+}
+
+// ── Link / unlink community to area ─────────────────────────
+
+export async function linkCommunityToArea(
+  communityId: string,
+  areaId: string
+): Promise<void> {
+  await sql(
+    `INSERT INTO community_areas (community_id, area_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    [communityId, areaId]
+  )
+}
+
+export async function unlinkCommunityFromArea(
+  communityId: string,
+  areaId: string
+): Promise<void> {
+  await sql(
+    `DELETE FROM community_areas WHERE community_id = $1 AND area_id = $2`,
+    [communityId, areaId]
+  )
+}
+
+// ── Get areas for a community ───────────────────────────────
+
+export async function getCommunityAreas(communityId: string): Promise<AreaWithMeta[]> {
+  const rows = await sql(
+    `SELECT
+      a.*,
+      p.name as parent_name,
+      p.slug as parent_slug,
+      COALESCE((SELECT COUNT(*) FROM community_areas ca2 WHERE ca2.area_id = a.id), 0) as community_count,
+      0 as event_count,
+      COALESCE((SELECT COUNT(*) FROM areas sub WHERE sub.parent_id = a.id AND sub.status = 'active'), 0) as neighborhood_count,
+      '[]'::json as zip_codes
+    FROM areas a
+    JOIN community_areas ca ON ca.area_id = a.id
+    LEFT JOIN areas p ON a.parent_id = p.id
+    WHERE ca.community_id = $1 AND a.status = 'active'
+    ORDER BY a.type ASC, a.name ASC`,
+    [communityId]
+  )
+
+  return rows.map((r) => ({
+    ...r,
+    community_count: Number(r.community_count),
+    event_count: 0,
+    neighborhood_count: Number(r.neighborhood_count),
+    zip_codes: [],
+  })) as AreaWithMeta[]
+}

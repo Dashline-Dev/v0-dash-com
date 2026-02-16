@@ -10,8 +10,8 @@ const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/announcements", label: "Announcements" },
   { href: "/events", label: "Events" },
+  { href: "/areas", label: "Areas" },
   { href: "/spaces", label: "Spaces" },
-  { href: "/explore", label: "Explore" },
 ]
 
 export function TopNav() {

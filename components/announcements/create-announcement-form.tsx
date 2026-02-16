@@ -255,10 +255,10 @@ export function CreateAnnouncementForm({
         </Select>
       </div>
 
-      {/* Area stub */}
-      <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3">
+      {/* Area info */}
+      <div className="rounded-lg border border-border bg-muted/30 p-3">
         <p className="text-xs text-muted-foreground">
-          Area-based targeting will be available when the Areas module is built.
+          Announcements are automatically visible in areas linked to this community.
         </p>
       </div>
 

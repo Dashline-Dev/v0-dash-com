@@ -2,12 +2,11 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Plus, CalendarDays, User, LayoutGrid } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Home, Plus, CalendarDays, User, MapPin } from "lucide-react"
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/spaces", label: "Spaces", icon: LayoutGrid },
+  { href: "/areas", label: "Areas", icon: MapPin },
   { href: "/communities/create", label: "Create", icon: Plus, isAction: true },
   { href: "/events", label: "Events", icon: CalendarDays },
   { href: "/profile", label: "Profile", icon: User },

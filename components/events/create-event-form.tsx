@@ -296,14 +296,15 @@ export function CreateEventForm({
             />
           </div>
 
-          {/* Area stub */}
-          <div className="rounded-lg border border-dashed border-border p-4">
-            <p className="text-sm font-medium text-muted-foreground">
-              Publish to Area
+          {/* Area info */}
+          <div className="rounded-lg border border-border bg-muted/30 p-4">
+            <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-primary" />
+              Area Discovery
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Area-based event publishing is coming soon. Events will be
-              discoverable by geographic area.
+              This event will automatically appear in any areas linked to its
+              community, making it discoverable by geographic location.
             </p>
           </div>
         </CardContent>
