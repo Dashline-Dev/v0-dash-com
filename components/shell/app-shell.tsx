@@ -1,7 +1,7 @@
 import { TopNav } from "./top-nav"
 import { BottomNav } from "./bottom-nav"
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="min-h-dvh flex flex-col">
       <TopNav />

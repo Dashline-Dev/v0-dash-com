@@ -6,7 +6,7 @@ import { Plus, Bell, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
-const NAV_LINKS = [
+const NAV_LINKS: { href: string; label: string }[] = [
   { href: "/", label: "Home" },
   { href: "/announcements", label: "Announcements" },
   { href: "/events", label: "Events" },
