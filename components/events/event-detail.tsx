@@ -44,10 +44,10 @@ export function EventDetail({ event }: EventDetailProps) {
   const TypeIcon = TYPE_ICON[event.event_type] ?? Calendar
 
   function handleShare() {
-    if (navigator.share) {
-      navigator.share({ title: event.title, url: window.location.href })
-    } else {
+    try {
       navigator.clipboard.writeText(window.location.href)
+    } catch {
+      // Clipboard not available
     }
   }
 

@@ -33,11 +33,11 @@ export function SpaceHeader({ space }: { space: SpaceWithMeta }) {
     }
   }
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      await navigator.share({ title: space.name, url: window.location.href })
-    } else {
-      await navigator.clipboard.writeText(window.location.href)
+  const handleShare = () => {
+    try {
+      navigator.clipboard.writeText(window.location.href)
+    } catch {
+      // Clipboard not available
     }
   }
 

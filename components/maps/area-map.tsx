@@ -90,25 +90,21 @@ function FeatureLayerStyler({
     if (!map || appliedRef.current) return
     if (typeof google === "undefined" || !google.maps) return
 
-    // Collect all neighborhood place IDs and build color map
-    const neighborhoodPlaceIds = new Map<
-      string,
-      { fill: string; stroke: string; name: string }
-    >()
+    // Collect all neighborhood place IDs and build color lookup
+    const neighborhoodPlaceIds: Record<string, { fill: string; stroke: string; name: string }> = {}
     neighborhoods.forEach((n, i) => {
       if (n.place_id) {
         const color = NEIGHBORHOOD_COLORS[i % NEIGHBORHOOD_COLORS.length]
-        neighborhoodPlaceIds.set(n.place_id, {
+        neighborhoodPlaceIds[n.place_id] = {
           fill: color.fill,
           stroke: color.stroke,
           name: n.name,
-        })
+        }
       }
     })
 
-    const allPlaceIds = new Set<string>()
-    neighborhoodPlaceIds.forEach((_, pid) => allPlaceIds.add(pid))
-    if (areaPlaceId) allPlaceIds.add(areaPlaceId)
+    const placeIdKeys = Object.keys(neighborhoodPlaceIds)
+    if (placeIdKeys.length === 0 && !areaPlaceId) return
 
     if (allPlaceIds.size === 0) return
 
@@ -125,7 +121,7 @@ function FeatureLayerStyler({
       if (localityLayer) {
         localityLayer.style = (params: { feature: { placeId: string } }) => {
           const placeId = params.feature.placeId
-          const nData = neighborhoodPlaceIds.get(placeId)
+          const nData = neighborhoodPlaceIds[placeId]
           if (nData) {
             return {
               fillColor: nData.fill,
@@ -327,13 +323,20 @@ export function AreaMap({
       n.bounds_sw_lng != null
   )
 
-  // Deduplicate communities and events by id
-  const uniqueCommunities = Array.from(
-    new Map(communities.map((c) => [c.id, c])).values()
-  )
-  const uniqueEvents = Array.from(
-    new Map(events.map((e) => [e.id, e])).values()
-  )
+  // Deduplicate communities and events by id (using Set to avoid
+  // collision with GoogleMap import which shadows native Map in Turbopack)
+  const seenCIds = new Set<string>()
+  const uniqueCommunities = communities.filter((c) => {
+    if (seenCIds.has(c.id)) return false
+    seenCIds.add(c.id)
+    return true
+  })
+  const seenEIds = new Set<string>()
+  const uniqueEvents = events.filter((e) => {
+    if (seenEIds.has(e.id)) return false
+    seenEIds.add(e.id)
+    return true
+  })
 
   return (
     <div
