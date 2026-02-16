@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef } from "react"
 import {
   Map,
   AdvancedMarker,
-  Pin,
   InfoWindow,
   useMap,
 } from "@vis.gl/react-google-maps"
@@ -113,17 +112,19 @@ function FeatureLayerStyler({
 
     if (allPlaceIds.size === 0) return
 
-    // Try to get the LOCALITY feature layer (for cities/neighborhoods)
-    try {
-      const localityLayer = (map as google.maps.Map & {
-        getFeatureLayer: (id: string) => google.maps.FeatureLayer
-      }).getFeatureLayer("LOCALITY")
+    // Try to apply FeatureLayer styling for Google-verified boundaries
+    // This requires the Map ID to have feature layers enabled in Cloud Console
+    const mapAny = map as Record<string, unknown>
+    if (typeof mapAny.getFeatureLayer !== "function") {
+      console.log("[v0] FeatureLayer API not available on this map instance")
+      return
+    }
 
+    try {
+      const localityLayer = (mapAny.getFeatureLayer as (id: string) => google.maps.FeatureLayer)("LOCALITY")
       if (localityLayer) {
         localityLayer.style = (params: { feature: { placeId: string } }) => {
           const placeId = params.feature.placeId
-
-          // Neighborhood styling
           const nData = neighborhoodPlaceIds.get(placeId)
           if (nData) {
             return {
@@ -134,8 +135,6 @@ function FeatureLayerStyler({
               strokeWeight: 2.5,
             }
           }
-
-          // Area itself (city) styling -- subtle outline
           if (placeId === areaPlaceId) {
             return {
               fillColor: "#6366f1",
@@ -145,23 +144,16 @@ function FeatureLayerStyler({
               strokeWeight: 2,
             }
           }
-
           return null
         }
-
         appliedRef.current = true
-        console.log("[v0] FeatureLayer LOCALITY styled with", allPlaceIds.size, "place IDs")
       }
-    } catch (err) {
-      console.log("[v0] FeatureLayer LOCALITY not available:", err)
+    } catch {
+      // LOCALITY layer not available
     }
 
-    // Also try ADMINISTRATIVE_AREA_LEVEL_2 for broader cities
     try {
-      const adminLayer = (map as google.maps.Map & {
-        getFeatureLayer: (id: string) => google.maps.FeatureLayer
-      }).getFeatureLayer("ADMINISTRATIVE_AREA_LEVEL_2")
-
+      const adminLayer = (mapAny.getFeatureLayer as (id: string) => google.maps.FeatureLayer)("ADMINISTRATIVE_AREA_LEVEL_2")
       if (adminLayer && areaPlaceId) {
         adminLayer.style = (params: { feature: { placeId: string } }) => {
           if (params.feature.placeId === areaPlaceId) {
@@ -177,7 +169,7 @@ function FeatureLayerStyler({
         }
       }
     } catch {
-      // Layer not available for this map ID
+      // Layer not available
     }
 
     return () => {
@@ -435,33 +427,29 @@ export function AreaMap({
             )
           })}
 
-        {/* Community markers (blue pins) */}
+        {/* Community markers (blue) */}
         {uniqueCommunities.map((c) => (
           <AdvancedMarker
             key={`c-${c.id}`}
             position={{ lat: c.lat, lng: c.lng }}
             onClick={() => handleCommunityClick(c)}
           >
-            <Pin
-              background="#3b82f6"
-              glyphColor="#ffffff"
-              borderColor="#2563eb"
-            />
+            <div className="w-6 h-6 rounded-full bg-blue-500 border-2 border-white shadow-md flex items-center justify-center">
+              <Users className="w-3 h-3 text-white" />
+            </div>
           </AdvancedMarker>
         ))}
 
-        {/* Event markers (orange pins) */}
+        {/* Event markers (orange) */}
         {uniqueEvents.map((e) => (
           <AdvancedMarker
             key={`e-${e.id}`}
             position={{ lat: e.lat, lng: e.lng }}
             onClick={() => handleEventClick(e)}
           >
-            <Pin
-              background="#f97316"
-              glyphColor="#ffffff"
-              borderColor="#ea580c"
-            />
+            <div className="w-6 h-6 rounded-full bg-orange-500 border-2 border-white shadow-md flex items-center justify-center">
+              <CalendarDays className="w-3 h-3 text-white" />
+            </div>
           </AdvancedMarker>
         ))}
 
