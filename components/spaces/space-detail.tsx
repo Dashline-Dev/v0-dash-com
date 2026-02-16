@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MessageCircle, Calendar, FileText, Users } from "lucide-react"
+import { MessageCircle, Calendar, FileText, Users, Megaphone } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { SpaceWithMeta, SpaceMember } from "@/types/space"
 import { SPACE_MEMBER_ROLE_LABELS, type SpaceMemberRole } from "@/types/space"
@@ -9,6 +9,8 @@ import type { EventWithMeta } from "@/types/event"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { EventCard } from "@/components/events/event-card"
+import { AnnouncementCard } from "@/components/announcements/announcement-card"
+import type { AnnouncementWithMeta } from "@/types/announcement"
 
 type Tab = "about" | "calendar" | "members"
 
@@ -16,9 +18,10 @@ interface SpaceDetailProps {
   space: SpaceWithMeta
   members: SpaceMember[]
   events?: EventWithMeta[]
+  announcements?: AnnouncementWithMeta[]
 }
 
-export function SpaceDetail({ space, members, events = [] }: SpaceDetailProps) {
+export function SpaceDetail({ space, members, events = [], announcements = [] }: SpaceDetailProps) {
   const [activeTab, setActiveTab] = useState<Tab>("about")
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -49,7 +52,7 @@ export function SpaceDetail({ space, members, events = [] }: SpaceDetailProps) {
       </div>
 
       {/* Tab content */}
-      {activeTab === "about" && <AboutTab space={space} />}
+      {activeTab === "about" && <AboutTab space={space} announcements={announcements} />}
       {activeTab === "calendar" && <CalendarTab events={events} />}
       {activeTab === "members" && <MembersTab members={members} />}
     </div>
@@ -58,7 +61,7 @@ export function SpaceDetail({ space, members, events = [] }: SpaceDetailProps) {
 
 // ─── About Tab ──────────────────────────────────────────────────────────────
 
-function AboutTab({ space }: { space: SpaceWithMeta }) {
+function AboutTab({ space, announcements = [] }: { space: SpaceWithMeta; announcements?: AnnouncementWithMeta[] }) {
   return (
     <div className="max-w-2xl space-y-6">
       {/* Description */}
@@ -110,10 +113,20 @@ function AboutTab({ space }: { space: SpaceWithMeta }) {
         </p>
       </div>
 
-      {/* ── Extension Point: Announcements ─────────────────────────────── */}
-      {/* When the Announcements module is built, add a pinned announcements section here:
-          <SpaceAnnouncements spaceId={space.id} />
-      */}
+      {/* Announcements */}
+      {announcements.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1.5">
+            <Megaphone className="w-4 h-4" />
+            Announcements
+          </h2>
+          <div className="flex flex-col gap-2">
+            {announcements.map((a) => (
+              <AnnouncementCard key={a.id} announcement={a} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

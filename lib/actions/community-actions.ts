@@ -547,6 +547,38 @@ export async function updateCommunityRules(
 
 // ── Analytics ──────────────────────────────────────────────────────────
 
+// ── Get My Communities ─────────────────────────────────────────────────
+
+export async function getMyCommunities(): Promise<CommunityWithMeta[]> {
+  const user = getCurrentUser()
+
+  const rows = await sql(
+    `
+    SELECT
+      c.*,
+      COALESCE(
+        (SELECT json_agg(ct.tag) FROM community_tags ct WHERE ct.community_id = c.id),
+        '[]'::json
+      ) AS tags,
+      '[]'::json AS rules,
+      cm.role AS current_user_role
+    FROM communities c
+    JOIN community_members cm ON cm.community_id = c.id AND cm.user_id = $1 AND cm.status = 'active'
+    ORDER BY c.name ASC
+    `,
+    [user.id]
+  )
+
+  return rows.map((row) => ({
+    ...row,
+    tags: Array.isArray(row.tags) ? row.tags : JSON.parse(row.tags as string),
+    rules: [],
+    current_user_role: row.current_user_role || null,
+  })) as CommunityWithMeta[]
+}
+
+// ── Analytics ──────────────────────────────────────────────────────────
+
 export async function getCommunityAnalytics(communityId: string) {
   const [memberStats, roleBreakdown, recentMembers] = await Promise.all([
     sql(

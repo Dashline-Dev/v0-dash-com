@@ -6,9 +6,11 @@ import { MemberList } from "./member-list"
 import { RulesList } from "./rules-list"
 import { CommunitySpaces } from "./community-spaces"
 import { CommunityEvents } from "./community-events"
+import { CommunityAnnouncements } from "./community-announcements"
 import type { CommunityWithMeta, CommunityMember } from "@/types/community"
 import type { SpaceWithMeta } from "@/types/space"
 import type { EventWithMeta } from "@/types/event"
+import type { AnnouncementWithMeta } from "@/types/announcement"
 
 interface CommunityTabsProps {
   community: CommunityWithMeta
@@ -17,6 +19,7 @@ interface CommunityTabsProps {
   membersHasMore: boolean
   spaces: SpaceWithMeta[]
   events: EventWithMeta[]
+  announcements: AnnouncementWithMeta[]
 }
 
 export function CommunityTabs({
@@ -26,6 +29,7 @@ export function CommunityTabs({
   membersHasMore,
   spaces,
   events,
+  announcements,
 }: CommunityTabsProps) {
   return (
     <Tabs defaultValue="about" className="w-full">
@@ -41,6 +45,12 @@ export function CommunityTabs({
           className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
         >
           Members
+        </TabsTrigger>
+        <TabsTrigger
+          value="announcements"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
+        >
+          Updates
         </TabsTrigger>
         <TabsTrigger
           value="events"
@@ -64,6 +74,10 @@ export function CommunityTabs({
 
       <TabsContent value="about" className="mt-5">
         <CommunityAbout community={community} />
+      </TabsContent>
+
+      <TabsContent value="announcements" className="mt-5">
+        <CommunityAnnouncements communitySlug={community.slug} announcements={announcements} />
       </TabsContent>
 
       <TabsContent value="events" className="mt-5">
