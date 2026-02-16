@@ -83,7 +83,11 @@ export function EventList({
         typeFilter === "all"
           ? result.events
           : result.events.filter((e) => e.event_type === typeFilter)
-      setEvents((prev) => [...prev, ...filtered])
+      setEvents((prev) => {
+        const existingIds = new Set(prev.map((e) => e.id))
+        const unique = filtered.filter((e) => !existingIds.has(e.id))
+        return [...prev, ...unique]
+      })
       setTotal(result.total)
     })
   }

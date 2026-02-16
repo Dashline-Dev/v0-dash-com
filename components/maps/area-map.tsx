@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import {
   Map,
   AdvancedMarker,
@@ -52,7 +52,6 @@ interface AreaMapProps {
   communities?: CommunityMarker[]
   events?: EventMarker[]
   neighborhoods?: NeighborhoodOverlay[]
-  /** The place_id of the current area (city) to style its boundary */
   areaPlaceId?: string | null
   bounds?: {
     ne: { lat: number; lng: number }
@@ -62,7 +61,7 @@ interface AreaMapProps {
   height?: string
 }
 
-// ── Color palette for neighborhood boundaries ───────────────
+// ── Neighborhood color palette ──────────────────────────────
 
 const NEIGHBORHOOD_COLORS = [
   { fill: "#10b981", stroke: "#059669" },
@@ -73,128 +72,97 @@ const NEIGHBORHOOD_COLORS = [
   { fill: "#ef4444", stroke: "#dc2626" },
 ]
 
-// ── Feature Layer Styler (Google-verified boundaries) ───────
+// ── Rectangle overlay for a single neighborhood ─────────────
+// Uses google.maps.Rectangle (works with ANY Map ID, no premium needed)
 
-function FeatureLayerStyler({
-  neighborhoods,
-  areaPlaceId,
+function NeighborhoodRectangle({
+  neighborhood,
+  colorIndex,
 }: {
-  neighborhoods: NeighborhoodOverlay[]
-  areaPlaceId?: string | null
+  neighborhood: NeighborhoodOverlay
+  colorIndex: number
 }) {
   const map = useMap()
+  const rectRef = useRef<google.maps.Rectangle | null>(null)
+  const color = NEIGHBORHOOD_COLORS[colorIndex % NEIGHBORHOOD_COLORS.length]
 
   useEffect(() => {
-    if (!map || typeof google === "undefined") return
+    if (!map) return
+    if (typeof google === "undefined") return
+    if (
+      neighborhood.bounds_ne_lat == null ||
+      neighborhood.bounds_ne_lng == null ||
+      neighborhood.bounds_sw_lat == null ||
+      neighborhood.bounds_sw_lng == null
+    )
+      return
 
-    // Build a map of placeId -> color for neighborhoods
-    const placeIdColorMap = new Map<string, { fill: string; stroke: string }>()
-    neighborhoods.forEach((n, i) => {
-      if (n.place_id) {
-        placeIdColorMap.set(
-          n.place_id,
-          NEIGHBORHOOD_COLORS[i % NEIGHBORHOOD_COLORS.length]
-        )
-      }
-    })
-
-    const allPlaceIds = new Set<string>()
-    neighborhoods.forEach((n) => {
-      if (n.place_id) allPlaceIds.add(n.place_id)
-    })
-    if (areaPlaceId) allPlaceIds.add(areaPlaceId)
-
-    if (allPlaceIds.size === 0) return
-
-    // Try to style the LOCALITY feature layer
-    try {
-      const localityLayer = map.getFeatureLayer(
-        "LOCALITY" as google.maps.FeatureType
-      )
-
-      if (localityLayer) {
-        localityLayer.style = (options: { feature: { placeId: string } }) => {
-          const pid = options.feature.placeId
-
-          // Style the current city boundary
-          if (areaPlaceId && pid === areaPlaceId) {
-            return {
-              strokeColor: "#3b82f6",
-              strokeOpacity: 0.6,
-              strokeWeight: 2,
-              fillColor: "#3b82f6",
-              fillOpacity: 0.04,
-            }
-          }
-
-          // Style neighborhood boundaries
-          const color = placeIdColorMap.get(pid)
-          if (color) {
-            return {
-              strokeColor: color.stroke,
-              strokeOpacity: 0.8,
-              strokeWeight: 2.5,
-              fillColor: color.fill,
-              fillOpacity: 0.12,
-            }
-          }
-
-          return null
-        }
-      }
-    } catch {
-      // FeatureLayer not available for this map configuration
+    // Clean up any previous rectangle
+    if (rectRef.current) {
+      rectRef.current.setMap(null)
+      rectRef.current = null
     }
 
-    // Also try ADMINISTRATIVE_AREA_LEVEL_2 for broader areas
     try {
-      const adminLayer = map.getFeatureLayer(
-        "ADMINISTRATIVE_AREA_LEVEL_2" as google.maps.FeatureType
+      const bounds = new google.maps.LatLngBounds(
+        { lat: neighborhood.bounds_sw_lat, lng: neighborhood.bounds_sw_lng },
+        { lat: neighborhood.bounds_ne_lat, lng: neighborhood.bounds_ne_lng }
       )
 
-      if (adminLayer && areaPlaceId) {
-        adminLayer.style = (options: { feature: { placeId: string } }) => {
-          if (options.feature.placeId === areaPlaceId) {
-            return {
-              strokeColor: "#3b82f6",
-              strokeOpacity: 0.5,
-              strokeWeight: 2,
-              fillColor: "#3b82f6",
-              fillOpacity: 0.03,
-            }
-          }
-          return null
-        }
-      }
+      const rect = new google.maps.Rectangle({
+        bounds,
+        map,
+        strokeColor: color.stroke,
+        strokeOpacity: 0.85,
+        strokeWeight: 2.5,
+        fillColor: color.fill,
+        fillOpacity: 0.12,
+        clickable: false,
+        zIndex: 1,
+      })
+
+      rectRef.current = rect
     } catch {
-      // Not available
+      // Google Maps API not ready
     }
 
     return () => {
-      // Cleanup styles when unmounting
-      try {
-        const localityLayer = map.getFeatureLayer(
-          "LOCALITY" as google.maps.FeatureType
-        )
-        if (localityLayer) localityLayer.style = null
-      } catch {
-        /* noop */
-      }
-      try {
-        const adminLayer = map.getFeatureLayer(
-          "ADMINISTRATIVE_AREA_LEVEL_2" as google.maps.FeatureType
-        )
-        if (adminLayer) adminLayer.style = null
-      } catch {
-        /* noop */
+      if (rectRef.current) {
+        rectRef.current.setMap(null)
+        rectRef.current = null
       }
     }
-  }, [map, neighborhoods, areaPlaceId])
+  }, [map, neighborhood, color])
 
   return null
 }
 
-// ── Main AreaMap component ──────────────────────────────────
+// ── Fit bounds helper ───────────────────────────────────────
+
+function FitBoundsHelper({
+  bounds,
+}: {
+  bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!map || !bounds || typeof google === "undefined") return
+    try {
+      const gBounds = new google.maps.LatLngBounds(
+        { lat: bounds.sw.lat, lng: bounds.sw.lng },
+        { lat: bounds.ne.lat, lng: bounds.ne.lng }
+      )
+      map.fitBounds(gBounds, { top: 40, right: 40, bottom: 40, left: 40 })
+    } catch {
+      // not ready
+    }
+  }, [map, bounds])
+
+  return null
+}
+
+// ── Main component ──────────────────────────────────────────
 
 export function AreaMap({
   center,
@@ -202,7 +170,6 @@ export function AreaMap({
   communities = [],
   events = [],
   neighborhoods = [],
-  areaPlaceId,
   bounds,
   className,
   height = "400px",
@@ -240,6 +207,15 @@ export function AreaMap({
     )
   }
 
+  // Filter neighborhoods that have valid bounds for rectangle overlays
+  const drawableNeighborhoods = neighborhoods.filter(
+    (n) =>
+      n.bounds_ne_lat != null &&
+      n.bounds_ne_lng != null &&
+      n.bounds_sw_lat != null &&
+      n.bounds_sw_lng != null
+  )
+
   return (
     <div
       className={cn(
@@ -251,7 +227,7 @@ export function AreaMap({
       <Map
         defaultCenter={center}
         defaultZoom={zoom}
-        mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "area-map"}
+        mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || undefined}
         gestureHandling="greedy"
         disableDefaultUI={false}
         zoomControl={true}
@@ -260,25 +236,22 @@ export function AreaMap({
         fullscreenControl={true}
         style={{ width: "100%", height: "100%" }}
       >
-        {/* Google-verified boundary styling */}
-        <FeatureLayerStyler
-          neighborhoods={neighborhoods}
-          areaPlaceId={areaPlaceId}
-        />
+        {/* Neighborhood rectangle overlays (drawn with google.maps.Rectangle) */}
+        {drawableNeighborhoods.map((n, i) => (
+          <NeighborhoodRectangle
+            key={`rect-${n.id}`}
+            neighborhood={n}
+            colorIndex={i}
+          />
+        ))}
 
-        {/* Neighborhood labels (positioned at center of bounds) */}
-        {neighborhoods.map((n, i) => {
-          if (
-            !n.bounds_ne_lat ||
-            !n.bounds_sw_lat ||
-            !n.bounds_ne_lng ||
-            !n.bounds_sw_lng
-          )
-            return null
-          const centerLat = (n.bounds_ne_lat + n.bounds_sw_lat) / 2
-          const centerLng = (n.bounds_ne_lng + n.bounds_sw_lng) / 2
-          const color =
-            NEIGHBORHOOD_COLORS[i % NEIGHBORHOOD_COLORS.length]
+        {/* Neighborhood center labels */}
+        {drawableNeighborhoods.map((n, i) => {
+          const centerLat =
+            ((n.bounds_ne_lat ?? 0) + (n.bounds_sw_lat ?? 0)) / 2
+          const centerLng =
+            ((n.bounds_ne_lng ?? 0) + (n.bounds_sw_lng ?? 0)) / 2
+          const color = NEIGHBORHOOD_COLORS[i % NEIGHBORHOOD_COLORS.length]
 
           return (
             <AdvancedMarker
@@ -302,13 +275,16 @@ export function AreaMap({
                   }}
                 >
                   {n.name}
+                  <span style={{ marginLeft: "4px", opacity: 0.7, fontSize: "10px" }}>
+                    {n.community_count}c {n.event_count}e
+                  </span>
                 </div>
               </Link>
             </AdvancedMarker>
           )
         })}
 
-        {/* Community markers (blue) */}
+        {/* Community markers (blue pins) */}
         {communities.map((c) => (
           <AdvancedMarker
             key={`c-${c.id}`}
@@ -323,7 +299,7 @@ export function AreaMap({
           </AdvancedMarker>
         ))}
 
-        {/* Event markers (orange) */}
+        {/* Event markers (orange pins) */}
         {events.map((e) => (
           <AdvancedMarker
             key={`e-${e.id}`}
@@ -400,31 +376,6 @@ export function AreaMap({
       </Map>
     </div>
   )
-}
-
-// ── Fit bounds helper ───────────────────────────────────────
-
-function FitBoundsHelper({
-  bounds,
-}: {
-  bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }
-}) {
-  const map = useMap()
-
-  useEffect(() => {
-    if (!map || !bounds || typeof google === "undefined") return
-    try {
-      const gBounds = new google.maps.LatLngBounds(
-        { lat: bounds.sw.lat, lng: bounds.sw.lng },
-        { lat: bounds.ne.lat, lng: bounds.ne.lng }
-      )
-      map.fitBounds(gBounds, { top: 40, right: 40, bottom: 40, left: 40 })
-    } catch {
-      // Google Maps not ready yet
-    }
-  }, [map, bounds])
-
-  return null
 }
 
 // ── Map legend ──────────────────────────────────────────────

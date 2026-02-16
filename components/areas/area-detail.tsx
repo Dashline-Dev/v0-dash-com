@@ -113,7 +113,6 @@ export function AreaDetail({
           communities={mapMarkers.communities}
           events={mapMarkers.events}
           neighborhoods={area.type === "city" ? neighborhoods : []}
-          areaPlaceId={area.place_id}
           bounds={bounds}
           height="360px"
         />

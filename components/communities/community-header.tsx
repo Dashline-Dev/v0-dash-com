@@ -48,14 +48,23 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
   }
 
   const handleShare = async () => {
-    if (navigator.share) {
-      await navigator.share({
-        title: community.name,
-        text: community.description || undefined,
-        url: window.location.href,
-      })
-    } else {
-      await navigator.clipboard.writeText(window.location.href)
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: community.name,
+          text: community.description || undefined,
+          url: window.location.href,
+        })
+      } else {
+        await navigator.clipboard.writeText(window.location.href)
+      }
+    } catch {
+      // User cancelled or permission denied -- fall back to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href)
+      } catch {
+        // Clipboard also not available
+      }
     }
   }
 
