@@ -19,7 +19,7 @@ export async function getSpaces(params: SpaceListParams = {}): Promise<{
   total: number
 }> {
   const { community_id, search, type, status = "active", limit = 20, offset = 0 } = params
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   const conditions: string[] = []
   const values: unknown[] = []
@@ -75,7 +75,7 @@ export async function getSpaceBySlug(
   slug: string,
   communityId?: string
 ): Promise<SpaceWithMeta | null> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   let result
   if (communityId) {
@@ -114,7 +114,7 @@ export async function getSpaceBySlug(
 }
 
 export async function getSpacesByCommunity(communitySlug: string): Promise<SpaceWithMeta[]> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   const result = await sql(
     `SELECT
@@ -146,7 +146,7 @@ export async function getSpaceMembers(spaceId: string): Promise<SpaceMember[]> {
 // ─── Mutations ──────────────────────────────────────────────────────────────
 
 export async function createSpace(data: CreateSpaceData): Promise<{ slug: string; community_slug?: string }> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   const result = await sql(
     `INSERT INTO spaces (community_id, name, slug, description, type, icon, cover_image_url, visibility, created_by)
@@ -238,7 +238,7 @@ export async function deleteSpace(spaceId: string): Promise<void> {
 // ─── Membership ─────────────────────────────────────────────────────────────
 
 export async function joinSpace(spaceId: string): Promise<void> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
   await sql(
     `INSERT INTO space_members (space_id, user_id, role) VALUES ($1, $2, 'member') ON CONFLICT (space_id, user_id) DO NOTHING`,
     [spaceId, user.id]
@@ -246,7 +246,7 @@ export async function joinSpace(spaceId: string): Promise<void> {
 }
 
 export async function leaveSpace(spaceId: string): Promise<void> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
   await sql(
     `DELETE FROM space_members WHERE space_id = $1 AND user_id = $2 AND role != 'admin'`,
     [spaceId, user.id]

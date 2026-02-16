@@ -39,7 +39,11 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
       if (isMember) {
         await leaveCommunity(community.id)
       } else {
-        await joinCommunity(community.id)
+        const result = await joinCommunity(community.id)
+        if (!result.success && result.error === "auth_required") {
+          router.push("/signin")
+          return
+        }
       }
       router.refresh()
     } catch {

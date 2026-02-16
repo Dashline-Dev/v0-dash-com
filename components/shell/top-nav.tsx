@@ -2,10 +2,11 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Plus, Bell, User } from "lucide-react"
+import { Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { CommandPalette } from "./command-palette"
+import { UserMenu } from "./user-menu"
 
 const NAV_LINKS: { href: string; label: string }[] = [
   { href: "/", label: "Home" },
@@ -15,7 +16,11 @@ const NAV_LINKS: { href: string; label: string }[] = [
   { href: "/areas", label: "Areas" },
 ]
 
-export function TopNav() {
+interface TopNavProps {
+  user: { id: string; name: string; avatar: string | null } | null
+}
+
+export function TopNav({ user }: TopNavProps) {
   const pathname = usePathname()
 
   return (
@@ -59,22 +64,15 @@ export function TopNav() {
         {/* Right actions */}
         <div className="flex items-center gap-2">
           <CommandPalette />
-          <Button asChild variant="default" size="sm" className="gap-1.5">
-            <Link href="/communities/create">
-              <Plus className="w-4 h-4" />
-              <span>Create</span>
-            </Link>
-          </Button>
-          <Button variant="ghost" size="icon" className="text-muted-foreground" asChild>
-            <Link href="/notifications" aria-label="Notifications">
-              <Bell className="w-5 h-5" />
-            </Link>
-          </Button>
-          <Button variant="ghost" size="icon" className="text-muted-foreground" asChild>
-            <Link href="/profile" aria-label="Profile">
-              <User className="w-5 h-5" />
-            </Link>
-          </Button>
+          {user && (
+            <Button asChild variant="default" size="sm" className="gap-1.5">
+              <Link href="/communities/create">
+                <Plus className="w-4 h-4" />
+                <span>Create</span>
+              </Link>
+            </Button>
+          )}
+          <UserMenu user={user} />
         </div>
       </div>
     </header>

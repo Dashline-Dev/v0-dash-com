@@ -30,7 +30,7 @@ export async function getAnnouncements(opts: {
   cursor?: string
 } = {}): Promise<AnnouncementListResult> {
   const sql = getDb()
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
   const limit = opts.limit ?? 20
 
   const conditions: string[] = []
@@ -136,7 +136,7 @@ export async function incrementViewCount(id: string): Promise<void> {
 
 export async function createAnnouncement(input: CreateAnnouncementInput): Promise<AnnouncementWithMeta> {
   const sql = getDb()
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   let nextRecurrence: string | null = null
   if (input.recurrence_rule && input.recurrence_rule !== "none") {
@@ -277,7 +277,7 @@ export async function getTemplates(communityId: string): Promise<AnnouncementTem
 
 export async function createTemplate(input: CreateTemplateInput): Promise<AnnouncementTemplate> {
   const sql = getDb()
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   const rows = await sql(`
     INSERT INTO announcement_templates (community_id, name, title_template, body_template, priority, created_by)

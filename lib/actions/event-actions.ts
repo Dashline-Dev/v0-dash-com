@@ -30,7 +30,7 @@ export async function getEvents(opts?: {
   limit?: number
   offset?: number
 }): Promise<{ events: EventWithMeta[]; total: number }> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
   const limit = opts?.limit ?? 12
   const offset = opts?.offset ?? 0
 
@@ -98,7 +98,7 @@ export async function getEventsByCommunity(
   communitySlug: string,
   opts?: { upcoming?: boolean; limit?: number }
 ): Promise<EventWithMeta[]> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
   const limit = opts?.limit ?? 20
 
   const upcomingFilter = opts?.upcoming ? `AND e.end_time > NOW()` : ""
@@ -130,7 +130,7 @@ export async function getEventBySlug(
   slug: string,
   communitySlug?: string
 ): Promise<EventWithMeta | null> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   const communityFilter = communitySlug ? `AND c.slug = $3` : ""
   const params: unknown[] = [user.id, slug]
@@ -159,7 +159,7 @@ export async function getEventBySlug(
 // ── Create event ────────────────────────────────────────────
 
 export async function createEvent(data: CreateEventData): Promise<string> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
   const slug = slugify(data.title) + "-" + Date.now().toString(36)
 
   const rows = await sql(
@@ -302,7 +302,7 @@ export async function rsvpToEvent(
   eventId: string,
   status: RsvpStatus
 ): Promise<void> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   // Check existing RSVP
   const existing = await sql(
@@ -332,7 +332,7 @@ export async function rsvpToEvent(
 // ── Cancel RSVP ─────────────────────────────────────────────
 
 export async function cancelRsvp(eventId: string): Promise<void> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   const existing = await sql(
     `SELECT status FROM event_rsvps WHERE event_id = $1 AND user_id = $2`,
@@ -380,7 +380,7 @@ export async function getEventsForMonth(
   month: number,
   communityId?: string
 ): Promise<EventWithMeta[]> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
   const startOfMonth = new Date(year, month - 1, 1).toISOString()
   const endOfMonth = new Date(year, month, 0, 23, 59, 59).toISOString()
 

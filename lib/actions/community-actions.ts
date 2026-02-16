@@ -22,7 +22,7 @@ export async function getCommunities(
   filters: CommunityFilters = {}
 ): Promise<PaginatedResult<CommunityListItem>> {
   const { search, category, cursor, limit = 12 } = filters
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   let query = `
     SELECT
@@ -84,7 +84,7 @@ export async function getCommunities(
 export async function getCommunityBySlug(
   slug: string
 ): Promise<CommunityWithMeta | null> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   const rows = await sql(
     `
@@ -129,7 +129,7 @@ export async function getCommunityBySlug(
 export async function createCommunity(
   input: CreateCommunityInput
 ): Promise<{ success: boolean; slug?: string; error?: string }> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   try {
     // Check slug uniqueness
@@ -263,7 +263,7 @@ export async function updateCommunity(
 export async function deleteCommunity(
   communityId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   try {
     // Verify ownership
@@ -291,7 +291,10 @@ export async function deleteCommunity(
 export async function joinCommunity(
   communityId: string
 ): Promise<{ success: boolean; status?: string; error?: string }> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
+  if (user.id === "guest") {
+    return { success: false, error: "auth_required" }
+  }
 
   try {
     // Check community join policy
@@ -333,7 +336,7 @@ export async function joinCommunity(
 export async function leaveCommunity(
   communityId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   try {
     // Don't allow owner to leave
@@ -552,7 +555,7 @@ export async function updateCommunityRules(
 // ── Get My Communities ─────────────────────────────────────────────────
 
 export async function getMyCommunities(): Promise<CommunityWithMeta[]> {
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
 
   const rows = await sql(
     `

@@ -35,7 +35,7 @@ export default async function CommunityAdminPage({ params }: PageProps) {
   }
 
   // Check admin access
-  const user = getCurrentUser()
+  const user = await getCurrentUser()
   if (
     community.current_user_role !== "owner" &&
     community.current_user_role !== "admin"

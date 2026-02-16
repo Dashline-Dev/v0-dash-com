@@ -1,10 +1,14 @@
 import { TopNav } from "./top-nav"
 import { BottomNav } from "./bottom-nav"
+import { getCurrentUser } from "@/lib/mock-user"
 
-export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) {
+export async function AppShell({ children }: Readonly<{ children: React.ReactNode }>) {
+  const user = await getCurrentUser()
+  const isAuthenticated = user.id !== "guest"
+
   return (
     <div className="min-h-dvh flex flex-col">
-      <TopNav />
+      <TopNav user={isAuthenticated ? user : null} />
       <main className="flex-1 pb-16 md:pb-0">
         {children}
       </main>
