@@ -59,6 +59,8 @@ export interface CommunityMember {
   role: MemberRole
   status: MemberStatus
   joined_at: string
+  display_name?: string | null
+  avatar_url?: string | null
 }
 
 export interface CommunityTag {

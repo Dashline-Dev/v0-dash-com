@@ -375,23 +375,25 @@ export async function getCommunityMembers(
 ): Promise<PaginatedResult<CommunityMember>> {
   const params: unknown[] = [communityId, limit + 1]
   let query = `
-    SELECT * FROM community_members
-    WHERE community_id = $1 AND status = 'active'
+    SELECT cm.*, up.display_name, up.avatar_url
+    FROM community_members cm
+    LEFT JOIN user_profiles up ON up.neon_auth_id = cm.user_id
+    WHERE cm.community_id = $1 AND cm.status = 'active'
   `
 
   if (cursor) {
-    query += ` AND joined_at < $3`
+    query += ` AND cm.joined_at < $3`
     params.push(cursor)
   }
 
   query += ` ORDER BY
-    CASE role
+    CASE cm.role
       WHEN 'owner' THEN 0
       WHEN 'admin' THEN 1
       WHEN 'moderator' THEN 2
       ELSE 3
     END,
-    joined_at ASC
+    cm.joined_at ASC
     LIMIT $2`
 
   const rows = await sql(query, params)
