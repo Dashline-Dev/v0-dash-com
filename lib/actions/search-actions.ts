@@ -88,7 +88,7 @@ export async function globalSearch(
         'space' AS type,
         s.id::text,
         s.name AS title,
-        COALESCE(s.space_type, '') AS subtitle,
+        COALESCE(s.type, '') AS subtitle,
         s.slug,
         '/spaces/' || s.slug AS href,
         s.cover_image_url AS image_url,

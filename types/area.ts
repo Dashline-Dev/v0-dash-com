@@ -45,6 +45,10 @@ export interface AreaNeighborhood {
   description: string | null
   community_count: number
   event_count: number
+  bounds_ne_lat: number | null
+  bounds_ne_lng: number | null
+  bounds_sw_lat: number | null
+  bounds_sw_lng: number | null
 }
 
 export interface AreaCommunity {

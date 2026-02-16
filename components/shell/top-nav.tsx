@@ -5,13 +5,14 @@ import { usePathname } from "next/navigation"
 import { Plus, Bell, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { CommandPalette } from "./command-palette"
 
 const NAV_LINKS: { href: string; label: string }[] = [
   { href: "/", label: "Home" },
-  { href: "/announcements", label: "Announcements" },
+  { href: "/explore", label: "Explore" },
   { href: "/events", label: "Events" },
   { href: "/areas", label: "Areas" },
-  { href: "/spaces", label: "Spaces" },
+  { href: "/announcements", label: "Announcements" },
 ]
 
 export function TopNav() {
@@ -57,6 +58,7 @@ export function TopNav() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2">
+          <CommandPalette />
           <Button asChild variant="default" size="sm" className="gap-1.5">
             <Link href="/communities/create">
               <Plus className="w-4 h-4" />

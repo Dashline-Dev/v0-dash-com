@@ -112,10 +112,11 @@ export function AreaDetail({
           zoom={area.type === "city" ? 11 : 13}
           communities={mapMarkers.communities}
           events={mapMarkers.events}
+          neighborhoods={area.type === "city" ? neighborhoods : []}
           bounds={bounds}
           height="360px"
         />
-        <MapLegend />
+        <MapLegend showNeighborhoods={area.type === "city" && neighborhoods.length > 0} />
       </GoogleMapsProvider>
 
       {/* Tabs */}

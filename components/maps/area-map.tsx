@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useContext, useRef } from "react"
 import {
   Map,
   AdvancedMarker,
   Pin,
   InfoWindow,
   useMap,
+  useMapsLibrary,
+  GoogleMapsContext,
 } from "@vis.gl/react-google-maps"
 import { MapPin, Users, CalendarDays } from "lucide-react"
 import Link from "next/link"
@@ -31,11 +33,24 @@ interface EventMarker {
   community_name: string
 }
 
+interface NeighborhoodOverlay {
+  id: string
+  name: string
+  slug: string
+  bounds_ne_lat: number | null
+  bounds_ne_lng: number | null
+  bounds_sw_lat: number | null
+  bounds_sw_lng: number | null
+  community_count: number
+  event_count: number
+}
+
 interface AreaMapProps {
   center: { lat: number; lng: number }
   zoom?: number
   communities?: CommunityMarker[]
   events?: EventMarker[]
+  neighborhoods?: NeighborhoodOverlay[]
   bounds?: {
     ne: { lat: number; lng: number }
     sw: { lat: number; lng: number }
@@ -44,33 +59,144 @@ interface AreaMapProps {
   height?: string
 }
 
+// ── Neighborhood Rectangle overlay ──────────────────────────
+
+const NEIGHBORHOOD_COLORS = [
+  { fill: "#10b981", stroke: "#059669" }, // emerald
+  { fill: "#8b5cf6", stroke: "#7c3aed" }, // violet
+  { fill: "#f59e0b", stroke: "#d97706" }, // amber
+  { fill: "#ec4899", stroke: "#db2777" }, // pink
+  { fill: "#06b6d4", stroke: "#0891b2" }, // cyan
+  { fill: "#ef4444", stroke: "#dc2626" }, // red
+]
+
+function NeighborhoodRectangle({
+  neighborhood,
+  colorIndex,
+  onClick,
+}: {
+  neighborhood: NeighborhoodOverlay
+  colorIndex: number
+  onClick: (n: NeighborhoodOverlay) => void
+}) {
+  const map = useContext(GoogleMapsContext)?.map
+  const rectRef = useRef<google.maps.Rectangle | null>(null)
+  const labelRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
+  const color = NEIGHBORHOOD_COLORS[colorIndex % NEIGHBORHOOD_COLORS.length]
+
+  useEffect(() => {
+    if (
+      !map ||
+      typeof google === "undefined" ||
+      !neighborhood.bounds_ne_lat ||
+      !neighborhood.bounds_ne_lng ||
+      !neighborhood.bounds_sw_lat ||
+      !neighborhood.bounds_sw_lng
+    )
+      return
+
+    const bounds = new google.maps.LatLngBounds(
+      { lat: neighborhood.bounds_sw_lat, lng: neighborhood.bounds_sw_lng },
+      { lat: neighborhood.bounds_ne_lat, lng: neighborhood.bounds_ne_lng }
+    )
+
+    // Create the rectangle
+    const rect = new google.maps.Rectangle({
+      bounds,
+      map,
+      strokeColor: color.stroke,
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillColor: color.fill,
+      fillOpacity: 0.12,
+      clickable: true,
+      zIndex: 1,
+    })
+
+    rect.addListener("click", () => onClick(neighborhood))
+
+    // Create a label in the center
+    const centerLat =
+      (neighborhood.bounds_ne_lat + neighborhood.bounds_sw_lat) / 2
+    const centerLng =
+      (neighborhood.bounds_ne_lng + neighborhood.bounds_sw_lng) / 2
+
+    const labelDiv = document.createElement("div")
+    labelDiv.innerHTML = `<div style="
+      background: ${color.stroke};
+      color: white;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    ">${neighborhood.name}</div>`
+
+    const label = new google.maps.marker.AdvancedMarkerElement({
+      position: { lat: centerLat, lng: centerLng },
+      map,
+      content: labelDiv,
+      zIndex: 2,
+    })
+
+    rectRef.current = rect
+    labelRef.current = label
+
+    return () => {
+      rect.setMap(null)
+      label.map = null
+    }
+  }, [map, neighborhood, color, onClick])
+
+  return null
+}
+
+// ── Main AreaMap component ──────────────────────────────────
+
 export function AreaMap({
   center,
   zoom = 12,
   communities = [],
   events = [],
+  neighborhoods = [],
   bounds,
   className,
   height = "400px",
 }: AreaMapProps) {
-  const [selectedCommunity, setSelectedCommunity] = useState<CommunityMarker | null>(null)
+  const [selectedCommunity, setSelectedCommunity] =
+    useState<CommunityMarker | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<EventMarker | null>(null)
+  const [selectedNeighborhood, setSelectedNeighborhood] =
+    useState<NeighborhoodOverlay | null>(null)
 
   const handleCommunityClick = useCallback((community: CommunityMarker) => {
     setSelectedEvent(null)
+    setSelectedNeighborhood(null)
     setSelectedCommunity(community)
   }, [])
 
   const handleEventClick = useCallback((event: EventMarker) => {
     setSelectedCommunity(null)
+    setSelectedNeighborhood(null)
     setSelectedEvent(event)
+  }, [])
+
+  const handleNeighborhoodClick = useCallback((n: NeighborhoodOverlay) => {
+    setSelectedCommunity(null)
+    setSelectedEvent(null)
+    setSelectedNeighborhood(n)
   }, [])
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   if (!apiKey) {
     return (
       <div
-        className={cn("flex items-center justify-center rounded-xl border border-border bg-muted/30", className)}
+        className={cn(
+          "flex items-center justify-center rounded-xl border border-border bg-muted/30",
+          className
+        )}
         style={{ height }}
       >
         <div className="text-center text-muted-foreground">
@@ -83,7 +209,13 @@ export function AreaMap({
   }
 
   return (
-    <div className={cn("rounded-xl overflow-hidden border border-border", className)} style={{ height }}>
+    <div
+      className={cn(
+        "rounded-xl overflow-hidden border border-border",
+        className
+      )}
+      style={{ height }}
+    >
       <Map
         defaultCenter={center}
         defaultZoom={zoom}
@@ -96,6 +228,16 @@ export function AreaMap({
         fullscreenControl={true}
         style={{ width: "100%", height: "100%" }}
       >
+        {/* Neighborhood rectangles */}
+        {neighborhoods.map((n, i) => (
+          <NeighborhoodRectangle
+            key={`n-${n.id}`}
+            neighborhood={n}
+            colorIndex={i}
+            onClick={handleNeighborhoodClick}
+          />
+        ))}
+
         {/* Community markers (blue) */}
         {communities.map((c) => (
           <AdvancedMarker
@@ -129,7 +271,10 @@ export function AreaMap({
         {/* Community info window */}
         {selectedCommunity && (
           <InfoWindow
-            position={{ lat: selectedCommunity.lat, lng: selectedCommunity.lng }}
+            position={{
+              lat: selectedCommunity.lat,
+              lng: selectedCommunity.lng,
+            }}
             onCloseClick={() => setSelectedCommunity(null)}
           >
             <div className="p-1 min-w-[180px]">
@@ -163,12 +308,15 @@ export function AreaMap({
               <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                 <CalendarDays className="w-3 h-3" />
                 <span>
-                  {new Date(selectedEvent.start_time).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+                  {new Date(selectedEvent.start_time).toLocaleDateString(
+                    "en-US",
+                    {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    }
+                  )}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -178,32 +326,86 @@ export function AreaMap({
           </InfoWindow>
         )}
 
+        {/* Neighborhood info window */}
+        {selectedNeighborhood &&
+          selectedNeighborhood.bounds_ne_lat &&
+          selectedNeighborhood.bounds_sw_lat &&
+          selectedNeighborhood.bounds_ne_lng &&
+          selectedNeighborhood.bounds_sw_lng && (
+            <InfoWindow
+              position={{
+                lat:
+                  (selectedNeighborhood.bounds_ne_lat +
+                    selectedNeighborhood.bounds_sw_lat) /
+                  2,
+                lng:
+                  (selectedNeighborhood.bounds_ne_lng +
+                    selectedNeighborhood.bounds_sw_lng) /
+                  2,
+              }}
+              onCloseClick={() => setSelectedNeighborhood(null)}
+            >
+              <div className="p-1 min-w-[180px]">
+                <Link
+                  href={`/areas/${selectedNeighborhood.slug}`}
+                  className="text-sm font-semibold text-foreground hover:underline"
+                >
+                  {selectedNeighborhood.name}
+                </Link>
+                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {selectedNeighborhood.community_count} communities
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <CalendarDays className="w-3 h-3" />
+                    {selectedNeighborhood.event_count} events
+                  </span>
+                </div>
+              </div>
+            </InfoWindow>
+          )}
+
         {bounds && <FitBoundsHelper bounds={bounds} />}
       </Map>
     </div>
   )
 }
 
-// Helper to fit map to bounds on mount
-function FitBoundsHelper({ bounds }: { bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } } }) {
+// ── Fit bounds helper ───────────────────────────────────────
+
+function FitBoundsHelper({
+  bounds,
+}: {
+  bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }
+}) {
   const map = useMap()
 
-  if (map && bounds) {
-    const gBounds = new google.maps.LatLngBounds(
-      { lat: bounds.sw.lat, lng: bounds.sw.lng },
-      { lat: bounds.ne.lat, lng: bounds.ne.lng }
-    )
-    map.fitBounds(gBounds, { top: 40, right: 40, bottom: 40, left: 40 })
-  }
+  useEffect(() => {
+    if (!map || !bounds || typeof google === "undefined") return
+    try {
+      const gBounds = new google.maps.LatLngBounds(
+        { lat: bounds.sw.lat, lng: bounds.sw.lng },
+        { lat: bounds.ne.lat, lng: bounds.ne.lng }
+      )
+      map.fitBounds(gBounds, { top: 40, right: 40, bottom: 40, left: 40 })
+    } catch {
+      // Google Maps not ready yet
+    }
+  }, [map, bounds])
 
   return null
 }
 
-// ── Map legend component ────────────────────────────────────
+// ── Map legend ──────────────────────────────────────────────
 
-export function MapLegend() {
+export function MapLegend({
+  showNeighborhoods = false,
+}: {
+  showNeighborhoods?: boolean
+}) {
   return (
-    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-2">
       <div className="flex items-center gap-1.5">
         <div className="w-3 h-3 rounded-full bg-blue-500" />
         <span>Communities</span>
@@ -212,6 +414,12 @@ export function MapLegend() {
         <div className="w-3 h-3 rounded-full bg-orange-500" />
         <span>Events</span>
       </div>
+      {showNeighborhoods && (
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-sm bg-emerald-500/30 border border-emerald-500" />
+          <span>Neighborhoods</span>
+        </div>
+      )}
     </div>
   )
 }

@@ -134,6 +134,7 @@ export async function getAreaNeighborhoods(areaId: string): Promise<AreaNeighbor
   const rows = await sql(
     `SELECT
       a.id, a.name, a.slug, a.description,
+      a.bounds_ne_lat, a.bounds_ne_lng, a.bounds_sw_lat, a.bounds_sw_lng,
       COALESCE((SELECT COUNT(*) FROM community_areas ca WHERE ca.area_id = a.id), 0) as community_count,
       COALESCE((
         SELECT COUNT(DISTINCT e.id)
