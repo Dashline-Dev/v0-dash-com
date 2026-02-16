@@ -8,10 +8,9 @@ export const metadata = {
 
 export default async function EventCalendarPage() {
   const now = new Date()
-  const events = await getEventsForMonth(
-    now.getFullYear(),
-    now.getMonth() + 1
-  )
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1
+  const events = await getEventsForMonth(year, month)
 
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-8">
@@ -24,7 +23,7 @@ export default async function EventCalendarPage() {
         </p>
       </div>
 
-      <EventCalendar initialEvents={events} />
+      <EventCalendar initialEvents={events} initialYear={year} initialMonth={month} />
     </div>
   )
 }
