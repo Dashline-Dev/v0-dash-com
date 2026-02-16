@@ -3,14 +3,14 @@ import { MapPin, ChevronRight, Search, TrendingUp, Users } from "lucide-react"
 import { getCommunities } from "@/lib/actions/community-actions"
 import { getAreas } from "@/lib/actions/area-actions"
 import { getTrending, getUpcomingEvents } from "@/lib/actions/search-actions"
-import { CommunityList } from "@/components/communities/community-list"
+import { CommunityCard } from "@/components/communities/community-card"
 import { AreaCard } from "@/components/areas/area-card"
 import { UpcomingEventsList } from "@/components/events/upcoming-events"
 import { Badge } from "@/components/ui/badge"
 
 export default async function HomePage() {
-  const [result, areasResult, trending, upcomingEvents] = await Promise.all([
-    getCommunities({ limit: 12 }),
+  const [communities, areasResult, trending, upcomingEvents] = await Promise.all([
+    getCommunities({ limit: 4 }),
     getAreas({ type: "city", limit: 4 }),
     getTrending(),
     getUpcomingEvents(6),
@@ -24,13 +24,13 @@ export default async function HomePage() {
   return (
     <div className="px-4 py-5 md:px-6 lg:px-10 md:py-8 pb-24 md:pb-8">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground text-balance">
-            Discover Communities
+            Welcome to Community Circle
           </h1>
           <p className="text-sm md:text-base text-muted-foreground mt-1">
-            Find your people and start connecting
+            Discover events, communities, and areas near you
           </p>
         </div>
         <Link
@@ -44,7 +44,7 @@ export default async function HomePage() {
 
       {/* Areas discovery */}
       {areasResult.areas.length > 0 && (
-        <div className="mb-8">
+        <section className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <MapPin className="w-4.5 h-4.5 text-primary" />
@@ -63,12 +63,12 @@ export default async function HomePage() {
               <AreaCard key={area.id} area={area} />
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Trending */}
       {trending.length > 0 && (
-        <div className="mb-8">
+        <section className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <TrendingUp className="w-4.5 h-4.5 text-primary" />
@@ -102,18 +102,37 @@ export default async function HomePage() {
               )
             })}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Upcoming events */}
-      <UpcomingEventsList events={upcomingEvents} />
+      <section className="mb-8">
+        <UpcomingEventsList events={upcomingEvents} />
+      </section>
 
-      {/* Community list with search, filters, and infinite scroll */}
-      <CommunityList
-        initialData={result.data}
-        initialCursor={result.nextCursor}
-        initialHasMore={result.hasMore}
-      />
+      {/* Featured communities */}
+      {communities.data.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Users className="w-4.5 h-4.5 text-primary" />
+              Featured Communities
+            </h2>
+            <Link
+              href="/communities"
+              className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+            >
+              View all
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {communities.data.map((community) => (
+              <CommunityCard key={community.id} community={community} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

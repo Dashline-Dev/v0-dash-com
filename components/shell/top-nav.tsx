@@ -10,9 +10,9 @@ import { CommandPalette } from "./command-palette"
 const NAV_LINKS: { href: string; label: string }[] = [
   { href: "/", label: "Home" },
   { href: "/explore", label: "Explore" },
+  { href: "/communities", label: "Communities" },
   { href: "/events", label: "Events" },
   { href: "/areas", label: "Areas" },
-  { href: "/announcements", label: "Announcements" },
 ]
 
 export function TopNav() {
