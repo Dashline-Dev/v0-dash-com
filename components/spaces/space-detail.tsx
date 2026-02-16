@@ -149,7 +149,7 @@ function CalendarTab({ events }: { events: EventWithMeta[] }) {
   return (
     <div className="space-y-3 max-w-2xl">
       {events.map((event) => (
-        <EventCard key={event.id} event={event} href={`/events/${event.slug}`} />
+        <EventCard key={event.id} event={event} basePath="/events" />
       ))}
     </div>
   )
