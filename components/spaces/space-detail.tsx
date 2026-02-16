@@ -5,17 +5,20 @@ import { MessageCircle, Calendar, FileText, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { SpaceWithMeta, SpaceMember } from "@/types/space"
 import { SPACE_MEMBER_ROLE_LABELS, type SpaceMemberRole } from "@/types/space"
+import type { EventWithMeta } from "@/types/event"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { EventCard } from "@/components/events/event-card"
 
 type Tab = "about" | "calendar" | "members"
 
 interface SpaceDetailProps {
   space: SpaceWithMeta
   members: SpaceMember[]
+  events?: EventWithMeta[]
 }
 
-export function SpaceDetail({ space, members }: SpaceDetailProps) {
+export function SpaceDetail({ space, members, events = [] }: SpaceDetailProps) {
   const [activeTab, setActiveTab] = useState<Tab>("about")
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -47,7 +50,7 @@ export function SpaceDetail({ space, members }: SpaceDetailProps) {
 
       {/* Tab content */}
       {activeTab === "about" && <AboutTab space={space} />}
-      {activeTab === "calendar" && <CalendarTab />}
+      {activeTab === "calendar" && <CalendarTab events={events} />}
       {activeTab === "members" && <MembersTab members={members} />}
     </div>
   )
@@ -115,20 +118,26 @@ function AboutTab({ space }: { space: SpaceWithMeta }) {
   )
 }
 
-// ─── Calendar Tab (Stub) ────────────────────────────────────────────────────
+// ─── Calendar Tab ───────────────────────────────────────────────────────────
 
-function CalendarTab() {
+function CalendarTab({ events }: { events: EventWithMeta[] }) {
+  if (events.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Calendar className="w-12 h-12 text-muted-foreground/30 mb-3" />
+        <p className="text-lg font-medium text-foreground">No events yet</p>
+        <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+          Events published to this space will appear here.
+        </p>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <Calendar className="w-12 h-12 text-muted-foreground/30 mb-3" />
-      <p className="text-lg font-medium text-foreground">Space Calendar</p>
-      <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-        Events for this space will appear here. This feature is coming soon.
-      </p>
-      {/* ── Extension Point: Calendar ──────────────────────────────────── */}
-      {/* When the Events module is built, replace this stub with:
-          <SpaceCalendar spaceId={space.id} />
-      */}
+    <div className="space-y-3 max-w-2xl">
+      {events.map((event) => (
+        <EventCard key={event.id} event={event} href={`/events/${event.slug}`} />
+      ))}
     </div>
   )
 }

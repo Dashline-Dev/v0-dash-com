@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { neon } from "@neondatabase/serverless"
 import { getSpaceBySlug, getSpaceMembers } from "@/lib/actions/space-actions"
+import { getEvents } from "@/lib/actions/event-actions"
 import { SpaceHeader } from "@/components/spaces/space-header"
 import { SpaceDetail } from "@/components/spaces/space-detail"
 
@@ -34,12 +35,15 @@ export default async function CommunitySpacePage({ params }: CommunitySpacePageP
   const space = await getSpaceBySlug(spaceSlug, community[0].id)
   if (!space) notFound()
 
-  const members = await getSpaceMembers(space.id)
+  const [members, eventsResult] = await Promise.all([
+    getSpaceMembers(space.id),
+    getEvents({ spaceId: space.id, limit: 10, upcomingOnly: true }),
+  ])
 
   return (
     <div className="pb-24 md:pb-6">
       <SpaceHeader space={space} />
-      <SpaceDetail space={space} members={members} />
+      <SpaceDetail space={space} members={members} events={eventsResult.events} />
     </div>
   )
 }
