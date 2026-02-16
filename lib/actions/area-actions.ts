@@ -240,13 +240,15 @@ export async function getAreaMapMarkers(areaId: string): Promise<{
   events: { id: string; title: string; slug: string; lat: number; lng: number; start_time: string; community_name: string }[]
 }> {
   const communities = await sql(
-    `SELECT c.id, c.name, c.slug, c.latitude as lat, c.longitude as lng, c.member_count
+    `SELECT DISTINCT ON (c.id)
+       c.id, c.name, c.slug, c.latitude as lat, c.longitude as lng, c.member_count
      FROM communities c
      JOIN community_areas ca ON ca.community_id = c.id
      WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
        AND c.visibility = 'public'
        AND c.latitude IS NOT NULL
-       AND c.longitude IS NOT NULL`,
+       AND c.longitude IS NOT NULL
+     ORDER BY c.id`,
     [areaId]
   )
 

@@ -82,6 +82,7 @@ function NeighborhoodRectangle({
   const color = NEIGHBORHOOD_COLORS[colorIndex % NEIGHBORHOOD_COLORS.length]
 
   useEffect(() => {
+    console.log("[v0] NeighborhoodRectangle effect:", neighborhood.name, "map:", !!map, "google:", typeof google !== "undefined", "bounds:", neighborhood.bounds_ne_lat, neighborhood.bounds_sw_lat, neighborhood.bounds_ne_lng, neighborhood.bounds_sw_lng)
     if (
       !map ||
       typeof google === "undefined" ||
@@ -172,6 +173,8 @@ export function AreaMap({
   className,
   height = "400px",
 }: AreaMapProps) {
+  console.log("[v0] AreaMap render - neighborhoods:", neighborhoods.length, neighborhoods.map(n => ({ name: n.name, ne: n.bounds_ne_lat, sw: n.bounds_sw_lat })))
+
   const [selectedCommunity, setSelectedCommunity] =
     useState<CommunityMarker | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<EventMarker | null>(null)
