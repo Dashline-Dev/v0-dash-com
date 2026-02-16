@@ -133,7 +133,7 @@ export async function getAreaBySlug(slug: string): Promise<AreaWithMeta | null> 
 export async function getAreaNeighborhoods(areaId: string): Promise<AreaNeighborhood[]> {
   const rows = await sql(
     `SELECT
-      a.id, a.name, a.slug, a.description,
+      a.id, a.name, a.slug, a.description, a.place_id,
       a.bounds_ne_lat, a.bounds_ne_lng, a.bounds_sw_lat, a.bounds_sw_lng,
       COALESCE((SELECT COUNT(*) FROM community_areas ca WHERE ca.area_id = a.id), 0) as community_count,
       COALESCE((

@@ -24,6 +24,7 @@ export interface Area {
   bounds_sw_lat: number | null
   bounds_sw_lng: number | null
   cover_image_url: string | null
+  place_id: string | null
   status: AreaStatus
   created_at: string
   updated_at: string
@@ -43,6 +44,7 @@ export interface AreaNeighborhood {
   name: string
   slug: string
   description: string | null
+  place_id: string | null
   community_count: number
   event_count: number
   bounds_ne_lat: number | null
