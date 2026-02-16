@@ -72,8 +72,123 @@ const NEIGHBORHOOD_COLORS = [
   { fill: "#ef4444", stroke: "#dc2626" },
 ]
 
-// ── Rectangle overlay for a single neighborhood ─────────────
-// Uses google.maps.Rectangle (works with ANY Map ID, no premium needed)
+// ── FeatureLayer Boundary Styler ────────────────────────────
+// Uses Google's Data-Driven Styling to render REAL Google-verified
+// boundary polygons for neighborhoods and the area itself.
+// Requires a Map ID with LOCALITY feature layer enabled in Cloud Console.
+
+function FeatureLayerStyler({
+  neighborhoods,
+  areaPlaceId,
+}: {
+  neighborhoods: NeighborhoodOverlay[]
+  areaPlaceId?: string | null
+}) {
+  const map = useMap()
+  const appliedRef = useRef(false)
+
+  useEffect(() => {
+    if (!map || appliedRef.current) return
+    if (typeof google === "undefined" || !google.maps) return
+
+    // Collect all neighborhood place IDs and build color map
+    const neighborhoodPlaceIds = new Map<
+      string,
+      { fill: string; stroke: string; name: string }
+    >()
+    neighborhoods.forEach((n, i) => {
+      if (n.place_id) {
+        const color = NEIGHBORHOOD_COLORS[i % NEIGHBORHOOD_COLORS.length]
+        neighborhoodPlaceIds.set(n.place_id, {
+          fill: color.fill,
+          stroke: color.stroke,
+          name: n.name,
+        })
+      }
+    })
+
+    const allPlaceIds = new Set<string>()
+    neighborhoodPlaceIds.forEach((_, pid) => allPlaceIds.add(pid))
+    if (areaPlaceId) allPlaceIds.add(areaPlaceId)
+
+    if (allPlaceIds.size === 0) return
+
+    // Try to get the LOCALITY feature layer (for cities/neighborhoods)
+    try {
+      const localityLayer = (map as google.maps.Map & {
+        getFeatureLayer: (id: string) => google.maps.FeatureLayer
+      }).getFeatureLayer("LOCALITY")
+
+      if (localityLayer) {
+        localityLayer.style = (params: { feature: { placeId: string } }) => {
+          const placeId = params.feature.placeId
+
+          // Neighborhood styling
+          const nData = neighborhoodPlaceIds.get(placeId)
+          if (nData) {
+            return {
+              fillColor: nData.fill,
+              fillOpacity: 0.15,
+              strokeColor: nData.stroke,
+              strokeOpacity: 0.8,
+              strokeWeight: 2.5,
+            }
+          }
+
+          // Area itself (city) styling -- subtle outline
+          if (placeId === areaPlaceId) {
+            return {
+              fillColor: "#6366f1",
+              fillOpacity: 0.04,
+              strokeColor: "#6366f1",
+              strokeOpacity: 0.5,
+              strokeWeight: 2,
+            }
+          }
+
+          return null
+        }
+
+        appliedRef.current = true
+        console.log("[v0] FeatureLayer LOCALITY styled with", allPlaceIds.size, "place IDs")
+      }
+    } catch (err) {
+      console.log("[v0] FeatureLayer LOCALITY not available:", err)
+    }
+
+    // Also try ADMINISTRATIVE_AREA_LEVEL_2 for broader cities
+    try {
+      const adminLayer = (map as google.maps.Map & {
+        getFeatureLayer: (id: string) => google.maps.FeatureLayer
+      }).getFeatureLayer("ADMINISTRATIVE_AREA_LEVEL_2")
+
+      if (adminLayer && areaPlaceId) {
+        adminLayer.style = (params: { feature: { placeId: string } }) => {
+          if (params.feature.placeId === areaPlaceId) {
+            return {
+              fillColor: "#6366f1",
+              fillOpacity: 0.03,
+              strokeColor: "#6366f1",
+              strokeOpacity: 0.4,
+              strokeWeight: 1.5,
+            }
+          }
+          return null
+        }
+      }
+    } catch {
+      // Layer not available for this map ID
+    }
+
+    return () => {
+      appliedRef.current = false
+    }
+  }, [map, neighborhoods, areaPlaceId])
+
+  return null
+}
+
+// ── Rectangle fallback for neighborhoods without place_id ───
 
 function NeighborhoodRectangle({
   neighborhood,
@@ -87,8 +202,7 @@ function NeighborhoodRectangle({
   const color = NEIGHBORHOOD_COLORS[colorIndex % NEIGHBORHOOD_COLORS.length]
 
   useEffect(() => {
-    if (!map) return
-    if (typeof google === "undefined") return
+    if (!map || typeof google === "undefined") return
     if (
       neighborhood.bounds_ne_lat == null ||
       neighborhood.bounds_ne_lng == null ||
@@ -97,7 +211,6 @@ function NeighborhoodRectangle({
     )
       return
 
-    // Clean up any previous rectangle
     if (rectRef.current) {
       rectRef.current.setMap(null)
       rectRef.current = null
@@ -170,6 +283,7 @@ export function AreaMap({
   communities = [],
   events = [],
   neighborhoods = [],
+  areaPlaceId,
   bounds,
   className,
   height = "400px",
@@ -189,6 +303,8 @@ export function AreaMap({
   }, [])
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID
+
   if (!apiKey) {
     return (
       <div
@@ -207,13 +323,24 @@ export function AreaMap({
     )
   }
 
-  // Filter neighborhoods that have valid bounds for rectangle overlays
-  const drawableNeighborhoods = neighborhoods.filter(
+  // Neighborhoods with place IDs get Google-verified boundaries via FeatureLayer
+  const featureLayerNeighborhoods = neighborhoods.filter((n) => n.place_id)
+  // Neighborhoods without place IDs fall back to rectangle overlays
+  const fallbackNeighborhoods = neighborhoods.filter(
     (n) =>
+      !n.place_id &&
       n.bounds_ne_lat != null &&
       n.bounds_ne_lng != null &&
       n.bounds_sw_lat != null &&
       n.bounds_sw_lng != null
+  )
+
+  // Deduplicate communities and events by id
+  const uniqueCommunities = Array.from(
+    new Map(communities.map((c) => [c.id, c])).values()
+  )
+  const uniqueEvents = Array.from(
+    new Map(events.map((e) => [e.id, e])).values()
   )
 
   return (
@@ -227,7 +354,7 @@ export function AreaMap({
       <Map
         defaultCenter={center}
         defaultZoom={zoom}
-        mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || undefined}
+        mapId={mapId || undefined}
         gestureHandling="greedy"
         disableDefaultUI={false}
         zoomControl={true}
@@ -236,8 +363,16 @@ export function AreaMap({
         fullscreenControl={true}
         style={{ width: "100%", height: "100%" }}
       >
-        {/* Neighborhood rectangle overlays (drawn with google.maps.Rectangle) */}
-        {drawableNeighborhoods.map((n, i) => (
+        {/* Google-verified boundary polygons via FeatureLayer */}
+        {mapId && featureLayerNeighborhoods.length > 0 && (
+          <FeatureLayerStyler
+            neighborhoods={featureLayerNeighborhoods}
+            areaPlaceId={areaPlaceId}
+          />
+        )}
+
+        {/* Fallback rectangle overlays for neighborhoods without place_id */}
+        {fallbackNeighborhoods.map((n, i) => (
           <NeighborhoodRectangle
             key={`rect-${n.id}`}
             neighborhood={n}
@@ -246,46 +381,62 @@ export function AreaMap({
         ))}
 
         {/* Neighborhood center labels */}
-        {drawableNeighborhoods.map((n, i) => {
-          const centerLat =
-            ((n.bounds_ne_lat ?? 0) + (n.bounds_sw_lat ?? 0)) / 2
-          const centerLng =
-            ((n.bounds_ne_lng ?? 0) + (n.bounds_sw_lng ?? 0)) / 2
-          const color = NEIGHBORHOOD_COLORS[i % NEIGHBORHOOD_COLORS.length]
-
-          return (
-            <AdvancedMarker
-              key={`n-label-${n.id}`}
-              position={{ lat: centerLat, lng: centerLng }}
-              zIndex={5}
-            >
-              <Link href={`/areas/${n.slug}`}>
-                <div
-                  className="cursor-pointer transition-transform hover:scale-105"
-                  style={{
-                    background: color.stroke,
-                    color: "white",
-                    padding: "4px 10px",
-                    borderRadius: "6px",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    whiteSpace: "nowrap",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
-                    border: `1px solid ${color.fill}`,
-                  }}
-                >
-                  {n.name}
-                  <span style={{ marginLeft: "4px", opacity: 0.7, fontSize: "10px" }}>
-                    {n.community_count}c {n.event_count}e
-                  </span>
-                </div>
-              </Link>
-            </AdvancedMarker>
+        {neighborhoods
+          .filter(
+            (n) =>
+              (n.place_id ||
+                (n.bounds_ne_lat != null && n.bounds_sw_lat != null)) &&
+              n.bounds_ne_lat != null &&
+              n.bounds_sw_lat != null &&
+              n.bounds_ne_lng != null &&
+              n.bounds_sw_lng != null
           )
-        })}
+          .map((n, i) => {
+            const centerLat =
+              ((n.bounds_ne_lat ?? 0) + (n.bounds_sw_lat ?? 0)) / 2
+            const centerLng =
+              ((n.bounds_ne_lng ?? 0) + (n.bounds_sw_lng ?? 0)) / 2
+            const color = NEIGHBORHOOD_COLORS[i % NEIGHBORHOOD_COLORS.length]
+
+            return (
+              <AdvancedMarker
+                key={`n-label-${n.id}`}
+                position={{ lat: centerLat, lng: centerLng }}
+                zIndex={5}
+              >
+                <Link href={`/areas/${n.slug}`}>
+                  <div
+                    className="cursor-pointer transition-transform hover:scale-105"
+                    style={{
+                      background: color.stroke,
+                      color: "white",
+                      padding: "4px 10px",
+                      borderRadius: "6px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      whiteSpace: "nowrap",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+                      border: `1px solid ${color.fill}`,
+                    }}
+                  >
+                    {n.name}
+                    <span
+                      style={{
+                        marginLeft: "4px",
+                        opacity: 0.7,
+                        fontSize: "10px",
+                      }}
+                    >
+                      {n.community_count}c {n.event_count}e
+                    </span>
+                  </div>
+                </Link>
+              </AdvancedMarker>
+            )
+          })}
 
         {/* Community markers (blue pins) */}
-        {communities.map((c) => (
+        {uniqueCommunities.map((c) => (
           <AdvancedMarker
             key={`c-${c.id}`}
             position={{ lat: c.lat, lng: c.lng }}
@@ -300,7 +451,7 @@ export function AreaMap({
         ))}
 
         {/* Event markers (orange pins) */}
-        {events.map((e) => (
+        {uniqueEvents.map((e) => (
           <AdvancedMarker
             key={`e-${e.id}`}
             position={{ lat: e.lat, lng: e.lng }}

@@ -7,13 +7,13 @@ export const metadata = {
 }
 
 export default async function EventsPage() {
-  const { events, hasMore, cursor } = await getEvents({
+  const { events, total } = await getEvents({
     limit: 12,
-    upcomingOnly: true,
+    upcoming: true,
   })
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-8">
+    <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-24 md:pb-8">
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-foreground text-balance">
           Events
@@ -25,8 +25,8 @@ export default async function EventsPage() {
 
       <EventList
         initialEvents={events}
-        initialCursor={cursor}
-        initialHasMore={hasMore}
+        initialCursor={events.length < total ? String(events.length) : null}
+        initialHasMore={events.length < total}
       />
     </div>
   )
