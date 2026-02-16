@@ -11,7 +11,7 @@ import { MapPin, Users, CalendarDays } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
-// ── Types ───────────────────────────────────────────────────
+// ── Map Types ──────────────────────────────────────────────
 
 interface CommunityMarker {
   id: string
@@ -267,7 +267,7 @@ function FitBoundsHelper({
   return null
 }
 
-// ── Main component ──────────────────────────────────────────
+// ── Main component ──────────────��───────────────────────────
 
 export function AreaMap({
   center,
@@ -517,7 +517,7 @@ export function AreaMap({
   )
 }
 
-// ── Map legend ──────────────────────────────────────────────
+// ── Map legend ───��──────────────────────────────────────────
 
 export function MapLegend({
   showNeighborhoods = false,

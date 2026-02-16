@@ -22,7 +22,15 @@ export function EventList({
   communityId,
   spaceId,
 }: EventListProps) {
-  const [events, setEvents] = useState(initialEvents)
+  const [events, setEvents] = useState(() => {
+    // Deduplicate initial events
+    const seen = new Set<string>()
+    return initialEvents.filter((e) => {
+      if (seen.has(e.id)) return false
+      seen.add(e.id)
+      return true
+    })
+  })
   const [total, setTotal] = useState(initialTotal)
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState<EventType | "all">("all")

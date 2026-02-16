@@ -25,8 +25,7 @@ export default async function EventsPage() {
 
       <EventList
         initialEvents={events}
-        initialCursor={events.length < total ? String(events.length) : null}
-        initialHasMore={events.length < total}
+        initialTotal={total}
       />
     </div>
   )

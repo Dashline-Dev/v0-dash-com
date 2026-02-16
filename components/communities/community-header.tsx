@@ -11,6 +11,7 @@ import {
   LogOut,
   LogIn,
   Loader2,
+  Check,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -26,6 +27,7 @@ interface CommunityHeaderProps {
 export function CommunityHeader({ community }: CommunityHeaderProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
   const isMember = !!community.current_user_role
   const isAdmin =
     community.current_user_role === "owner" ||
@@ -47,30 +49,20 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
     }
   }
 
-  const handleShare = async () => {
+  const handleShare = () => {
+    if (typeof window === "undefined") return
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: community.name,
-          text: community.description || undefined,
-          url: window.location.href,
-        })
-      } else {
-        await navigator.clipboard.writeText(window.location.href)
-      }
+      navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     } catch {
-      // User cancelled or permission denied -- fall back to clipboard
-      try {
-        await navigator.clipboard.writeText(window.location.href)
-      } catch {
-        // Clipboard also not available
-      }
+      // clipboard not available
     }
   }
 
   return (
     <div>
-      {/* Cover image - subtle, not the focus */}
+      {/* Cover image */}
       <div className="relative w-full h-24 md:h-32 bg-secondary overflow-hidden">
         {community.cover_image_url ? (
           <img
@@ -83,11 +75,10 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
         )}
       </div>
 
-      {/* Community info - sits cleanly below the banner */}
+      {/* Community info */}
       <div className="px-4 md:px-6 lg:px-10 border-b border-border bg-card">
         <div className="flex flex-col gap-4 py-4 md:py-5">
           <div className="flex items-center gap-3 md:gap-4">
-            {/* Avatar - fully below the banner, no overlap */}
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-card overflow-hidden shadow-sm shrink-0 border border-border">
               {community.avatar_url ? (
                 <img
@@ -102,7 +93,6 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
               )}
             </div>
 
-            {/* Name + meta -- always below the banner */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-lg md:text-xl font-bold text-foreground truncate">
@@ -118,7 +108,7 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
                   {community.member_count.toLocaleString()} members
                 </span>
                 {community.location_name && (
-                  <span className="flex items-center gap-1 hidden sm:flex">
+                  <span className="items-center gap-1 hidden sm:flex">
                     <MapPin className="w-3.5 h-3.5" />
                     {community.location_name}
                   </span>
@@ -127,7 +117,7 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
             </div>
           </div>
 
-          {/* Actions row - separate line for clarity */}
+          {/* Actions row */}
           <div className="flex items-center gap-2 flex-wrap">
             {isMember && community.current_user_role !== "owner" && (
               <Badge variant="secondary" className="text-xs">
@@ -167,7 +157,11 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
               className="text-muted-foreground"
               aria-label="Share"
             >
-              <Share2 className="w-4 h-4" />
+              {copied ? (
+                <Check className="w-4 h-4 text-emerald-500" />
+              ) : (
+                <Share2 className="w-4 h-4" />
+              )}
             </Button>
             {isAdmin && (
               <Button
