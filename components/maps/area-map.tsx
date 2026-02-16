@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react"
 import {
-  Map,
+  Map as GoogleMap,
   AdvancedMarker,
   InfoWindow,
   useMap,
@@ -343,7 +343,7 @@ export function AreaMap({
       )}
       style={{ height }}
     >
-      <Map
+      <GoogleMap
         defaultCenter={center}
         defaultZoom={zoom}
         mapId={mapId || undefined}
@@ -512,12 +512,12 @@ export function AreaMap({
         )}
 
         {bounds && <FitBoundsHelper bounds={bounds} />}
-      </Map>
+      </GoogleMap>
     </div>
   )
 }
 
-// ── Map legend ───��──────────────────────────────────────────
+// ── Map legend ───��─���────────────────────────────────────────
 
 export function MapLegend({
   showNeighborhoods = false,
