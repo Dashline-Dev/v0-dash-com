@@ -1,14 +1,12 @@
 "use client"
 
-import { useState, useCallback, useEffect, useContext, useRef } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import {
   Map,
   AdvancedMarker,
   Pin,
   InfoWindow,
   useMap,
-  useMapsLibrary,
-  GoogleMapsContext,
 } from "@vis.gl/react-google-maps"
 import { MapPin, Users, CalendarDays } from "lucide-react"
 import Link from "next/link"
@@ -79,9 +77,8 @@ function NeighborhoodRectangle({
   colorIndex: number
   onClick: (n: NeighborhoodOverlay) => void
 }) {
-  const map = useContext(GoogleMapsContext)?.map
+  const map = useMap()
   const rectRef = useRef<google.maps.Rectangle | null>(null)
-  const labelRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
   const color = NEIGHBORHOOD_COLORS[colorIndex % NEIGHBORHOOD_COLORS.length]
 
   useEffect(() => {
@@ -95,62 +92,72 @@ function NeighborhoodRectangle({
     )
       return
 
-    const bounds = new google.maps.LatLngBounds(
-      { lat: neighborhood.bounds_sw_lat, lng: neighborhood.bounds_sw_lng },
-      { lat: neighborhood.bounds_ne_lat, lng: neighborhood.bounds_ne_lng }
-    )
+    try {
+      const bounds = new google.maps.LatLngBounds(
+        { lat: neighborhood.bounds_sw_lat, lng: neighborhood.bounds_sw_lng },
+        { lat: neighborhood.bounds_ne_lat, lng: neighborhood.bounds_ne_lng }
+      )
 
-    // Create the rectangle
-    const rect = new google.maps.Rectangle({
-      bounds,
-      map,
-      strokeColor: color.stroke,
-      strokeOpacity: 0.8,
-      strokeWeight: 2,
-      fillColor: color.fill,
-      fillOpacity: 0.12,
-      clickable: true,
-      zIndex: 1,
-    })
+      // Create the rectangle overlay
+      const rect = new google.maps.Rectangle({
+        bounds,
+        map,
+        strokeColor: color.stroke,
+        strokeOpacity: 0.85,
+        strokeWeight: 2,
+        fillColor: color.fill,
+        fillOpacity: 0.15,
+        clickable: true,
+        zIndex: 1,
+      })
 
-    rect.addListener("click", () => onClick(neighborhood))
+      rect.addListener("click", () => onClick(neighborhood))
+      rectRef.current = rect
 
-    // Create a label in the center
-    const centerLat =
-      (neighborhood.bounds_ne_lat + neighborhood.bounds_sw_lat) / 2
-    const centerLng =
-      (neighborhood.bounds_ne_lng + neighborhood.bounds_sw_lng) / 2
-
-    const labelDiv = document.createElement("div")
-    labelDiv.innerHTML = `<div style="
-      background: ${color.stroke};
-      color: white;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-      pointer-events: none;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    ">${neighborhood.name}</div>`
-
-    const label = new google.maps.marker.AdvancedMarkerElement({
-      position: { lat: centerLat, lng: centerLng },
-      map,
-      content: labelDiv,
-      zIndex: 2,
-    })
-
-    rectRef.current = rect
-    labelRef.current = label
-
-    return () => {
-      rect.setMap(null)
-      label.map = null
+      return () => {
+        rect.setMap(null)
+        rectRef.current = null
+      }
+    } catch {
+      // Google Maps API not fully loaded yet
     }
   }, [map, neighborhood, color, onClick])
 
-  return null
+  // Render a centered label via AdvancedMarker (part of the library, safe)
+  if (
+    !neighborhood.bounds_ne_lat ||
+    !neighborhood.bounds_sw_lat ||
+    !neighborhood.bounds_ne_lng ||
+    !neighborhood.bounds_sw_lng
+  )
+    return null
+
+  const centerLat = (neighborhood.bounds_ne_lat + neighborhood.bounds_sw_lat) / 2
+  const centerLng = (neighborhood.bounds_ne_lng + neighborhood.bounds_sw_lng) / 2
+
+  return (
+    <AdvancedMarker
+      position={{ lat: centerLat, lng: centerLng }}
+      zIndex={2}
+      clickable={false}
+    >
+      <div
+        style={{
+          background: color.stroke,
+          color: "white",
+          padding: "3px 8px",
+          borderRadius: "4px",
+          fontSize: "11px",
+          fontWeight: 600,
+          whiteSpace: "nowrap",
+          pointerEvents: "none",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+        }}
+      >
+        {neighborhood.name}
+      </div>
+    </AdvancedMarker>
+  )
 }
 
 // ── Main AreaMap component ──────────────────────────────────
