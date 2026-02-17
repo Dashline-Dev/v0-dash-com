@@ -21,7 +21,6 @@ export async function getSession(): Promise<AuthUser | null> {
   try {
     const jar = await cookies()
     const token = jar.get(SESSION_COOKIE)?.value
-    console.log("[v0] getSession: token?", !!token, token ? token.slice(0, 8) : "none")
     if (!token) return null
 
     const rows = await sql(
@@ -32,11 +31,9 @@ export async function getSession(): Promise<AuthUser | null> {
       [token]
     )
 
-    console.log("[v0] getSession: rows=", rows.length, rows.length > 0 ? rows[0].id : "none")
     if (rows.length === 0) return null
     return rows[0] as AuthUser
-  } catch (err) {
-    console.error("[v0] getSession error:", err)
+  } catch {
     return null
   }
 }
