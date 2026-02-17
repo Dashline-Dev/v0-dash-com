@@ -2,11 +2,16 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import dynamic from "next/dynamic"
 import { Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { CommandPalette } from "./command-palette"
 import { UserMenu } from "./user-menu"
+
+const CommandPalette = dynamic(
+  () => import("./command-palette").then((m) => m.CommandPalette),
+  { ssr: false }
+)
 
 const NAV_LINKS: { href: string; label: string }[] = [
   { href: "/", label: "Home" },
