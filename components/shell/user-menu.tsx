@@ -83,7 +83,7 @@ export function UserMenu({ user }: UserMenuProps) {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/profile" className="cursor-pointer">
+          <Link href="/settings" className="cursor-pointer">
             <Settings className="w-4 h-4 mr-2" />
             Settings
           </Link>

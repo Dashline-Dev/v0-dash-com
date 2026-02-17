@@ -156,3 +156,143 @@ export async function signIn(formData: {
 export async function signOut(): Promise<void> {
   await destroySession()
 }
+
+// ── Account management actions ─────────────────────────────
+
+export async function changePassword(formData: {
+  currentPassword: string
+  newPassword: string
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { currentPassword, newPassword } = formData
+  const session = await getSession()
+  if (!session) return { ok: false, error: "Not authenticated." }
+
+  if (!newPassword || newPassword.length < 6) {
+    return { ok: false, error: "New password must be at least 6 characters." }
+  }
+
+  const rows = await sql(
+    `SELECT password_hash FROM auth_users WHERE id = $1`,
+    [session.id]
+  )
+  if (rows.length === 0) return { ok: false, error: "User not found." }
+
+  const valid = await bcrypt.compare(currentPassword, rows[0].password_hash as string)
+  if (!valid) return { ok: false, error: "Current password is incorrect." }
+
+  const newHash = await bcrypt.hash(newPassword, 12)
+  await sql(
+    `UPDATE auth_users SET password_hash = $1, updated_at = now() WHERE id = $2`,
+    [newHash, session.id]
+  )
+
+  return { ok: true }
+}
+
+export async function updateEmail(formData: {
+  newEmail: string
+  password: string
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { newEmail, password } = formData
+  const session = await getSession()
+  if (!session) return { ok: false, error: "Not authenticated." }
+
+  if (!newEmail || !newEmail.includes("@")) {
+    return { ok: false, error: "Enter a valid email address." }
+  }
+
+  // Verify password first
+  const rows = await sql(
+    `SELECT password_hash FROM auth_users WHERE id = $1`,
+    [session.id]
+  )
+  if (rows.length === 0) return { ok: false, error: "User not found." }
+
+  const valid = await bcrypt.compare(password, rows[0].password_hash as string)
+  if (!valid) return { ok: false, error: "Password is incorrect." }
+
+  // Check if new email is taken
+  const existing = await sql(
+    `SELECT id FROM auth_users WHERE LOWER(email) = LOWER($1) AND id != $2`,
+    [newEmail, session.id]
+  )
+  if (existing.length > 0) {
+    return { ok: false, error: "This email is already in use." }
+  }
+
+  await sql(
+    `UPDATE auth_users SET email = LOWER($1), updated_at = now() WHERE id = $2`,
+    [newEmail, session.id]
+  )
+
+  return { ok: true }
+}
+
+export async function updateDisplayName(formData: {
+  displayName: string
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession()
+  if (!session) return { ok: false, error: "Not authenticated." }
+
+  if (!formData.displayName || formData.displayName.trim().length === 0) {
+    return { ok: false, error: "Display name is required." }
+  }
+
+  await sql(
+    `UPDATE auth_users SET display_name = $1, updated_at = now() WHERE id = $2`,
+    [formData.displayName.trim(), session.id]
+  )
+
+  // Also update user_profiles
+  await sql(
+    `UPDATE user_profiles SET display_name = $1, updated_at = now() WHERE neon_auth_id = $2`,
+    [formData.displayName.trim(), session.id]
+  )
+
+  return { ok: true }
+}
+
+export async function deleteAccount(formData: {
+  password: string
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession()
+  if (!session) return { ok: false, error: "Not authenticated." }
+
+  const rows = await sql(
+    `SELECT password_hash FROM auth_users WHERE id = $1`,
+    [session.id]
+  )
+  if (rows.length === 0) return { ok: false, error: "User not found." }
+
+  const valid = await bcrypt.compare(formData.password, rows[0].password_hash as string)
+  if (!valid) return { ok: false, error: "Password is incorrect." }
+
+  // Remove memberships
+  await sql(`DELETE FROM community_members WHERE user_id = $1`, [session.id])
+  await sql(`DELETE FROM space_members WHERE user_id = $1`, [session.id])
+  await sql(`DELETE FROM user_profiles WHERE neon_auth_id = $1`, [session.id])
+
+  // Sessions are cascade-deleted, but destroy current one first
+  await destroySession()
+
+  // Delete the user (cascades to sessions)
+  await sql(`DELETE FROM auth_users WHERE id = $1`, [session.id])
+
+  return { ok: true }
+}
+
+export async function getAccountInfo(): Promise<{
+  email: string
+  display_name: string
+  created_at: string
+} | null> {
+  const session = await getSession()
+  if (!session) return null
+
+  const rows = await sql(
+    `SELECT email, display_name, created_at FROM auth_users WHERE id = $1`,
+    [session.id]
+  )
+  if (rows.length === 0) return null
+  return rows[0] as { email: string; display_name: string; created_at: string }
+}

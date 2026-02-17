@@ -81,15 +81,21 @@ export function ProfileView({ user, profile, communities, stats }: ProfileViewPr
           )}
           {bio && <p className="text-sm text-muted-foreground mt-2">{bio}</p>}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setEditing(!editing)}
-          className="shrink-0"
-        >
-          <Settings className="w-4 h-4 mr-1.5" />
-          {editing ? "Cancel" : "Edit"}
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditing(!editing)}
+          >
+            {editing ? "Cancel" : "Edit Profile"}
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/settings">
+              <Settings className="w-4 h-4" />
+              <span className="sr-only">Account Settings</span>
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Edit form */}
