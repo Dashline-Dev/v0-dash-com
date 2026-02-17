@@ -31,7 +31,8 @@ export function CommunityHeader({ community }: CommunityHeaderProps) {
   const isMember = !!community.current_user_role
   const isAdmin =
     community.current_user_role === "owner" ||
-    community.current_user_role === "admin"
+    community.current_user_role === "admin" ||
+    community.current_user_role === "moderator"
 
   const handleJoinLeave = async () => {
     setLoading(true)

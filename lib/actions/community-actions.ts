@@ -2,6 +2,15 @@
 
 import { sql } from "@/lib/db"
 import { getCurrentUser } from "@/lib/mock-user"
+import {
+  checkPermission,
+  canModifyMember,
+  getAssignableRoles,
+  type Role,
+  type PermissionContext,
+  PERMISSIONS,
+} from "@/lib/permissions"
+import { logAuditEvent } from "@/lib/actions/audit-actions"
 import type {
   Community,
   CommunityWithMeta,
@@ -15,6 +24,26 @@ import type {
   MemberRole,
 } from "@/types/community"
 import { revalidatePath } from "next/cache"
+
+// ── Permission context helper ──────────────────────────────────────────
+
+async function getPermCtx(
+  userId: string,
+  communityId: string
+): Promise<PermissionContext> {
+  const [memberRows, userRows] = await Promise.all([
+    sql(
+      `SELECT role FROM community_members WHERE community_id = $1 AND user_id = $2 AND status = 'active'`,
+      [communityId, userId]
+    ),
+    sql(`SELECT is_superadmin FROM auth_users WHERE id = $1::uuid`, [userId]).catch(
+      () => [] as Record<string, unknown>[]
+    ),
+  ])
+  const userRole = (memberRows[0]?.role as Role) || "guest"
+  const isSuperAdmin = userRows[0]?.is_superadmin === true
+  return { userRole, isSuperAdmin }
+}
 
 // ── List Communities ───────────────────────────────────────────────────
 
@@ -457,11 +486,46 @@ export async function updateMemberRole(
   memberId: string,
   role: MemberRole
 ): Promise<{ success: boolean; error?: string }> {
+  const user = await getCurrentUser()
+  if (user.id === "guest") return { success: false, error: "auth_required" }
+
   try {
-    await sql(
-      `UPDATE community_members SET role = $2 WHERE id = $1`,
-      [memberId, role]
+    // Get the target member's community + current role
+    const target = await sql(
+      `SELECT community_id, user_id, role FROM community_members WHERE id = $1`,
+      [memberId]
     )
+    if (target.length === 0) return { success: false, error: "Member not found." }
+
+    const communityId = target[0].community_id as string
+    const targetRole = target[0].role as Role
+    const ctx = await getPermCtx(user.id, communityId)
+    const effectiveRole = ctx.isSuperAdmin ? "superadmin" as Role : ctx.userRole
+
+    // Permission: must have member:change_role
+    if (!checkPermission(ctx, PERMISSIONS.member_change_role)) {
+      return { success: false, error: "You don't have permission to change roles." }
+    }
+    // Hierarchy: can only change roles below your own
+    if (!canModifyMember(effectiveRole, targetRole)) {
+      return { success: false, error: "Cannot modify a member with equal or higher role." }
+    }
+    // Can only assign roles below your own
+    const assignable = getAssignableRoles(effectiveRole)
+    if (!assignable.includes(role as Role)) {
+      return { success: false, error: "Cannot assign a role at or above your own." }
+    }
+
+    await sql(`UPDATE community_members SET role = $2 WHERE id = $1`, [memberId, role])
+
+    await logAuditEvent({
+      actorId: user.id,
+      targetUserId: target[0].user_id as string,
+      communityId,
+      action: "role_changed",
+      details: { from: targetRole, to: role },
+    })
+
     revalidatePath("/")
     return { success: true }
   } catch (error) {
@@ -475,7 +539,31 @@ export async function updateMemberRole(
 export async function removeMember(
   memberId: string
 ): Promise<{ success: boolean; error?: string }> {
+  const user = await getCurrentUser()
+  if (user.id === "guest") return { success: false, error: "auth_required" }
+
   try {
+    // Get target member info
+    const target = await sql(
+      `SELECT community_id, user_id, role FROM community_members WHERE id = $1`,
+      [memberId]
+    )
+    if (target.length === 0) return { success: false, error: "Member not found." }
+
+    const communityId = target[0].community_id as string
+    const targetRole = target[0].role as Role
+    const ctx = await getPermCtx(user.id, communityId)
+    const effectiveRole = ctx.isSuperAdmin ? "superadmin" as Role : ctx.userRole
+
+    // Permission: must have member:remove
+    if (!checkPermission(ctx, PERMISSIONS.member_remove)) {
+      return { success: false, error: "You don't have permission to remove members." }
+    }
+    // Hierarchy: can only remove members below you
+    if (!canModifyMember(effectiveRole, targetRole)) {
+      return { success: false, error: "Cannot remove a member with equal or higher role." }
+    }
+
     const result = await sql(
       `DELETE FROM community_members WHERE id = $1 AND role != 'owner' RETURNING community_id`,
       [memberId]
@@ -487,6 +575,14 @@ export async function removeMember(
         [result[0].community_id]
       )
     }
+
+    await logAuditEvent({
+      actorId: user.id,
+      targetUserId: target[0].user_id as string,
+      communityId,
+      action: "member_removed",
+      details: { role: targetRole },
+    })
 
     revalidatePath("/")
     return { success: true }

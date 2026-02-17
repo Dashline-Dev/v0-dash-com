@@ -6,6 +6,7 @@ import {
   getCommunityMembers,
   getCommunityAnalytics,
 } from "@/lib/actions/community-actions"
+import { getAuditLog } from "@/lib/actions/audit-actions"
 import { getCurrentUser } from "@/lib/mock-user"
 import { AdminLayout } from "@/components/communities/admin/admin-layout"
 import { Button } from "@/components/ui/button"
@@ -36,16 +37,15 @@ export default async function CommunityAdminPage({ params }: PageProps) {
 
   // Check admin access
   const user = await getCurrentUser()
-  if (
-    community.current_user_role !== "owner" &&
-    community.current_user_role !== "admin"
-  ) {
+  const allowedRoles = ["owner", "admin", "moderator"]
+  if (!allowedRoles.includes(community.current_user_role || "")) {
     redirect(`/communities/${slug}`)
   }
 
-  const [membersResult, analytics] = await Promise.all([
+  const [membersResult, analytics, auditData] = await Promise.all([
     getCommunityMembers(community.id),
     getCommunityAnalytics(community.id),
+    getAuditLog(community.id, 50, 0),
   ])
 
   return (
@@ -75,6 +75,8 @@ export default async function CommunityAdminPage({ params }: PageProps) {
             stats: analytics.stats,
             roleBreakdown: analytics.roleBreakdown,
           }}
+          auditEntries={auditData.entries}
+          auditTotal={auditData.total}
         />
       </div>
     </div>

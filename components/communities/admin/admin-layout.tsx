@@ -4,7 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SettingsForm } from "./settings-form"
 import { MemberManagement } from "./member-management"
 import { AnalyticsDashboard } from "./analytics-dashboard"
+import { RoleManager } from "./role-manager"
+import { AuditLog } from "./audit-log"
 import type { CommunityWithMeta, CommunityMember } from "@/types/community"
+import type { AuditEntry } from "@/lib/actions/audit-actions"
 
 interface AdminLayoutProps {
   community: CommunityWithMeta
@@ -21,6 +24,8 @@ interface AdminLayoutProps {
     }
     roleBreakdown: { role: string; count: number }[]
   }
+  auditEntries: AuditEntry[]
+  auditTotal: number
 }
 
 export function AdminLayout({
@@ -29,6 +34,8 @@ export function AdminLayout({
   membersCursor,
   membersHasMore,
   analytics,
+  auditEntries,
+  auditTotal,
 }: AdminLayoutProps) {
   return (
     <Tabs defaultValue="settings" className="w-full">
@@ -51,6 +58,18 @@ export function AdminLayout({
         >
           Analytics
         </TabsTrigger>
+        <TabsTrigger
+          value="roles"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
+        >
+          Roles
+        </TabsTrigger>
+        <TabsTrigger
+          value="audit"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
+        >
+          Audit Log
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="settings" className="mt-5">
@@ -60,6 +79,7 @@ export function AdminLayout({
       <TabsContent value="members" className="mt-5">
         <MemberManagement
           communityId={community.id}
+          currentUserRole={(community.current_user_role as "owner" | "admin" | "moderator" | "member") || "member"}
           initialMembers={members}
           initialCursor={membersCursor}
           initialHasMore={membersHasMore}
@@ -68,6 +88,18 @@ export function AdminLayout({
 
       <TabsContent value="analytics" className="mt-5">
         <AnalyticsDashboard data={analytics} />
+      </TabsContent>
+
+      <TabsContent value="roles" className="mt-5">
+        <RoleManager />
+      </TabsContent>
+
+      <TabsContent value="audit" className="mt-5">
+        <AuditLog
+          communityId={community.id}
+          initialEntries={auditEntries}
+          initialTotal={auditTotal}
+        />
       </TabsContent>
     </Tabs>
   )
