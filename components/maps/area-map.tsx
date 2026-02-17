@@ -51,7 +51,7 @@ interface AreaMapProps {
   zoom: number
   communities: CommunityMarker[]
   events: EventMarker[]
-  neighborhoods: NeighborhoodOverlay[]
+  neighborhoods?: NeighborhoodOverlay[]
   areaPlaceId?: string | null
   bounds?: {
     ne_lat: number
@@ -202,11 +202,11 @@ export function AreaMap({
   zoom,
   communities,
   events,
-  neighborhoods,
+  neighborhoods = [],
   areaPlaceId: _areaPlaceId,
   bounds,
   height = "360px",
-}: AreaMapProps) {
+  }: AreaMapProps) {
   const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || undefined
   const [selectedCommunity, setSelectedCommunity] =
     useState<CommunityMarker | null>(null)
