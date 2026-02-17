@@ -4,41 +4,18 @@ import { sql } from "@/lib/db"
 import bcrypt from "bcryptjs"
 import { cookies } from "next/headers"
 import crypto from "crypto"
+import { getSession, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/auth-session"
 
-// ── Types ──────────────────────────────────────────────────
+// NOTE: Do NOT re-export getSession / getAccountInfo from here.
+// This file is "use server" -- re-exports would turn read helpers
+// into server actions, breaking cookie access from server components.
+// Import read helpers directly from "@/lib/auth-session" instead.
+export type { AuthUser } from "@/lib/auth-session"
 
-export interface AuthUser {
-  id: string
-  email: string
-  display_name: string
-  avatar_url: string | null
-}
-
-// ── Session helpers ────────────────────────────────────────
-
-const SESSION_COOKIE = "session_token"
-const SESSION_MAX_AGE = 30 * 24 * 60 * 60 // 30 days in seconds
+// ── Internal helpers ───────────────────────────────────────
 
 function generateToken(): string {
   return crypto.randomBytes(32).toString("hex")
-}
-
-/** Get the currently logged-in user from the session cookie, or null */
-export async function getSession(): Promise<AuthUser | null> {
-  const jar = await cookies()
-  const token = jar.get(SESSION_COOKIE)?.value
-  if (!token) return null
-
-  const rows = await sql(
-    `SELECT u.id, u.email, u.display_name, u.avatar_url
-     FROM auth_sessions s
-     JOIN auth_users u ON u.id = s.user_id
-     WHERE s.token = $1 AND s.expires_at > now()`,
-    [token]
-  )
-
-  if (rows.length === 0) return null
-  return rows[0] as AuthUser
 }
 
 async function createSession(userId: string): Promise<string> {
@@ -46,7 +23,7 @@ async function createSession(userId: string): Promise<string> {
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1000)
 
   await sql(
-    `INSERT INTO auth_sessions (user_id, token, expires_at) VALUES ($1, $2, $3)`,
+    `INSERT INTO auth_sessions (user_id, token, expires_at) VALUES ($1::uuid, $2, $3)`,
     [userId, token, expiresAt.toISOString()]
   )
 
@@ -77,7 +54,7 @@ export async function signUp(formData: {
   email: string
   password: string
   displayName: string
-}): Promise<{ ok: true; user: AuthUser } | { ok: false; error: string }> {
+}): Promise<{ ok: true; user: { id: string; email: string; display_name: string; avatar_url: string | null } } | { ok: false; error: string }> {
   const { email, password, displayName } = formData
 
   if (!email || !password || !displayName) {
@@ -87,7 +64,6 @@ export async function signUp(formData: {
     return { ok: false, error: "Password must be at least 6 characters." }
   }
 
-  // Check if email already exists
   const existing = await sql(
     `SELECT id FROM auth_users WHERE LOWER(email) = LOWER($1)`,
     [email]
@@ -105,9 +81,8 @@ export async function signUp(formData: {
     [email, passwordHash, displayName]
   )
 
-  const user = rows[0] as AuthUser
+  const user = rows[0] as { id: string; email: string; display_name: string; avatar_url: string | null }
 
-  // Also create a user_profiles row so membership queries can join
   await sql(
     `INSERT INTO user_profiles (neon_auth_id, display_name)
      VALUES ($1, $2)
@@ -122,7 +97,7 @@ export async function signUp(formData: {
 export async function signIn(formData: {
   email: string
   password: string
-}): Promise<{ ok: true; user: AuthUser } | { ok: false; error: string }> {
+}): Promise<{ ok: true; user: { id: string; email: string; display_name: string; avatar_url: string | null } } | { ok: false; error: string }> {
   const { email, password } = formData
 
   if (!email || !password) {
@@ -139,7 +114,7 @@ export async function signIn(formData: {
     return { ok: false, error: "Invalid email or password." }
   }
 
-  const user = rows[0] as AuthUser & { password_hash: string }
+  const user = rows[0] as { id: string; email: string; display_name: string; avatar_url: string | null; password_hash: string }
   const valid = await bcrypt.compare(password, user.password_hash)
 
   if (!valid) {
@@ -201,7 +176,6 @@ export async function updateEmail(formData: {
     return { ok: false, error: "Enter a valid email address." }
   }
 
-  // Verify password first
   const rows = await sql(
     `SELECT password_hash FROM auth_users WHERE id = $1`,
     [session.id]
@@ -211,7 +185,6 @@ export async function updateEmail(formData: {
   const valid = await bcrypt.compare(password, rows[0].password_hash as string)
   if (!valid) return { ok: false, error: "Password is incorrect." }
 
-  // Check if new email is taken
   const existing = await sql(
     `SELECT id FROM auth_users WHERE LOWER(email) = LOWER($1) AND id != $2`,
     [newEmail, session.id]
@@ -243,7 +216,6 @@ export async function updateDisplayName(formData: {
     [formData.displayName.trim(), session.id]
   )
 
-  // Also update user_profiles
   await sql(
     `UPDATE user_profiles SET display_name = $1, updated_at = now() WHERE neon_auth_id = $2`,
     [formData.displayName.trim(), session.id]
@@ -267,32 +239,13 @@ export async function deleteAccount(formData: {
   const valid = await bcrypt.compare(formData.password, rows[0].password_hash as string)
   if (!valid) return { ok: false, error: "Password is incorrect." }
 
-  // Remove memberships
   await sql(`DELETE FROM community_members WHERE user_id = $1`, [session.id])
   await sql(`DELETE FROM space_members WHERE user_id = $1`, [session.id])
   await sql(`DELETE FROM user_profiles WHERE neon_auth_id = $1`, [session.id])
 
-  // Sessions are cascade-deleted, but destroy current one first
   await destroySession()
 
-  // Delete the user (cascades to sessions)
   await sql(`DELETE FROM auth_users WHERE id = $1`, [session.id])
 
   return { ok: true }
-}
-
-export async function getAccountInfo(): Promise<{
-  email: string
-  display_name: string
-  created_at: string
-} | null> {
-  const session = await getSession()
-  if (!session) return null
-
-  const rows = await sql(
-    `SELECT email, display_name, created_at FROM auth_users WHERE id = $1`,
-    [session.id]
-  )
-  if (rows.length === 0) return null
-  return rows[0] as { email: string; display_name: string; created_at: string }
 }

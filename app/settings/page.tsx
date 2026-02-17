@@ -1,5 +1,5 @@
 import { getAuthenticatedUser } from "@/lib/mock-user"
-import { getAccountInfo } from "@/lib/auth"
+import { getAccountInfo } from "@/lib/auth-session"
 import { redirect } from "next/navigation"
 import { SettingsView } from "@/components/settings/settings-view"
 

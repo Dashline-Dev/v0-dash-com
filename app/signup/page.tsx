@@ -1,5 +1,5 @@
 import { AuthForm } from "@/components/auth/auth-form"
-import { getSession } from "@/lib/auth"
+import { getSession } from "@/lib/auth-session"
 import { redirect } from "next/navigation"
 
 export const metadata = {

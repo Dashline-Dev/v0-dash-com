@@ -2,7 +2,7 @@
  * User context -- wraps the real auth session.
  * All consumer code imports getCurrentUser() from here.
  */
-import { getSession } from "@/lib/auth"
+import { getSession } from "@/lib/auth-session"
 
 export interface MockUser {
   id: string
