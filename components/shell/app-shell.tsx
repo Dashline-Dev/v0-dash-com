@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/mock-user"
 export async function AppShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const user = await getCurrentUser()
   const isAuthenticated = user.id !== "guest"
+  console.log("[v0] AppShell: userId=", user.id, "authenticated=", isAuthenticated)
 
   return (
     <div className="min-h-dvh flex flex-col">
