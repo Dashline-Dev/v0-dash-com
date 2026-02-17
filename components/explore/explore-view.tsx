@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { AreaMap, MapLegend } from "@/components/maps/area-map"
+import { AreaMap, MapLegend } from "@/components/google-area-map"
 import { GoogleMapsProvider } from "@/components/maps/google-maps-provider"
 import { globalSearch, getExploreMapMarkers } from "@/lib/actions/search-actions"
 import type { SearchResult, SearchResultType, ExploreMapMarker } from "@/types/search"

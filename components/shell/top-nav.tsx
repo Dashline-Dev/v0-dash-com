@@ -29,7 +29,7 @@ export function TopNav({ user }: TopNavProps) {
   const pathname = usePathname()
 
   return (
-    <header className="hidden md:block sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-md">
+    <header suppressHydrationWarning className="hidden md:block sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-md">
       <div className="flex items-center justify-between h-16 px-6 lg:px-10">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5">
