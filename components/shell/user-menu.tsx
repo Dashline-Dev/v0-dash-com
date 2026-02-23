@@ -44,8 +44,6 @@ export function UserMenu({ user }: UserMenuProps) {
 
   async function handleSignOut() {
     await signOut()
-    // Hard navigation to ensure server picks up cookie deletion
-    window.location.href = "/"
   }
 
   return (

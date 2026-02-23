@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +12,6 @@ interface AuthFormProps {
 }
 
 export function AuthForm({ mode }: AuthFormProps) {
-  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -32,6 +30,8 @@ export function AuthForm({ mode }: AuthFormProps) {
       if (isSignUp) {
         const displayName = formData.get("displayName") as string
         const result = await signUp({ email, password, displayName })
+        // On success, signUp calls redirect("/") server-side (never returns).
+        // If we reach here, it means there was a validation error.
         if (!result.ok) {
           setError(result.error)
           setLoading(false)
@@ -39,14 +39,13 @@ export function AuthForm({ mode }: AuthFormProps) {
         }
       } else {
         const result = await signIn({ email, password })
+        // On success, signIn calls redirect("/") server-side (never returns).
         if (!result.ok) {
           setError(result.error)
           setLoading(false)
           return
         }
       }
-      // Hard navigation to ensure server picks up the new httpOnly session cookie
-      window.location.href = "/"
     } catch {
       setError("Something went wrong. Please try again.")
       setLoading(false)
