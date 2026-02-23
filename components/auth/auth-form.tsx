@@ -1,56 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { signUp, signIn } from "@/lib/auth"
 
 interface AuthFormProps {
   mode: "signin" | "signup"
 }
 
 export function AuthForm({ mode }: AuthFormProps) {
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const searchParams = useSearchParams()
+  const error = searchParams.get("error")
 
   const isSignUp = mode === "signup"
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-
-    const formData = new FormData(e.currentTarget)
-    const email = formData.get("email") as string
-    const password = formData.get("password") as string
-
-    try {
-      if (isSignUp) {
-        const displayName = formData.get("displayName") as string
-        const result = await signUp({ email, password, displayName })
-        // On success, signUp calls redirect("/") server-side (never returns).
-        // If we reach here, it means there was a validation error.
-        if (!result.ok) {
-          setError(result.error)
-          setLoading(false)
-          return
-        }
-      } else {
-        const result = await signIn({ email, password })
-        // On success, signIn calls redirect("/") server-side (never returns).
-        if (!result.ok) {
-          setError(result.error)
-          setLoading(false)
-          return
-        }
-      }
-    } catch {
-      setError("Something went wrong. Please try again.")
-      setLoading(false)
-    }
-  }
+  const action = isSignUp ? "/api/auth/signup" : "/api/auth/signin"
 
   return (
     <div className="w-full max-w-sm mx-auto">
@@ -70,7 +35,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form method="POST" action={action} className="space-y-4">
         {isSignUp && (
           <div className="space-y-2">
             <Label htmlFor="displayName">Display name</Label>
@@ -81,7 +46,6 @@ export function AuthForm({ mode }: AuthFormProps) {
               placeholder="Alex"
               required
               autoComplete="name"
-              disabled={loading}
             />
           </div>
         )}
@@ -95,7 +59,6 @@ export function AuthForm({ mode }: AuthFormProps) {
             placeholder="you@example.com"
             required
             autoComplete="email"
-            disabled={loading}
           />
         </div>
 
@@ -109,7 +72,6 @@ export function AuthForm({ mode }: AuthFormProps) {
             required
             minLength={isSignUp ? 6 : 1}
             autoComplete={isSignUp ? "new-password" : "current-password"}
-            disabled={loading}
           />
         </div>
 
@@ -119,14 +81,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           </p>
         )}
 
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading
-            ? isSignUp
-              ? "Creating account..."
-              : "Signing in..."
-            : isSignUp
-              ? "Create account"
-              : "Sign in"}
+        <Button type="submit" className="w-full">
+          {isSignUp ? "Create account" : "Sign in"}
         </Button>
       </form>
 

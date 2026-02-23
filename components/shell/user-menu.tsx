@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { signOut } from "@/lib/auth"
+
 
 interface UserMenuProps {
   user: {
@@ -41,10 +41,6 @@ export function UserMenu({ user }: UserMenuProps) {
     .join("")
     .slice(0, 2)
     .toUpperCase()
-
-  async function handleSignOut() {
-    await signOut()
-  }
 
   return (
     <DropdownMenu>
@@ -87,13 +83,17 @@ export function UserMenu({ user }: UserMenuProps) {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={handleSignOut}
-          className="cursor-pointer text-destructive-foreground focus:text-destructive-foreground"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Sign out
-        </DropdownMenuItem>
+        <form method="POST" action="/api/auth/signout">
+          <DropdownMenuItem asChild>
+            <button
+              type="submit"
+              className="w-full cursor-pointer text-destructive-foreground focus:text-destructive-foreground"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign out
+            </button>
+          </DropdownMenuItem>
+        </form>
       </DropdownMenuContent>
     </DropdownMenu>
   )
