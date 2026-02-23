@@ -6,10 +6,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Force full module graph rebuild
-  experimental: {
-    turbo: {},
-  },
 }
 
 export default nextConfig

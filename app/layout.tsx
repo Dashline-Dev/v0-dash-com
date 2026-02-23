@@ -50,7 +50,6 @@ async function readUser() {
   try {
     const jar = await cookies()
     const token = jar.get("session_token")?.value
-    console.log("[v0] layout readUser: token?", !!token)
     if (!token) return null
 
     const rows = await sql(
@@ -78,7 +77,6 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const user = await readUser()
-  console.log("[v0] layout: user=", user?.id ?? "null")
 
   return (
     <html lang="en">

@@ -21,8 +21,6 @@ function generateToken(): string {
 async function createSession(userId: string): Promise<string> {
   const token = generateToken()
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1000)
-  console.log("[v0] createSession: token=", token.slice(0, 12), "userId=", userId, "expires=", expiresAt.toISOString())
-
   await sql(
     `INSERT INTO auth_sessions (user_id, token, expires_at) VALUES ($1::uuid, $2, $3)`,
     [userId, token, expiresAt.toISOString()]
@@ -31,7 +29,7 @@ async function createSession(userId: string): Promise<string> {
   const jar = await cookies()
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_MAX_AGE,
@@ -122,9 +120,7 @@ export async function signIn(formData: {
     return { ok: false, error: "Invalid email or password." }
   }
 
-  console.log("[v0] signIn: creating session for userId=", user.id)
   await createSession(user.id)
-  console.log("[v0] signIn: session created + cookie set")
   return {
     ok: true,
     user: { id: user.id, email: user.email, display_name: user.display_name, avatar_url: user.avatar_url },

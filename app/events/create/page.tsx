@@ -8,7 +8,8 @@ export const metadata = {
 }
 
 export default async function CreateEventPage() {
-  const { communities } = await getCommunities({ limit: 50 })
+  const result = await getCommunities({ limit: 50 })
+  const communities = result.data ?? []
 
   if (communities.length === 0) {
     redirect("/communities/create")
