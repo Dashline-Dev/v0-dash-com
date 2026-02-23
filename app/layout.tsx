@@ -50,6 +50,7 @@ async function readUser() {
   try {
     const jar = await cookies()
     const token = jar.get("session_token")?.value
+    console.log("[v0] readUser: token exists?", !!token, token ? `${token.slice(0, 8)}...` : "none")
     if (!token) return null
 
     const rows = await sql(
@@ -59,6 +60,7 @@ async function readUser() {
        WHERE s.token = $1 AND s.expires_at > now()`,
       [token]
     )
+    console.log("[v0] readUser: rows found?", rows.length)
     if (rows.length === 0) return null
     const u = rows[0]
     return {
@@ -66,7 +68,8 @@ async function readUser() {
       name: u.display_name as string,
       avatar: (u.avatar_url as string) || null,
     }
-  } catch {
+  } catch (e) {
+    console.log("[v0] readUser: error", e)
     return null
   }
 }

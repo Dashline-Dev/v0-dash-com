@@ -21,10 +21,12 @@ function generateToken(): string {
 async function createSession(userId: string): Promise<string> {
   const token = generateToken()
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1000)
+  console.log("[v0] createSession: inserting session for user", userId, "token:", token.slice(0, 8) + "...")
   await sql(
     `INSERT INTO auth_sessions (user_id, token, expires_at) VALUES ($1::uuid, $2, $3)`,
     [userId, token, expiresAt.toISOString()]
   )
+  console.log("[v0] createSession: session inserted, setting cookie. NODE_ENV:", process.env.NODE_ENV, "secure:", process.env.NODE_ENV === "production")
 
   const jar = await cookies()
   jar.set(SESSION_COOKIE, token, {
@@ -34,6 +36,7 @@ async function createSession(userId: string): Promise<string> {
     path: "/",
     maxAge: SESSION_MAX_AGE,
   })
+  console.log("[v0] createSession: cookie set successfully")
 
   return token
 }
