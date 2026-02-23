@@ -9,7 +9,13 @@ export async function POST(req: NextRequest) {
   }
 
   const res = NextResponse.redirect(new URL("/", req.url), 303)
-  res.cookies.delete(SESSION_COOKIE)
+  res.cookies.set(SESSION_COOKIE, "", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none" as const,
+    path: "/",
+    maxAge: 0,
+  })
 
   return res
 }

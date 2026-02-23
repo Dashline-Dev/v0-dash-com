@@ -30,8 +30,8 @@ async function createSession(userId: string): Promise<string> {
   const jar = await cookies()
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: true,
+    sameSite: "none" as const,
     path: "/",
     maxAge: SESSION_MAX_AGE,
   })
@@ -45,7 +45,13 @@ async function destroySession(): Promise<void> {
   if (token) {
     await sql(`DELETE FROM auth_sessions WHERE token = $1`, [token])
   }
-  jar.delete(SESSION_COOKIE)
+  jar.set(SESSION_COOKIE, "", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none" as const,
+    path: "/",
+    maxAge: 0,
+  })
 }
 
 // ── Auth actions ───────────────────────────────────────────
