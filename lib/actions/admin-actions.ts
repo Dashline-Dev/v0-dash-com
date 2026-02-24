@@ -335,7 +335,7 @@ export async function getGlobalAuditLog(params: {
        FROM permission_audit_log pal
        LEFT JOIN auth_users au_actor ON au_actor.id::text = pal.actor_id
        LEFT JOIN auth_users au_target ON au_target.id::text = pal.target_user_id
-       LEFT JOIN communities c ON c.id = pal.community_id
+       LEFT JOIN communities c ON c.id::text = pal.community_id
        ORDER BY pal.created_at DESC
        LIMIT $1 OFFSET $2`,
       [limit, offset]
