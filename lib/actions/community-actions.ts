@@ -295,13 +295,19 @@ export async function deleteCommunity(
   const user = await getCurrentUser()
 
   try {
-    // Verify ownership
-    const membership = await sql(
-      `SELECT role FROM community_members WHERE community_id = $1 AND user_id = $2`,
-      [communityId, user.id]
-    )
+    // Verify ownership or superadmin
+    const [membership, userRows] = await Promise.all([
+      sql(
+        `SELECT role FROM community_members WHERE community_id = $1 AND user_id = $2`,
+        [communityId, user.id]
+      ),
+      sql(`SELECT is_superadmin FROM auth_users WHERE id = $1::uuid`, [user.id]).catch(
+        () => [] as Record<string, unknown>[]
+      ),
+    ])
+    const isSuperAdmin = userRows[0]?.is_superadmin === true
 
-    if (membership.length === 0 || membership[0].role !== "owner") {
+    if (!isSuperAdmin && (membership.length === 0 || membership[0].role !== "owner")) {
       return { success: false, error: "Only the owner can delete a community." }
     }
 

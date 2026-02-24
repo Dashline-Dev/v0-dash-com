@@ -22,14 +22,16 @@ import Link from "next/link"
 
 interface CommunityHeaderProps {
   community: CommunityWithMeta
+  isSuperAdmin?: boolean
 }
 
-export function CommunityHeader({ community }: CommunityHeaderProps) {
+export function CommunityHeader({ community, isSuperAdmin = false }: CommunityHeaderProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const isMember = !!community.current_user_role
   const isAdmin =
+    isSuperAdmin ||
     community.current_user_role === "owner" ||
     community.current_user_role === "admin" ||
     community.current_user_role === "moderator"

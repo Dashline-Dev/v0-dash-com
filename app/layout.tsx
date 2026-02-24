@@ -50,7 +50,7 @@ async function readUser() {
     if (!token) return null
 
     const rows = await sql(
-      `SELECT u.id, u.email, u.display_name, u.avatar_url
+      `SELECT u.id, u.email, u.display_name, u.avatar_url, u.is_superadmin
        FROM auth_sessions s
        JOIN auth_users u ON u.id = s.user_id
        WHERE s.token = $1 AND s.expires_at > now()`,
@@ -62,6 +62,7 @@ async function readUser() {
       id: u.id as string,
       name: u.display_name as string,
       avatar: (u.avatar_url as string) || null,
+      isSuperAdmin: u.is_superadmin === true,
     }
   } catch {
     return null

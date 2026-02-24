@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { LogOut, Settings, User, LayoutDashboard } from "lucide-react"
+import { LogOut, Settings, User, LayoutDashboard, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -18,6 +18,7 @@ interface UserMenuProps {
     id: string
     name: string
     avatar: string | null
+    isSuperAdmin: boolean
   } | null
 }
 
@@ -82,6 +83,17 @@ export function UserMenu({ user }: UserMenuProps) {
             Settings
           </Link>
         </DropdownMenuItem>
+        {user.isSuperAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/admin" className="cursor-pointer">
+                <ShieldCheck className="w-4 h-4 mr-2" />
+                Admin Console
+              </Link>
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSeparator />
         <form method="POST" action="/api/auth/signout">
           <DropdownMenuItem asChild>

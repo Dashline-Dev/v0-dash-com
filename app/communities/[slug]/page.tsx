@@ -7,6 +7,7 @@ import { getSpacesByCommunity } from "@/lib/actions/space-actions"
 import { getEvents } from "@/lib/actions/event-actions"
 import { getAnnouncements } from "@/lib/actions/announcement-actions"
 import { getCommunityAreas } from "@/lib/actions/area-actions"
+import { getSuperAdminSession } from "@/lib/superadmin"
 import { CommunityHeader } from "@/components/communities/community-header"
 import { CommunityTabs } from "@/components/communities/community-tabs"
 import type { Metadata } from "next"
@@ -37,6 +38,8 @@ export default async function CommunityDetailPage({ params }: PageProps) {
     notFound()
   }
 
+  const superAdmin = await getSuperAdminSession()
+
   const [membersResult, spaces, eventsResult, announcementsResult, areas] = await Promise.all([
     getCommunityMembers(community.id),
     getSpacesByCommunity(slug),
@@ -47,7 +50,7 @@ export default async function CommunityDetailPage({ params }: PageProps) {
 
   return (
     <div>
-      <CommunityHeader community={community} />
+      <CommunityHeader community={community} isSuperAdmin={!!superAdmin} />
 
       <div className="px-4 md:px-6 lg:px-10 py-6">
         <div className="max-w-4xl">

@@ -6,7 +6,7 @@ import { Home, Plus, CalendarDays, User, Search, LogIn } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface BottomNavProps {
-  user: { id: string; name: string; avatar: string | null } | null
+  user: { id: string; name: string; avatar: string | null; isSuperAdmin: boolean } | null
 }
 
 export function BottomNav({ user }: BottomNavProps) {
