@@ -1,5 +1,6 @@
-import { notFound, redirect } from "next/navigation"
+import { notFound } from "next/navigation"
 import { getAuthenticatedUser } from "@/lib/mock-user"
+import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getSpaceBySlug, getSpaceMembers } from "@/lib/actions/space-actions"
 import { getEvents } from "@/lib/actions/event-actions"
 import { getAnnouncements } from "@/lib/actions/announcement-actions"
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: SpacePageProps) {
 
 export default async function StandaloneSpacePage({ params }: SpacePageProps) {
   const user = await getAuthenticatedUser()
-  if (!user) redirect("/signin")
+  if (!user) return <AuthRequiredModal />
 
   const { slug } = await params
   const space = await getSpaceBySlug(slug)

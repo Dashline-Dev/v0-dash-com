@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation"
 import { getAuthenticatedUser } from "@/lib/mock-user"
+import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getEventsForMonth } from "@/lib/actions/event-actions"
 import { EventCalendar } from "@/components/events/event-calendar"
 
@@ -10,7 +10,7 @@ export const metadata = {
 
 export default async function EventCalendarPage() {
   const user = await getAuthenticatedUser()
-  if (!user) redirect("/signin")
+  if (!user) return <AuthRequiredModal />
 
   const now = new Date()
   const year = now.getFullYear()

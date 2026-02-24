@@ -1,7 +1,7 @@
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { getAccountInfo } from "@/lib/auth-session"
-import { redirect } from "next/navigation"
 import { SettingsView } from "@/components/settings/settings-view"
+import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 
 export const metadata = {
   title: "Account Settings | Community Circle",
@@ -10,10 +10,10 @@ export const metadata = {
 
 export default async function SettingsPage() {
   const user = await getAuthenticatedUser()
-  if (!user) redirect("/signin")
+  if (!user) return <AuthRequiredModal />
 
   const accountInfo = await getAccountInfo()
-  if (!accountInfo) redirect("/signin")
+  if (!accountInfo) return <AuthRequiredModal />
 
   return (
     <div className="max-w-2xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-24 md:pb-8">

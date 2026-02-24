@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { redirect } from "next/navigation"
+import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { ArrowLeft } from "lucide-react"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { CreateSpaceForm } from "@/components/spaces/create-space-form"
@@ -11,7 +11,7 @@ export const metadata = {
 
 export default async function CreateSpacePage() {
   const user = await getAuthenticatedUser()
-  if (!user) redirect("/signin")
+  if (!user) return <AuthRequiredModal />
 
   return (
     <div className="px-4 md:px-6 lg:px-10 py-6 pb-24 md:pb-6">

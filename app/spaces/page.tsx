@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { redirect } from "next/navigation"
+import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { Plus } from "lucide-react"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ export const metadata = {
 
 export default async function SpacesPage() {
   const user = await getAuthenticatedUser()
-  if (!user) redirect("/signin")
+  if (!user) return <AuthRequiredModal />
 
   const { spaces, total } = await getSpaces({ limit: 20 })
 

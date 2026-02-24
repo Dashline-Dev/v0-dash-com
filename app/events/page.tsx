@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation"
 import { getAuthenticatedUser } from "@/lib/mock-user"
+import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getEvents } from "@/lib/actions/event-actions"
 import { EventList } from "@/components/events/event-list"
 
@@ -10,7 +10,7 @@ export const metadata = {
 
 export default async function EventsPage() {
   const user = await getAuthenticatedUser()
-  if (!user) redirect("/signin")
+  if (!user) return <AuthRequiredModal />
 
   const { events, total } = await getEvents({
     limit: 12,
