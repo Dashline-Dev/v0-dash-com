@@ -9,6 +9,7 @@ function generateToken(): string {
 }
 
 export async function POST(req: NextRequest) {
+  console.log("[v0] API /api/auth/signin route hit")
   const formData = await req.formData()
   const email = formData.get("email") as string
   const password = formData.get("password") as string
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
   )
 
   // Redirect with Set-Cookie header on the 303 response
+  console.log("[v0] API /api/auth/signin: setting cookie, token:", token.slice(0, 8) + "...", "redirectTo:", redirectTo)
   const res = NextResponse.redirect(new URL(redirectTo, req.url), 303)
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -64,6 +66,7 @@ export async function POST(req: NextRequest) {
     path: "/",
     maxAge: SESSION_MAX_AGE,
   })
+  console.log("[v0] API /api/auth/signin: returning 303 redirect with Set-Cookie")
 
   return res
 }
