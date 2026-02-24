@@ -83,7 +83,7 @@ export function UserMenu({ user }: UserMenuProps) {
             Settings
           </Link>
         </DropdownMenuItem>
-        {user.isSuperAdmin && (
+        {user.isSuperAdmin ? (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -92,9 +92,11 @@ export function UserMenu({ user }: UserMenuProps) {
                 Admin Console
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
           </>
+        ) : (
+          <DropdownMenuSeparator />
         )}
-        <DropdownMenuSeparator />
         <form method="POST" action="/api/auth/signout">
           <DropdownMenuItem asChild>
             <button
