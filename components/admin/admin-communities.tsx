@@ -167,7 +167,7 @@ export function AdminCommunities({
 
             <div className="hidden sm:flex items-center gap-2 shrink-0">
               <Badge variant="secondary" className="text-[10px]">
-                {community.privacy}
+                {community.visibility}
               </Badge>
             </div>
 

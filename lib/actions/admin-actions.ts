@@ -36,7 +36,7 @@ export interface AdminCommunity {
   member_count: number
   created_at: string
   owner_name: string | null
-  privacy: string
+  visibility: string
 }
 
 // ── Platform Stats ───────────────────────────────────────────────────────
@@ -218,7 +218,7 @@ export async function getAllCommunities(params: {
   const [rows, countRows] = await Promise.all([
     sql(
       `SELECT c.id, c.name, c.slug, c.description, c.avatar_url, c.is_verified,
-              c.member_count, c.created_at, c.privacy,
+              c.member_count, c.created_at, c.visibility,
               owner.display_name as owner_name
        FROM communities c
        LEFT JOIN community_members cm ON cm.community_id = c.id AND cm.role = 'owner'
