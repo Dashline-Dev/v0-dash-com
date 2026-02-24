@@ -14,39 +14,14 @@ export const metadata: Metadata = {
 }
 
 export default async function AdminPage() {
-  console.log("[v0] AdminPage: checking superadmin...")
   await requireSuperAdmin()
-  console.log("[v0] AdminPage: superadmin OK, fetching data...")
 
-  let stats, usersResult, communitiesResult, auditResult
-  try {
-    stats = await getAdminStats()
-    console.log("[v0] AdminPage: stats OK")
-  } catch (e) {
-    console.log("[v0] AdminPage: stats FAILED", e)
-    throw e
-  }
-  try {
-    usersResult = await getAllUsers({ limit: 50, offset: 0 })
-    console.log("[v0] AdminPage: users OK")
-  } catch (e) {
-    console.log("[v0] AdminPage: users FAILED", e)
-    throw e
-  }
-  try {
-    communitiesResult = await getAllCommunities({ limit: 50, offset: 0 })
-    console.log("[v0] AdminPage: communities OK")
-  } catch (e) {
-    console.log("[v0] AdminPage: communities FAILED", e)
-    throw e
-  }
-  try {
-    auditResult = await getGlobalAuditLog({ limit: 50, offset: 0 })
-    console.log("[v0] AdminPage: audit OK")
-  } catch (e) {
-    console.log("[v0] AdminPage: audit FAILED", e)
-    throw e
-  }
+  const [stats, usersResult, communitiesResult, auditResult] = await Promise.all([
+    getAdminStats(),
+    getAllUsers({ limit: 50, offset: 0 }),
+    getAllCommunities({ limit: 50, offset: 0 }),
+    getGlobalAuditLog({ limit: 50, offset: 0 }),
+  ])
 
   return (
     <div className="px-4 py-5 md:px-6 lg:px-10 md:py-8">

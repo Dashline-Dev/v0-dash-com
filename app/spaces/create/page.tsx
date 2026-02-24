@@ -1,5 +1,7 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
+import { getAuthenticatedUser } from "@/lib/mock-user"
 import { CreateSpaceForm } from "@/components/spaces/create-space-form"
 
 export const metadata = {
@@ -7,7 +9,10 @@ export const metadata = {
   description: "Create a new standalone space.",
 }
 
-export default function CreateSpacePage() {
+export default async function CreateSpacePage() {
+  const user = await getAuthenticatedUser()
+  if (!user) redirect("/signin")
+
   return (
     <div className="px-4 md:px-6 lg:px-10 py-6 pb-24 md:pb-6">
       <Link

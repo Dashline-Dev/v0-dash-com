@@ -1,5 +1,7 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import { Plus } from "lucide-react"
+import { getAuthenticatedUser } from "@/lib/mock-user"
 import { Button } from "@/components/ui/button"
 import { SpaceList } from "@/components/spaces/space-list"
 import { getSpaces } from "@/lib/actions/space-actions"
@@ -10,6 +12,9 @@ export const metadata = {
 }
 
 export default async function SpacesPage() {
+  const user = await getAuthenticatedUser()
+  if (!user) redirect("/signin")
+
   const { spaces, total } = await getSpaces({ limit: 20 })
 
   return (

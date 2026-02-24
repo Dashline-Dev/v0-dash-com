@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { getAuthenticatedUser } from "@/lib/mock-user"
 import { getCommunities } from "@/lib/actions/community-actions"
 import { EventCreatePicker } from "@/components/events/event-create-picker"
 
@@ -8,6 +9,9 @@ export const metadata = {
 }
 
 export default async function CreateEventPage() {
+  const user = await getAuthenticatedUser()
+  if (!user) redirect("/signin")
+
   const result = await getCommunities({ limit: 50 })
   const communities = result.data ?? []
 

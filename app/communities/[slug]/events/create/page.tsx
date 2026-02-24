@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
+import { getAuthenticatedUser } from "@/lib/mock-user"
 import { getCommunityBySlug } from "@/lib/actions/community-actions"
 import { CreateEventForm } from "@/components/events/create-event-form"
 import Link from "next/link"
@@ -23,6 +24,9 @@ export default async function CommunityCreateEventPage({
 }: {
   params: Promise<{ slug: string }>
 }) {
+  const user = await getAuthenticatedUser()
+  if (!user) redirect("/signin")
+
   const { slug } = await params
   const community = await getCommunityBySlug(slug)
 

@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
+import { getAuthenticatedUser } from "@/lib/mock-user"
 import { getAnnouncementById } from "@/lib/actions/announcement-actions"
 import { AnnouncementDetail } from "@/components/announcements/announcement-detail"
 
@@ -7,6 +8,9 @@ export default async function AnnouncementDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  const user = await getAuthenticatedUser()
+  if (!user) redirect("/signin")
+
   const { id } = await params
   const announcement = await getAnnouncementById(id)
 

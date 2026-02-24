@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation"
+import { getAuthenticatedUser } from "@/lib/mock-user"
 import { getAnnouncements } from "@/lib/actions/announcement-actions"
 import { AnnouncementList } from "@/components/announcements/announcement-list"
 
@@ -7,6 +9,9 @@ export const metadata = {
 }
 
 export default async function AnnouncementsPage() {
+  const user = await getAuthenticatedUser()
+  if (!user) redirect("/signin")
+
   const result = await getAnnouncements({ limit: 20 })
 
   return (

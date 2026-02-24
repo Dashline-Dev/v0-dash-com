@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { neon } from "@neondatabase/serverless"
+import { getAuthenticatedUser } from "@/lib/mock-user"
 import { getSpaceBySlug, getSpaceMembers } from "@/lib/actions/space-actions"
 import { getEvents } from "@/lib/actions/event-actions"
 import { getAnnouncements } from "@/lib/actions/announcement-actions"
@@ -28,6 +29,9 @@ export async function generateMetadata({ params }: CommunitySpacePageProps) {
 }
 
 export default async function CommunitySpacePage({ params }: CommunitySpacePageProps) {
+  const user = await getAuthenticatedUser()
+  if (!user) redirect("/signin")
+
   const { slug, spaceSlug } = await params
 
   const community = await sql(`SELECT id FROM communities WHERE slug = $1`, [slug])
