@@ -21,6 +21,8 @@ import { getEvents, getEventsForMonth } from "@/lib/actions/event-actions"
 import type { EventWithMeta, EventType } from "@/types/event"
 import { EVENT_TYPES, formatEventTime, isEventPast, EVENT_TYPE_LABELS } from "@/types/event"
 import { cn } from "@/lib/utils"
+import { AreaMap, type MapEvent } from "@/components/google-area-map"
+import { GoogleMapsProvider } from "@/components/maps/google-maps-provider"
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -560,28 +562,48 @@ function ListView({ initialEvents, initialTotal, communityId, spaceId, basePath 
 // ── Map View ────────────────────────────────────────────────
 
 function MapView({ events, basePath }: { events: EventWithMeta[]; basePath?: string }) {
-  const eventsWithCoords = events.filter((e) => e.latitude && e.longitude)
+  const eventsWithCoords = events.filter(
+    (e) => e.latitude != null && e.longitude != null && !isNaN(Number(e.latitude)) && !isNaN(Number(e.longitude))
+  )
+
+  const mapEvents: MapEvent[] = eventsWithCoords.map((e) => ({
+    id: e.id,
+    title: e.title,
+    slug: e.slug,
+    lat: Number(e.latitude),
+    lng: Number(e.longitude),
+    start_time: e.start_time,
+    event_type: e.event_type,
+  }))
+
+  if (mapEvents.length === 0) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="border border-border rounded-lg bg-muted/30 flex items-center justify-center min-h-[300px]">
+          <div className="text-center py-12">
+            <MapPin className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm font-medium text-muted-foreground">No events with locations</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Events with coordinates will appear on the map.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="border border-border rounded-lg bg-muted/30 flex items-center justify-center min-h-[300px]">
-        <div className="text-center py-12">
-          <MapPin className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
-          <p className="text-sm font-medium text-muted-foreground">Map View</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {eventsWithCoords.length} events with locations
-          </p>
-        </div>
-      </div>
+      <GoogleMapsProvider>
+        <AreaMap events={mapEvents} height="400px" />
+      </GoogleMapsProvider>
 
-      {/* Still show events as a list below */}
-      {eventsWithCoords.length > 0 && (
-        <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
-          {eventsWithCoords.map((event) => (
-            <EventCard key={event.id} event={event} basePath={basePath} />
-          ))}
-        </div>
-      )}
+      {/* List below the map */}
+      <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
+        {eventsWithCoords.map((event) => (
+          <EventCard key={event.id} event={event} basePath={basePath} />
+        ))}
+      </div>
     </div>
   )
 }
