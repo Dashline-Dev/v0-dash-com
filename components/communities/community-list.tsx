@@ -129,7 +129,7 @@ export function CommunityList({
       <CommunitySearch value={search} onChange={setSearch} />
 
       {/* Faceted filters */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-2 overflow-x-auto">
         <FacetFilter
           label="Category"
           options={categoryFacets}
@@ -137,7 +137,7 @@ export function CommunityList({
           onSelect={(v) => setCategory(v as CommunityCategory | null)}
         />
         <FacetFilter
-          label="Join"
+          label="Join Policy"
           options={joinPolicyFacets}
           selected={joinPolicy}
           onSelect={setJoinPolicy}

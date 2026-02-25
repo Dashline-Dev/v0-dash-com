@@ -1,6 +1,8 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { ChevronDown } from "lucide-react"
+import { useState } from "react"
 
 export interface FacetOption {
   value: string
@@ -9,14 +11,11 @@ export interface FacetOption {
 }
 
 interface FacetFilterProps {
-  /** Label shown before the pills, e.g. "Category" */
-  label?: string
+  /** Label shown as the dropdown trigger, e.g. "Category" */
+  label: string
   options: FacetOption[]
   selected: string | null
   onSelect: (value: string | null) => void
-  /** Show "All" pill with total count */
-  showAll?: boolean
-  allLabel?: string
 }
 
 export function FacetFilter({
@@ -24,63 +23,77 @@ export function FacetFilter({
   options,
   selected,
   onSelect,
-  showAll = true,
-  allLabel = "All",
 }: FacetFilterProps) {
+  const [open, setOpen] = useState(false)
+
   // Only show options that have at least 1 result
   const visible = options.filter((o) => o.count > 0)
 
-  // If no options have results, don't render anything
+  // Don't render if no data
   if (visible.length === 0) return null
 
   const totalCount = visible.reduce((sum, o) => sum + o.count, 0)
+  const selectedOption = visible.find((o) => o.value === selected)
 
   return (
-    <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-      {label && (
-        <span className="text-xs font-medium text-muted-foreground shrink-0 mr-0.5">
-          {label}
-        </span>
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border transition-colors",
+          selected
+            ? "border-primary/50 bg-primary/10 text-primary"
+            : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-foreground/20"
+        )}
+      >
+        {label}
+        {selectedOption && (
+          <span className="font-semibold">: {selectedOption.label}</span>
+        )}
+        <ChevronDown className={cn("w-3 h-3 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+
+          {/* Dropdown */}
+          <div className="absolute top-full left-0 mt-1 z-50 min-w-[180px] max-w-[280px] rounded-lg border border-border bg-popover shadow-md py-1 animate-in fade-in-0 zoom-in-95">
+            {/* All option */}
+            <button
+              onClick={() => { onSelect(null); setOpen(false) }}
+              className={cn(
+                "w-full flex items-center justify-between px-3 py-1.5 text-xs transition-colors",
+                !selected
+                  ? "bg-accent text-accent-foreground font-medium"
+                  : "text-foreground hover:bg-accent/50"
+              )}
+            >
+              <span>All</span>
+              <span className="text-muted-foreground tabular-nums">{totalCount}</span>
+            </button>
+
+            <div className="h-px bg-border my-1" />
+
+            {visible.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => { onSelect(selected === opt.value ? null : opt.value); setOpen(false) }}
+                className={cn(
+                  "w-full flex items-center justify-between px-3 py-1.5 text-xs transition-colors",
+                  selected === opt.value
+                    ? "bg-accent text-accent-foreground font-medium"
+                    : "text-foreground hover:bg-accent/50"
+                )}
+              >
+                <span>{opt.label}</span>
+                <span className="text-muted-foreground tabular-nums">{opt.count}</span>
+              </button>
+            ))}
+          </div>
+        </>
       )}
-      {showAll && (
-        <button
-          onClick={() => onSelect(null)}
-          className={cn(
-            "shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap",
-            selected === null
-              ? "bg-foreground text-background"
-              : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-          )}
-        >
-          {allLabel}
-          <span className={cn(
-            "text-[10px] tabular-nums",
-            selected === null ? "text-background/70" : "text-muted-foreground/60"
-          )}>
-            {totalCount}
-          </span>
-        </button>
-      )}
-      {visible.map((opt) => (
-        <button
-          key={opt.value}
-          onClick={() => onSelect(selected === opt.value ? null : opt.value)}
-          className={cn(
-            "shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap",
-            selected === opt.value
-              ? "bg-foreground text-background"
-              : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-          )}
-        >
-          {opt.label}
-          <span className={cn(
-            "text-[10px] tabular-nums",
-            selected === opt.value ? "text-background/70" : "text-muted-foreground/60"
-          )}>
-            {opt.count}
-          </span>
-        </button>
-      ))}
     </div>
   )
 }
