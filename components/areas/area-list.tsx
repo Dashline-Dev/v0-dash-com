@@ -83,7 +83,7 @@ export function AreaList({ initialAreas, initialTotal }: AreaListProps) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
             {areas.map((area) => (
               <AreaCard key={area.id} area={area} />
             ))}

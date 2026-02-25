@@ -18,13 +18,11 @@ export default async function SpacesPage() {
   const { spaces, total } = await getSpaces({ limit: 20 })
 
   return (
-    <div className="px-4 md:px-6 lg:px-10 py-6 pb-24 md:pb-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-6 pb-24 md:pb-8">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-foreground text-balance">
-            Spaces
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl font-bold text-foreground">Spaces</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Discover spaces across all communities
           </p>
         </div>

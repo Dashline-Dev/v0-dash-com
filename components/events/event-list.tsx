@@ -159,7 +159,7 @@ export function EventList({
         </div>
       ) : (
         <>
-          <div className="flex flex-col gap-3">
+          <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
             {events.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}

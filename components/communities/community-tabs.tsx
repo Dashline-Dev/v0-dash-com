@@ -84,7 +84,7 @@ export function CommunityTabs({
       </TabsContent>
 
       <TabsContent value="events" className="mt-5">
-        <CommunityEvents communitySlug={community.slug} events={events} />
+        <CommunityEvents communitySlug={community.slug} communityId={community.id} events={events} />
       </TabsContent>
 
       <TabsContent value="spaces" className="mt-5">

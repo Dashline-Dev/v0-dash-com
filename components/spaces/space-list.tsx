@@ -97,7 +97,7 @@ export function SpaceList({ initialData, initialTotal, communityId }: SpaceListP
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
               {spaces.map((space) => (
                 <SpaceCard key={space.id} space={space} />
               ))}

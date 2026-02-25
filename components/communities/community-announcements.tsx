@@ -44,7 +44,7 @@ export function CommunityAnnouncements({ communitySlug, announcements }: Communi
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
         {announcements.map((a) => (
           <AnnouncementCard key={a.id} announcement={a} />
         ))}

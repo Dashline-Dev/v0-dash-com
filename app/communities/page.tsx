@@ -10,12 +10,10 @@ export default async function CommunitiesPage() {
   const result = await getCommunities({ limit: 12 })
 
   return (
-    <div className="px-4 py-5 md:px-6 lg:px-10 md:py-8 pb-24 md:pb-8">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground text-balance">
-          Communities
-        </h1>
-        <p className="text-sm md:text-base text-muted-foreground mt-1">
+    <div className="max-w-4xl mx-auto px-4 py-5 md:px-6 md:py-6 pb-24 md:pb-8">
+      <div className="mb-4">
+        <h1 className="text-xl font-bold text-foreground">Communities</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
           Browse and join communities that match your interests
         </p>
       </div>
