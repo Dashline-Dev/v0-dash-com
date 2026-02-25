@@ -154,6 +154,8 @@ export function AreaMap({
     center = { lat: uniqueE[0].lat, lng: uniqueE[0].lng }
   }
 
+  console.log("[v0] AreaMap center:", JSON.stringify(center), "zoom:", zoom, "centerProp:", JSON.stringify(centerProp), "bounds:", JSON.stringify(bounds))
+
   return (
     <div className={cn("rounded-xl overflow-hidden border border-border", className)} style={{ height }}>
       <GoogleMapComponent

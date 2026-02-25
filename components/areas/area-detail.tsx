@@ -47,6 +47,7 @@ export function AreaDetail({
   mapMarkers,
 }: AreaDetailProps) {
   const bounds = areaBoundsToMapBounds(area)
+  console.log("[v0] AreaDetail area.latitude:", area.latitude, "area.longitude:", area.longitude, "bounds:", JSON.stringify(bounds), "typeof lat:", typeof area.latitude)
 
   return (
     <div className="space-y-6">
