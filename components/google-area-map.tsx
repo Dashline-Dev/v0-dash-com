@@ -5,6 +5,7 @@ import { APIProvider, Map as GoogleMapComponent, AdvancedMarker, InfoWindow, use
 import Link from "next/link"
 import { Users, CalendarDays, MapPin } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 /* ── Color palette for neighborhood overlays ─────────────── */
 
@@ -34,7 +35,10 @@ export interface AreaMapProps {
   neighborhoods?: MapNeighborhood[]
   areaPlaceId?: string
   bounds?: { north: number; south: number; east: number; west: number }
+  center?: { lat: number; lng: number }
+  zoom?: number
   height?: string
+  className?: string
 }
 
 /* ── Dedup helper (uses Set, NOT native Map, to avoid Turbopack collision) ── */
@@ -113,14 +117,21 @@ export function AreaMap({
   events = [],
   neighborhoods = [],
   bounds,
+  center: centerProp,
+  zoom: zoomProp,
   height = "360px",
+  className,
 }: AreaMapProps) {
   const [selectedCommunity, setSelectedCommunity] = useState<MapCommunity | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<MapEvent | null>(null)
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<MapNeighborhood | null>(null)
 
-  const uniqueC = dedupById(communities)
-  const uniqueE = dedupById(events)
+  // Helper to check for finite numbers
+  const isFiniteCoord = (v: number | undefined | null): v is number =>
+    v != null && Number.isFinite(v)
+
+  const uniqueC = dedupById(communities).filter((c) => isFiniteCoord(c.lat) && isFiniteCoord(c.lng))
+  const uniqueE = dedupById(events).filter((e) => isFiniteCoord(e.lat) && isFiniteCoord(e.lng))
 
   const handleNeighborhoodClick = useCallback((n: MapNeighborhood) => {
     setSelectedNeighborhood(n)
@@ -128,19 +139,23 @@ export function AreaMap({
     setSelectedEvent(null)
   }, [])
 
-  // Compute center from bounds or first marker
-  let center = { lat: 40.7128, lng: -74.006 }
-  let zoom = 12
-  if (bounds) {
+  // Compute center from prop > bounds > first marker > fallback
+  const fallback = { lat: 40.7128, lng: -74.006 }
+  let center = fallback
+  let zoom = zoomProp ?? 12
+
+  if (centerProp && isFiniteCoord(centerProp.lat) && isFiniteCoord(centerProp.lng)) {
+    center = centerProp
+  } else if (bounds && isFiniteCoord(bounds.north) && isFiniteCoord(bounds.south) && isFiniteCoord(bounds.east) && isFiniteCoord(bounds.west)) {
     center = { lat: (bounds.north + bounds.south) / 2, lng: (bounds.east + bounds.west) / 2 }
-  } else if (uniqueC.length > 0) {
+  } else if (uniqueC.length > 0 && isFiniteCoord(uniqueC[0].lat) && isFiniteCoord(uniqueC[0].lng)) {
     center = { lat: uniqueC[0].lat, lng: uniqueC[0].lng }
-  } else if (uniqueE.length > 0) {
+  } else if (uniqueE.length > 0 && isFiniteCoord(uniqueE[0].lat) && isFiniteCoord(uniqueE[0].lng)) {
     center = { lat: uniqueE[0].lat, lng: uniqueE[0].lng }
   }
 
   return (
-    <div className="rounded-xl overflow-hidden border border-border" style={{ height }}>
+    <div className={cn("rounded-xl overflow-hidden border border-border", className)} style={{ height }}>
       <GoogleMapComponent
         defaultCenter={center}
         defaultZoom={zoom}
