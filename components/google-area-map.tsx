@@ -34,7 +34,7 @@ export interface AreaMapProps {
   events?: MapEvent[]
   neighborhoods?: MapNeighborhood[]
   areaPlaceId?: string
-  bounds?: { north: number; south: number; east: number; west: number }
+  bounds?: { north: number; south: number; east: number; west: number } | { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } } | null
   center?: { lat: number; lng: number }
   zoom?: number
   height?: string
@@ -126,12 +126,14 @@ export function AreaMap({
   const [selectedEvent, setSelectedEvent] = useState<MapEvent | null>(null)
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<MapNeighborhood | null>(null)
 
-  // Helper to check for finite numbers
-  const isFiniteCoord = (v: number | undefined | null): v is number =>
-    v != null && Number.isFinite(v)
+  // Coerce any value (string from DB or number) to finite number or null
+  const toFinite = (v: unknown): number | null => {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }
 
-  const uniqueC = dedupById(communities).filter((c) => isFiniteCoord(c.lat) && isFiniteCoord(c.lng))
-  const uniqueE = dedupById(events).filter((e) => isFiniteCoord(e.lat) && isFiniteCoord(e.lng))
+  const uniqueC = dedupById(communities).filter((c) => toFinite(c.lat) != null && toFinite(c.lng) != null)
+  const uniqueE = dedupById(events).filter((e) => toFinite(e.lat) != null && toFinite(e.lng) != null)
 
   const handleNeighborhoodClick = useCallback((n: MapNeighborhood) => {
     setSelectedNeighborhood(n)
@@ -139,22 +141,33 @@ export function AreaMap({
     setSelectedEvent(null)
   }, [])
 
+  // Normalize bounds to { north, south, east, west } regardless of input format
+  let normBounds: { north: number; south: number; east: number; west: number } | null = null
+  if (bounds) {
+    if ("ne" in bounds && "sw" in bounds) {
+      const n = toFinite(bounds.ne.lat), e = toFinite(bounds.ne.lng), s = toFinite(bounds.sw.lat), w = toFinite(bounds.sw.lng)
+      if (n != null && e != null && s != null && w != null) normBounds = { north: n, south: s, east: e, west: w }
+    } else if ("north" in bounds) {
+      const n = toFinite(bounds.north), s = toFinite(bounds.south), e = toFinite(bounds.east), w = toFinite(bounds.west)
+      if (n != null && s != null && e != null && w != null) normBounds = { north: n, south: s, east: e, west: w }
+    }
+  }
+
   // Compute center from prop > bounds > first marker > fallback
   const fallback = { lat: 40.7128, lng: -74.006 }
   let center = fallback
   let zoom = zoomProp ?? 12
 
-  if (centerProp && isFiniteCoord(centerProp.lat) && isFiniteCoord(centerProp.lng)) {
-    center = centerProp
-  } else if (bounds && isFiniteCoord(bounds.north) && isFiniteCoord(bounds.south) && isFiniteCoord(bounds.east) && isFiniteCoord(bounds.west)) {
-    center = { lat: (bounds.north + bounds.south) / 2, lng: (bounds.east + bounds.west) / 2 }
-  } else if (uniqueC.length > 0 && isFiniteCoord(uniqueC[0].lat) && isFiniteCoord(uniqueC[0].lng)) {
-    center = { lat: uniqueC[0].lat, lng: uniqueC[0].lng }
-  } else if (uniqueE.length > 0 && isFiniteCoord(uniqueE[0].lat) && isFiniteCoord(uniqueE[0].lng)) {
-    center = { lat: uniqueE[0].lat, lng: uniqueE[0].lng }
+  const cLat = toFinite(centerProp?.lat), cLng = toFinite(centerProp?.lng)
+  if (cLat != null && cLng != null) {
+    center = { lat: cLat, lng: cLng }
+  } else if (normBounds) {
+    center = { lat: (normBounds.north + normBounds.south) / 2, lng: (normBounds.east + normBounds.west) / 2 }
+  } else if (uniqueC.length > 0) {
+    center = { lat: Number(uniqueC[0].lat), lng: Number(uniqueC[0].lng) }
+  } else if (uniqueE.length > 0) {
+    center = { lat: Number(uniqueE[0].lat), lng: Number(uniqueE[0].lng) }
   }
-
-  console.log("[v0] AreaMap center:", JSON.stringify(center), "zoom:", zoom, "centerProp:", JSON.stringify(centerProp), "bounds:", JSON.stringify(bounds))
 
   return (
     <div className={cn("rounded-xl overflow-hidden border border-border", className)} style={{ height }}>
