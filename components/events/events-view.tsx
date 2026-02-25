@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useCallback } from "react"
+import { useState, useTransition, useCallback, useMemo } from "react"
 import {
   CalendarDays,
   List,
@@ -21,6 +21,7 @@ import { getEvents, getEventsForMonth } from "@/lib/actions/event-actions"
 import type { EventWithMeta, EventType } from "@/types/event"
 import { EVENT_TYPES, formatEventTime, isEventPast, EVENT_TYPE_LABELS } from "@/types/event"
 import { cn } from "@/lib/utils"
+import { FacetFilter, type FacetOption } from "@/components/ui/facet-filter"
 import { AreaMap, type MapEvent } from "@/components/google-area-map"
 import { GoogleMapsProvider } from "@/components/maps/google-maps-provider"
 
@@ -456,7 +457,7 @@ function CalendarView({ initialEvents, mode, communityId, basePath }: {
 function ListView({ initialEvents, initialTotal, communityId, spaceId, basePath }: {
   initialEvents: EventWithMeta[]; initialTotal: number; communityId?: string; spaceId?: string; basePath?: string
 }) {
-  const [events, setEvents] = useState(() => {
+  const [allEvents, setAllEvents] = useState(() => {
     const seen = new Set<string>()
     return initialEvents.filter((e) => {
       if (seen.has(e.id)) return false
@@ -464,72 +465,80 @@ function ListView({ initialEvents, initialTotal, communityId, spaceId, basePath 
       return true
     })
   })
+  const [events, setEvents] = useState(allEvents)
   const [total, setTotal] = useState(initialTotal)
   const [search, setSearch] = useState("")
-  const [typeFilter, setTypeFilter] = useState<EventType | "all">("all")
+  const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const [showPast, setShowPast] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  function applyFilters(s: string, t: EventType | "all", past: boolean) {
+  // Facets from loaded events
+  const typeFacets: FacetOption[] = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const e of allEvents) {
+      counts[e.event_type] = (counts[e.event_type] || 0) + 1
+    }
+    return EVENT_TYPES.map((t) => ({
+      value: t.value,
+      label: t.label,
+      count: counts[t.value] || 0,
+    }))
+  }, [allEvents])
+
+  function applyClientFilters(all: EventWithMeta[], t: string | null) {
+    setEvents(t ? all.filter((e) => e.event_type === t) : all)
+  }
+
+  function fetchEvents(s: string, past: boolean, isLoadMore = false) {
     startTransition(async () => {
       const result = await getEvents({
         communityId, spaceId,
         search: s || undefined,
         upcoming: !past,
-        limit: 20, offset: 0,
+        limit: 20, offset: isLoadMore ? allEvents.length : 0,
       })
-      const filtered = t === "all" ? result.events : result.events.filter((e) => e.event_type === t)
-      setEvents(filtered)
-      setTotal(result.total)
-    })
-  }
-
-  function handleLoadMore() {
-    startTransition(async () => {
-      const result = await getEvents({
-        communityId, spaceId,
-        search: search || undefined,
-        upcoming: !showPast,
-        limit: 20, offset: events.length,
-      })
-      const filtered = typeFilter === "all" ? result.events : result.events.filter((e) => e.event_type === typeFilter)
-      setEvents((prev) => {
-        const ids = new Set(prev.map((e) => e.id))
-        return [...prev, ...filtered.filter((e) => !ids.has(e.id))]
-      })
+      if (isLoadMore) {
+        const newAll = [...allEvents, ...result.events]
+        const seen = new Set<string>()
+        const deduped = newAll.filter((e) => {
+          if (seen.has(e.id)) return false
+          seen.add(e.id)
+          return true
+        })
+        setAllEvents(deduped)
+        applyClientFilters(deduped, typeFilter)
+      } else {
+        setAllEvents(result.events)
+        applyClientFilters(result.events, typeFilter)
+      }
       setTotal(result.total)
     })
   }
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Filters */}
+      {/* Search + past toggle */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="flex-1">
-          <CommunitySearch value={search} onChange={(v) => { setSearch(v); applyFilters(v, typeFilter, showPast) }} placeholder="Search events..." />
+          <CommunitySearch value={search} onChange={(v) => { setSearch(v); fetchEvents(v, showPast) }} placeholder="Search events..." />
         </div>
-        <div className="flex items-center gap-1 overflow-x-auto">
-          <button
-            onClick={() => { setShowPast(!showPast); applyFilters(search, typeFilter, !showPast) }}
-            className={cn("px-2.5 py-1 text-xs font-medium rounded transition-colors shrink-0",
-              showPast ? "bg-foreground text-background" : "text-muted-foreground hover:bg-accent/50"
-            )}
-          >
-            {showPast ? "All" : "Upcoming"}
-          </button>
-          {EVENT_TYPES.map((t) => (
-            <button
-              key={t.value}
-              onClick={() => { setTypeFilter(typeFilter === t.value ? "all" : t.value); applyFilters(search, typeFilter === t.value ? "all" : t.value, showPast) }}
-              className={cn("px-2.5 py-1 text-xs font-medium rounded transition-colors shrink-0",
-                typeFilter === t.value ? "bg-foreground text-background" : "text-muted-foreground hover:bg-accent/50"
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={() => { const next = !showPast; setShowPast(next); fetchEvents(search, next) }}
+          className={cn("px-2.5 py-1 text-xs font-medium rounded-md transition-colors shrink-0",
+            showPast ? "bg-foreground text-background" : "text-muted-foreground hover:bg-accent/50"
+          )}
+        >
+          {showPast ? "All" : "Upcoming"}
+        </button>
       </div>
+
+      {/* Faceted type filter */}
+      <FacetFilter
+        label="Type"
+        options={typeFacets}
+        selected={typeFilter}
+        onSelect={(v) => { setTypeFilter(v); applyClientFilters(allEvents, v) }}
+      />
 
       {/* Results */}
       {isPending && events.length === 0 ? (
@@ -545,9 +554,9 @@ function ListView({ initialEvents, initialTotal, communityId, spaceId, basePath 
               <EventCard key={event.id} event={event} basePath={basePath} />
             ))}
           </div>
-          {events.length < total && (
+          {events.length < total && !typeFilter && (
             <div className="flex justify-center">
-              <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={isPending}>
+              <Button variant="outline" size="sm" onClick={() => fetchEvents(search, showPast, true)} disabled={isPending}>
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
                 Load more
               </Button>
