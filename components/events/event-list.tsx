@@ -1,14 +1,13 @@
 "use client"
 
-import { useState, useTransition, useMemo } from "react"
+import { useState, useTransition } from "react"
 import { Loader2, CalendarDays } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CommunitySearch } from "@/components/communities/community-search"
-import { FacetFilter, type FacetOption } from "@/components/ui/facet-filter"
+import { EventFilters, applyEventFilters, EMPTY_EVENT_FILTERS, type EventFilterState } from "./event-filters"
 import { EventCard } from "./event-card"
 import { getEvents } from "@/lib/actions/event-actions"
-import type { EventWithMeta, EventType } from "@/types/event"
-import { EVENT_TYPES } from "@/types/event"
+import type { EventWithMeta } from "@/types/event"
 
 interface EventListProps {
   initialEvents: EventWithMeta[]
@@ -31,58 +30,16 @@ export function EventList({
       return true
     })
   })
-  const [events, setEvents] = useState(allEvents)
   const [total, setTotal] = useState(initialTotal)
   const [search, setSearch] = useState("")
-  const [typeFilter, setTypeFilter] = useState<string | null>(null)
+  const [filters, setFilters] = useState<EventFilterState>(EMPTY_EVENT_FILTERS)
   const [showPast, setShowPast] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  // Facets from loaded events
-  const typeFacets: FacetOption[] = useMemo(() => {
-    const counts: Record<string, number> = {}
-    for (const e of allEvents) {
-      counts[e.event_type] = (counts[e.event_type] || 0) + 1
-    }
-    return EVENT_TYPES.map((t) => ({
-      value: t.value,
-      label: t.label,
-      count: counts[t.value] || 0,
-    }))
-  }, [allEvents])
+  const events = applyEventFilters(allEvents, filters)
+  const hasActiveFilters = Object.values(filters).some(Boolean)
 
-  // Community facets (when not scoped to one community)
-  const communityFacets: FacetOption[] = useMemo(() => {
-    if (communityId) return []
-    const counts: Record<string, { name: string; count: number }> = {}
-    for (const e of allEvents) {
-      if (!counts[e.community_slug]) {
-        counts[e.community_slug] = { name: e.community_name, count: 0 }
-      }
-      counts[e.community_slug].count++
-    }
-    return Object.entries(counts).map(([slug, { name, count }]) => ({
-      value: slug,
-      label: name,
-      count,
-    }))
-  }, [allEvents, communityId])
-
-  const [communityFilter, setCommunityFilter] = useState<string | null>(null)
-
-  // Apply client-side filters
-  function applyClientFilters(all: EventWithMeta[], t: string | null, cf: string | null) {
-    let filtered = all
-    if (t) filtered = filtered.filter((e) => e.event_type === t)
-    if (cf) filtered = filtered.filter((e) => e.community_slug === cf)
-    setEvents(filtered)
-  }
-
-  function fetchEvents(
-    searchVal: string,
-    past: boolean,
-    isLoadMore = false
-  ) {
+  function fetchEvents(searchVal: string, past: boolean, isLoadMore = false) {
     startTransition(async () => {
       const result = await getEvents({
         communityId,
@@ -92,82 +49,51 @@ export function EventList({
         limit: 20,
         offset: isLoadMore ? allEvents.length : 0,
       })
-
       if (isLoadMore) {
-        const newAll = [...allEvents, ...result.events]
+        const merged = [...allEvents, ...result.events]
         const seen = new Set<string>()
-        const deduped = newAll.filter((e) => {
+        const deduped = merged.filter((e) => {
           if (seen.has(e.id)) return false
           seen.add(e.id)
           return true
         })
         setAllEvents(deduped)
-        applyClientFilters(deduped, typeFilter, communityFilter)
       } else {
         setAllEvents(result.events)
-        applyClientFilters(result.events, typeFilter, communityFilter)
       }
       setTotal(result.total)
     })
   }
 
-  function handleSearch(value: string) {
-    setSearch(value)
-    fetchEvents(value, showPast)
-  }
-
-  function handleTogglePast() {
-    const next = !showPast
-    setShowPast(next)
-    fetchEvents(search, next)
-  }
-
-  function handleTypeFilter(v: string | null) {
-    setTypeFilter(v)
-    applyClientFilters(allEvents, v, communityFilter)
-  }
-
-  function handleCommunityFilter(v: string | null) {
-    setCommunityFilter(v)
-    applyClientFilters(allEvents, typeFilter, v)
+  function handleFilterChange(next: Partial<EventFilterState>) {
+    setFilters((prev) => ({ ...prev, ...next }))
   }
 
   return (
     <div className="flex flex-col gap-3">
       {/* Search + past toggle */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="flex items-center gap-2">
         <div className="flex-1">
           <CommunitySearch
             value={search}
-            onChange={handleSearch}
+            onChange={(v) => { setSearch(v); fetchEvents(v, showPast) }}
             placeholder="Search events..."
           />
         </div>
         <button
-          onClick={handleTogglePast}
-          className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors shrink-0 ${showPast ? "bg-foreground text-background" : "text-muted-foreground hover:bg-accent/50"}`}
+          onClick={() => { const next = !showPast; setShowPast(next); fetchEvents(search, next) }}
+          className={`cursor-pointer px-2.5 py-1 text-xs font-medium rounded-md border transition-colors shrink-0 ${
+            showPast
+              ? "bg-foreground text-background border-foreground"
+              : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+          }`}
         >
-          {showPast ? "Showing all" : "Upcoming only"}
+          {showPast ? "Showing all" : "Upcoming"}
         </button>
       </div>
 
-      {/* Faceted filters */}
-      <div className="flex items-center gap-2 overflow-x-auto">
-        <FacetFilter
-          label="Type"
-          options={typeFacets}
-          selected={typeFilter}
-          onSelect={handleTypeFilter}
-        />
-        {communityFacets.length > 1 && (
-          <FacetFilter
-            label="Community"
-            options={communityFacets}
-            selected={communityFilter}
-            onSelect={handleCommunityFilter}
-          />
-        )}
-      </div>
+      {/* Dynamic attribute filters */}
+      <EventFilters events={allEvents} filters={filters} onChange={handleFilterChange} />
 
       {/* Results */}
       {isPending && events.length === 0 ? (
@@ -179,7 +105,7 @@ export function EventList({
           <CalendarDays className="w-10 h-10 text-muted-foreground/40 mb-3" />
           <p className="text-sm font-medium text-foreground">No events found</p>
           <p className="text-xs text-muted-foreground mt-1">
-            {search ? "Try a different search term" : "Check back later for upcoming events"}
+            {search || hasActiveFilters ? "Try adjusting your search or filters" : "Check back later for upcoming events"}
           </p>
         </div>
       ) : (
@@ -189,8 +115,7 @@ export function EventList({
               <EventCard key={event.id} event={event} />
             ))}
           </div>
-
-          {events.length < total && !typeFilter && !communityFilter && (
+          {allEvents.length < total && !hasActiveFilters && (
             <div className="flex justify-center pt-2">
               <Button
                 variant="outline"
@@ -198,10 +123,8 @@ export function EventList({
                 onClick={() => fetchEvents(search, showPast, true)}
                 disabled={isPending}
               >
-                {isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : null}
-                Load more events
+                {isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Load more
               </Button>
             </div>
           )}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useCallback, useMemo } from "react"
+import { useState, useTransition, useCallback } from "react"
 import {
   CalendarDays,
   List,
@@ -18,10 +18,10 @@ import { Button } from "@/components/ui/button"
 import { CommunitySearch } from "@/components/communities/community-search"
 import { EventCard } from "./event-card"
 import { getEvents, getEventsForMonth } from "@/lib/actions/event-actions"
-import type { EventWithMeta, EventType } from "@/types/event"
-import { EVENT_TYPES, formatEventTime, isEventPast, EVENT_TYPE_LABELS } from "@/types/event"
+import type { EventWithMeta } from "@/types/event"
+import { formatEventTime, isEventPast } from "@/types/event"
 import { cn } from "@/lib/utils"
-import { FacetFilter, type FacetOption } from "@/components/ui/facet-filter"
+import { EventFilters, applyEventFilters, EMPTY_EVENT_FILTERS, type EventFilterState } from "./event-filters"
 import { AreaMap, type MapEvent } from "@/components/google-area-map"
 import { GoogleMapsProvider } from "@/components/maps/google-maps-provider"
 
@@ -482,29 +482,14 @@ function ListView({ initialEvents, initialTotal, communityId, spaceId, basePath 
       return true
     })
   })
-  const [events, setEvents] = useState(allEvents)
   const [total, setTotal] = useState(initialTotal)
   const [search, setSearch] = useState("")
-  const [typeFilter, setTypeFilter] = useState<string | null>(null)
+  const [filters, setFilters] = useState<EventFilterState>(EMPTY_EVENT_FILTERS)
   const [showPast, setShowPast] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  // Facets from loaded events
-  const typeFacets: FacetOption[] = useMemo(() => {
-    const counts: Record<string, number> = {}
-    for (const e of allEvents) {
-      counts[e.event_type] = (counts[e.event_type] || 0) + 1
-    }
-    return EVENT_TYPES.map((t) => ({
-      value: t.value,
-      label: t.label,
-      count: counts[t.value] || 0,
-    }))
-  }, [allEvents])
-
-  function applyClientFilters(all: EventWithMeta[], t: string | null) {
-    setEvents(t ? all.filter((e) => e.event_type === t) : all)
-  }
+  const events = applyEventFilters(allEvents, filters)
+  const hasActiveFilters = Object.values(filters).some(Boolean)
 
   function fetchEvents(s: string, past: boolean, isLoadMore = false) {
     startTransition(async () => {
@@ -515,18 +500,11 @@ function ListView({ initialEvents, initialTotal, communityId, spaceId, basePath 
         limit: 20, offset: isLoadMore ? allEvents.length : 0,
       })
       if (isLoadMore) {
-        const newAll = [...allEvents, ...result.events]
+        const merged = [...allEvents, ...result.events]
         const seen = new Set<string>()
-        const deduped = newAll.filter((e) => {
-          if (seen.has(e.id)) return false
-          seen.add(e.id)
-          return true
-        })
-        setAllEvents(deduped)
-        applyClientFilters(deduped, typeFilter)
+        setAllEvents(merged.filter((e) => { if (seen.has(e.id)) return false; seen.add(e.id); return true }))
       } else {
         setAllEvents(result.events)
-        applyClientFilters(result.events, typeFilter)
       }
       setTotal(result.total)
     })
@@ -535,27 +513,22 @@ function ListView({ initialEvents, initialTotal, communityId, spaceId, basePath 
   return (
     <div className="flex flex-col gap-3">
       {/* Search + past toggle */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="flex items-center gap-2">
         <div className="flex-1">
           <CommunitySearch value={search} onChange={(v) => { setSearch(v); fetchEvents(v, showPast) }} placeholder="Search events..." />
         </div>
         <button
           onClick={() => { const next = !showPast; setShowPast(next); fetchEvents(search, next) }}
-          className={cn("px-2.5 py-1 text-xs font-medium rounded-md transition-colors shrink-0",
-            showPast ? "bg-foreground text-background" : "text-muted-foreground hover:bg-accent/50"
+          className={cn("cursor-pointer px-2.5 py-1 text-xs font-medium rounded-md border transition-colors shrink-0",
+            showPast ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:text-foreground"
           )}
         >
-          {showPast ? "All" : "Upcoming"}
+          {showPast ? "Showing all" : "Upcoming"}
         </button>
       </div>
 
-      {/* Faceted type filter */}
-      <FacetFilter
-        label="Type"
-        options={typeFacets}
-        selected={typeFilter}
-        onSelect={(v) => { setTypeFilter(v); applyClientFilters(allEvents, v) }}
-      />
+      {/* Rich attribute filters */}
+      <EventFilters events={allEvents} filters={filters} onChange={(next) => setFilters((p) => ({ ...p, ...next }))} />
 
       {/* Results */}
       {isPending && events.length === 0 ? (
@@ -563,7 +536,9 @@ function ListView({ initialEvents, initialTotal, communityId, spaceId, basePath 
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </div>
       ) : events.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-8 text-center">No events found.</p>
+        <p className="text-sm text-muted-foreground py-8 text-center">
+          {hasActiveFilters ? "No events match your filters." : "No events found."}
+        </p>
       ) : (
         <>
           <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
@@ -571,7 +546,7 @@ function ListView({ initialEvents, initialTotal, communityId, spaceId, basePath 
               <EventCard key={event.id} event={event} basePath={basePath} />
             ))}
           </div>
-          {events.length < total && !typeFilter && (
+          {allEvents.length < total && !hasActiveFilters && (
             <div className="flex justify-center">
               <Button variant="outline" size="sm" onClick={() => fetchEvents(search, showPast, true)} disabled={isPending}>
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}

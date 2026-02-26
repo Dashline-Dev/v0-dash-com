@@ -87,7 +87,7 @@ export function HomeSections({
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors shrink-0 -mb-px",
+                  "cursor-pointer flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors shrink-0 -mb-px",
                   isActive
                     ? "border-primary text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
@@ -120,7 +120,7 @@ export function HomeSections({
               title={label}
               aria-label={label}
               className={cn(
-                "flex items-center justify-center w-7 h-7 rounded transition-colors",
+                "cursor-pointer flex items-center justify-center w-7 h-7 rounded transition-colors",
                 view === key
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
