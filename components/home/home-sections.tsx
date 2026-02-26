@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { CalendarDays, Star, Users, Compass } from "lucide-react"
 import { EventsView } from "@/components/events/events-view"
-import type { EventWithMeta, RsvpStatus } from "@/types/event"
+import type { EventWithMeta } from "@/types/event"
 import { cn } from "@/lib/utils"
 
 interface HomeSectionsProps {
@@ -14,7 +14,7 @@ interface HomeSectionsProps {
   isGuest: boolean
 }
 
-type TabKey = "attending" | "interested" | "fromSpaces" | "discover"
+type TabKey = "following" | "attending" | "interested" | "discover"
 
 const TABS: {
   key: TabKey
@@ -22,11 +22,18 @@ const TABS: {
   icon: React.ElementType
   guestHidden?: boolean
 }[] = [
-  { key: "attending",  label: "Attending",       icon: CalendarDays, guestHidden: true },
-  { key: "interested", label: "Interested",       icon: Star,         guestHidden: true },
-  { key: "fromSpaces", label: "From My Spaces",   icon: Users,        guestHidden: true },
-  { key: "discover",   label: "Discover",         icon: Compass },
+  { key: "following",  label: "Following",  icon: Users,        guestHidden: true },
+  { key: "attending",  label: "Attending",  icon: CalendarDays, guestHidden: true },
+  { key: "interested", label: "Interested", icon: Star,         guestHidden: true },
+  { key: "discover",   label: "Discover",   icon: Compass },
 ]
+
+const EMPTY_MESSAGES: Record<TabKey, { text: string; cta?: { label: string; href: string } }> = {
+  following:  { text: "No upcoming events from communities you follow.", cta: { label: "Find communities", href: "/communities" } },
+  attending:  { text: "You haven't RSVPed to any upcoming events yet.",  cta: { label: "Browse events", href: "/explore" } },
+  interested: { text: "You haven't marked any events as interested.",    cta: { label: "Browse events", href: "/explore" } },
+  discover:   { text: "No public events to discover right now.",         cta: { label: "Explore communities", href: "/communities" } },
+}
 
 export function HomeSections({
   initialAttending,
@@ -35,30 +42,36 @@ export function HomeSections({
   initialDiscover,
   isGuest,
 }: HomeSectionsProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>(
-    isGuest ? "discover" : "attending"
-  )
+  const defaultTab: TabKey = isGuest ? "discover" : "following"
+  const [activeTab, setActiveTab] = useState<TabKey>(defaultTab)
 
-  // Keep per-tab event state so RSVP changes persist when switching tabs
-  const [sections, setSections] = useState({
+  // Following = all events from joined communities (deduplicated), sorted by start_time
+  const following = useMemo(() => {
+    const seen = new Set<string>()
+    return initialFromSpaces.filter((e) => {
+      if (seen.has(e.id)) return false
+      seen.add(e.id)
+      return true
+    })
+  }, [initialFromSpaces])
+
+  const sectionEvents: Record<TabKey, EventWithMeta[]> = {
+    following,
     attending:  initialAttending,
     interested: initialInterested,
-    fromSpaces: initialFromSpaces,
     discover:   initialDiscover,
-  })
+  }
 
   const visibleTabs = TABS.filter((t) => !isGuest || !t.guestHidden)
-
-  const activeEvents = sections[activeTab]
-  const activeTotal  = activeEvents.length
+  const activeEvents = sectionEvents[activeTab]
 
   return (
     <div className="flex flex-col gap-0">
       {/* Tab bar */}
       <div className="flex items-center border-b border-border overflow-x-auto scrollbar-none -mb-px">
         {visibleTabs.map((tab) => {
-          const Icon    = tab.icon
-          const count   = sections[tab.key].length
+          const Icon     = tab.icon
+          const count    = sectionEvents[tab.key].length
           const isActive = activeTab === tab.key
 
           return (
@@ -72,7 +85,7 @@ export function HomeSections({
                   : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               )}
             >
-              <Icon className={cn("w-3.5 h-3.5", isActive ? "text-primary" : "")} />
+              <Icon className={cn("w-3.5 h-3.5", isActive && "text-primary")} />
               {tab.label}
               {count > 0 && (
                 <span
@@ -91,15 +104,15 @@ export function HomeSections({
         })}
       </div>
 
-      {/* EventsView for the active tab */}
+      {/* Content */}
       <div className="pt-4">
         {activeEvents.length === 0 ? (
-          <EmptyState tab={activeTab} isGuest={isGuest} />
+          <EmptyState tab={activeTab} />
         ) : (
           <EventsView
             key={activeTab}
             initialEvents={activeEvents}
-            initialTotal={activeTotal}
+            initialTotal={activeEvents.length}
             defaultView="list"
             defaultCalendarMode="today"
           />
@@ -109,31 +122,14 @@ export function HomeSections({
   )
 }
 
-function EmptyState({ tab, isGuest }: { tab: TabKey; isGuest: boolean }) {
-  const messages: Record<TabKey, string> = {
-    attending:  "You haven't RSVPed to any upcoming events yet.",
-    interested: "You haven't marked any events as interested.",
-    fromSpaces: "No upcoming events in the communities and spaces you've joined.",
-    discover:   "No public events to discover right now.",
-  }
-
+function EmptyState({ tab }: { tab: TabKey }) {
+  const { text, cta } = EMPTY_MESSAGES[tab]
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
-      <p className="text-sm text-muted-foreground">{messages[tab]}</p>
-      {(tab === "attending" || tab === "interested") && (
-        <a
-          href="/explore"
-          className="text-sm text-primary hover:underline font-medium"
-        >
-          Browse events
-        </a>
-      )}
-      {tab === "fromSpaces" && (
-        <a
-          href="/communities"
-          className="text-sm text-primary hover:underline font-medium"
-        >
-          Join communities
+      <p className="text-sm text-muted-foreground">{text}</p>
+      {cta && (
+        <a href={cta.href} className="text-sm text-primary hover:underline font-medium">
+          {cta.label}
         </a>
       )}
     </div>

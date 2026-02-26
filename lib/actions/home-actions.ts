@@ -83,16 +83,9 @@ export async function getHomeEvents(): Promise<HomeEventSections> {
     [userId]
   )
 
-  // 3. From My Spaces — user is a member of the community/space, no RSVP at all
-  const excludeIds = [
-    ...attendingIds,
-    ...(interested as EventWithMeta[]).map((e) => e.id),
-  ]
-  const excludeClause =
-    excludeIds.length > 0
-      ? `AND e.id NOT IN (${excludeIds.map((_, i) => `$${i + 2}`).join(",")})`
-      : ""
-
+  // 3. Following — ALL events from communities the user is a member of,
+  //    regardless of RSVP status (includes attending + interested + unRSVPed).
+  //    Sorted soonest first, deduplicated by id in JS.
   const fromSpaces = await sql(
     `SELECT ${EVENT_COLS}
      FROM events e
@@ -102,21 +95,16 @@ export async function getHomeEvents(): Promise<HomeEventSections> {
      JOIN community_members cm ON cm.community_id = e.community_id AND cm.user_id = $1
      WHERE e.status = 'published'
        AND e.end_time > NOW()
-       AND (r.status IS NULL OR r.status NOT IN ('going','interested','not_going'))
-       ${excludeClause}
      ORDER BY e.start_time ASC
-     LIMIT 10`,
-    [userId, ...excludeIds]
+     LIMIT 30`,
+    [userId]
   )
 
-  // 4. Discover — public events not in joined spaces, no RSVP
-  const allExcludeIds = [
-    ...excludeIds,
-    ...(fromSpaces as EventWithMeta[]).map((e) => e.id),
-  ]
+  // 4. Discover — public events NOT in any community the user has joined
+  const fromSpacesIds = (fromSpaces as EventWithMeta[]).map((e) => e.id)
   const discoverExclude =
-    allExcludeIds.length > 0
-      ? `AND e.id NOT IN (${allExcludeIds.map((_, i) => `$${i + 2}`).join(",")})`
+    fromSpacesIds.length > 0
+      ? `AND e.id NOT IN (${fromSpacesIds.map((_, i) => `$${i + 2}`).join(",")})`
       : ""
 
   const discover = await sql(
@@ -130,11 +118,10 @@ export async function getHomeEvents(): Promise<HomeEventSections> {
        AND c.visibility = 'public'
        AND e.end_time > NOW()
        AND cm.user_id IS NULL
-       AND (r.status IS NULL OR r.status NOT IN ('going','interested','not_going'))
        ${discoverExclude}
      ORDER BY e.start_time ASC
-     LIMIT 6`,
-    [userId, ...allExcludeIds]
+     LIMIT 20`,
+    [userId, ...fromSpacesIds]
   )
 
   return {
