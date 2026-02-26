@@ -39,6 +39,12 @@ interface EventsViewProps {
   basePath?: string
   defaultView?: ViewMode
   defaultCalendarMode?: CalendarMode
+  // Controlled mode — when provided, the parent owns view/calendarMode state
+  // and the built-in tab bar is suppressed
+  controlledView?: ViewMode
+  controlledCalendarMode?: CalendarMode
+  onViewChange?: (v: ViewMode) => void
+  onCalendarModeChange?: (m: CalendarMode) => void
 }
 
 // ── Main Component ──────────────────────────────────────────
@@ -52,42 +58,53 @@ export function EventsView({
   basePath,
   defaultView = "calendar",
   defaultCalendarMode = "today",
+  controlledView,
+  controlledCalendarMode,
+  onViewChange,
+  onCalendarModeChange,
 }: EventsViewProps) {
-  const [view, setView] = useState<ViewMode>(defaultView)
-  const [calendarMode, setCalendarMode] = useState<CalendarMode>(defaultCalendarMode)
+  const isControlled = controlledView !== undefined
+
+  const [_view, _setView] = useState<ViewMode>(defaultView)
+  const [_calendarMode, _setCalendarMode] = useState<CalendarMode>(defaultCalendarMode)
+
+  const view = isControlled ? controlledView! : _view
+  const calendarMode = isControlled ? (controlledCalendarMode ?? "today") : _calendarMode
+  const setView = isControlled ? (onViewChange ?? (() => {})) : _setView
+  const setCalendarMode = isControlled ? (onCalendarModeChange ?? (() => {})) : _setCalendarMode
 
   return (
     <div className="flex flex-col gap-3">
-      {/* View mode tabs */}
-      <div className="flex items-center gap-1 border-b border-border pb-2">
-        <ViewTab
-          active={view === "calendar"}
-          onClick={() => setView("calendar")}
-          icon={<CalendarDays className="w-3.5 h-3.5" />}
-          label="Calendar"
-        />
-        <ViewTab
-          active={view === "list"}
-          onClick={() => setView("list")}
-          icon={<List className="w-3.5 h-3.5" />}
-          label="List"
-        />
-        <ViewTab
-          active={view === "map"}
-          onClick={() => setView("map")}
-          icon={<MapPin className="w-3.5 h-3.5" />}
-          label="Map"
-        />
-
-        {/* Calendar sub-tabs */}
-        {view === "calendar" && (
-          <div className="flex items-center gap-0.5 ml-auto">
-            <SubTab active={calendarMode === "today"} onClick={() => setCalendarMode("today")} label="Today" />
-            <SubTab active={calendarMode === "week"} onClick={() => setCalendarMode("week")} label="Week" />
-            <SubTab active={calendarMode === "month"} onClick={() => setCalendarMode("month")} label="Month" />
-          </div>
-        )}
-      </div>
+      {/* Built-in view mode tabs — only shown when NOT in controlled mode */}
+      {!isControlled && (
+        <div className="flex items-center gap-1 border-b border-border pb-2">
+          <ViewTab
+            active={view === "calendar"}
+            onClick={() => setView("calendar")}
+            icon={<CalendarDays className="w-3.5 h-3.5" />}
+            label="Calendar"
+          />
+          <ViewTab
+            active={view === "list"}
+            onClick={() => setView("list")}
+            icon={<List className="w-3.5 h-3.5" />}
+            label="List"
+          />
+          <ViewTab
+            active={view === "map"}
+            onClick={() => setView("map")}
+            icon={<MapPin className="w-3.5 h-3.5" />}
+            label="Map"
+          />
+          {view === "calendar" && (
+            <div className="flex items-center gap-0.5 ml-auto">
+              <SubTab active={calendarMode === "today"} onClick={() => setCalendarMode("today")} label="Today" />
+              <SubTab active={calendarMode === "week"}  onClick={() => setCalendarMode("week")}  label="Week" />
+              <SubTab active={calendarMode === "month"} onClick={() => setCalendarMode("month")} label="Month" />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* View content */}
       {view === "calendar" && (
