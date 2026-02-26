@@ -8,8 +8,7 @@ function getGreeting(name: string): string {
   const hour = new Date().getHours()
   const part =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
-  const firstName = name.split(" ")[0]
-  return `${part}, ${firstName}`
+  return `${part}, ${name.split(" ")[0]}`
 }
 
 function formatTodayDate(): string {
@@ -29,9 +28,9 @@ export default async function HomePage() {
   const isGuest = !user
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-5 md:px-6 md:py-7 pb-24 md:pb-10">
+    <div className="max-w-4xl mx-auto px-4 py-5 md:px-6 md:py-7 pb-24 md:pb-10">
       {/* Header */}
-      <div className="flex items-start justify-between mb-7">
+      <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-foreground">
             {user ? getGreeting(user.name) : "Community Circle"}
@@ -42,7 +41,6 @@ export default async function HomePage() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* Explore link */}
           <Link
             href="/explore"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
@@ -51,7 +49,6 @@ export default async function HomePage() {
             <span className="hidden sm:inline">Explore</span>
           </Link>
 
-          {/* Create event — available to all logged-in users */}
           {user && (
             <Link
               href="/events/create"
@@ -64,7 +61,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Event sections */}
+      {/* Tabbed event sections */}
       <HomeSections
         initialAttending={sections.attending}
         initialInterested={sections.interested}
