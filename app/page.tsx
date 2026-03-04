@@ -2,7 +2,9 @@ import Link from "next/link"
 import { Plus, Search } from "lucide-react"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { getHomeEvents } from "@/lib/actions/home-actions"
+import { getGuestLandingData } from "@/lib/actions/landing-actions"
 import { HomeSections } from "@/components/home/home-sections"
+import { GuestLanding } from "@/components/home/guest-landing"
 
 function getGreeting(name: string): string {
   const hour = new Date().getHours()
@@ -20,12 +22,23 @@ function formatTodayDate(): string {
 }
 
 export default async function HomePage() {
-  const [user, sections] = await Promise.all([
-    getAuthenticatedUser(),
-    getHomeEvents(),
-  ])
-
+  const user = await getAuthenticatedUser()
   const isGuest = !user
+
+  // Guests get the marketing landing page; authenticated users get the full feed
+  if (isGuest) {
+    const landingData = await getGuestLandingData()
+    return (
+      <GuestLanding
+        topEvents={landingData.topEvents}
+        topCommunities={landingData.topCommunities}
+        totalEvents={landingData.totalEvents}
+        totalCommunities={landingData.totalCommunities}
+      />
+    )
+  }
+
+  const sections = await getHomeEvents()
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-5 md:px-6 md:py-7 pb-24 md:pb-10">
@@ -33,7 +46,7 @@ export default async function HomePage() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-foreground">
-            {user ? getGreeting(user.name) : "Community Circle"}
+            {getGreeting(user.name)}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {formatTodayDate()}
@@ -49,15 +62,13 @@ export default async function HomePage() {
             <span className="hidden sm:inline">Explore</span>
           </Link>
 
-          {user && (
-            <Link
-              href="/events/create"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Create Event</span>
-            </Link>
-          )}
+          <Link
+            href="/events/create"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Create Event</span>
+          </Link>
         </div>
       </div>
 
@@ -67,7 +78,7 @@ export default async function HomePage() {
         initialInterested={sections.interested}
         initialFromSpaces={sections.fromSpaces}
         initialDiscover={sections.discover}
-        isGuest={isGuest}
+        isGuest={false}
       />
     </div>
   )
