@@ -21,7 +21,7 @@ export interface GuestLandingData {
 }
 
 export async function getGuestLandingData(): Promise<GuestLandingData> {
-  const [eventRows, communityRows, countRows] = await Promise.all([
+  const [eventRows, communityRows] = await Promise.all([
     // Top 6 upcoming public events, soonest first
     sql(
       `SELECT ${EVENT_COLS}
@@ -51,14 +51,6 @@ export async function getGuestLandingData(): Promise<GuestLandingData> {
        LIMIT 6`,
       []
     ),
-
-    // Aggregate counts for the hero stats bar
-    sql(
-      `SELECT
-         (SELECT COUNT(*) FROM communities WHERE visibility != 'private') AS total_communities,
-         (SELECT COUNT(*) FROM events WHERE status = 'published' AND end_time > NOW()) AS total_events`,
-      []
-    ),
   ])
 
   const topEvents = eventRows as EventWithMeta[]
@@ -70,8 +62,5 @@ export async function getGuestLandingData(): Promise<GuestLandingData> {
     })
   ) as CommunityListItem[]
 
-  const totalCommunities = Number(countRows[0]?.total_communities ?? 0)
-  const totalEvents = Number(countRows[0]?.total_events ?? 0)
-
-  return { topEvents, topCommunities, totalEvents, totalCommunities }
+  return { topEvents, topCommunities, totalEvents: 0, totalCommunities: 0 }
 }
