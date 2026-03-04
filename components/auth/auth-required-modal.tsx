@@ -1,7 +1,9 @@
 "use client"
 
-import { usePathname } from "next/navigation"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,32 +16,55 @@ import {
 } from "@/components/ui/dialog"
 
 export function AuthRequiredModal() {
-  const pathname = usePathname()
+  const router = useRouter()
+  const [open, setOpen] = useState(true)
+
+  function handleClose() {
+    setOpen(false)
+    router.back()
+  }
 
   return (
-    <Dialog open>
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent
         showCloseButton={false}
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
         className="sm:max-w-md"
       >
+        {/* Close button */}
+        <button
+          onClick={handleClose}
+          aria-label="Close"
+          className="absolute right-4 top-4 rounded-sm p-1 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
         <DialogHeader className="text-center items-center">
-          <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-primary-foreground text-lg font-bold mb-2">
+          <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-primary-foreground text-lg font-bold mb-2 select-none">
             CC
           </span>
-          <DialogTitle className="text-xl">Sign in to continue</DialogTitle>
+          <DialogTitle className="text-xl">Create a free account</DialogTitle>
           <DialogDescription>
-            You need an account to access this page.
+            Join Community Circle to access this page and everything on the platform.
           </DialogDescription>
         </DialogHeader>
 
         <form
           method="POST"
-          action="/api/auth/signin"
+          action="/api/auth/signup"
           className="space-y-4 mt-2"
         >
-          <input type="hidden" name="redirectTo" value={pathname} />
+          <div className="space-y-2">
+            <Label htmlFor="modal-name">Full name</Label>
+            <Input
+              id="modal-name"
+              name="name"
+              type="text"
+              placeholder="Jane Smith"
+              required
+              autoComplete="name"
+            />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="modal-email">Email</Label>
@@ -59,25 +84,25 @@ export function AuthRequiredModal() {
               id="modal-password"
               name="password"
               type="password"
-              placeholder="Your password"
+              placeholder="Create a password"
               required
-              minLength={1}
-              autoComplete="current-password"
+              minLength={8}
+              autoComplete="new-password"
             />
           </div>
 
           <Button type="submit" className="w-full">
-            Sign in
+            Get started — it&apos;s free
           </Button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          {"Don't have an account?"}{" "}
+          Already have an account?{" "}
           <Link
-            href="/signup"
+            href="/signin"
             className="text-primary font-medium hover:underline"
           >
-            Sign up
+            Sign in
           </Link>
         </p>
       </DialogContent>

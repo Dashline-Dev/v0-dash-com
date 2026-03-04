@@ -88,7 +88,16 @@ function SignUpModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent showCloseButton={false} className="sm:max-w-md">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-4 top-4 rounded-sm p-1 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
         <DialogHeader className="text-center items-center">
           <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-primary-foreground text-lg font-bold mb-2 select-none">
             CC
