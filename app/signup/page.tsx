@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { AuthForm } from "@/components/auth/auth-form"
 import { getSession } from "@/lib/auth-session"
 import { redirect } from "next/navigation"
@@ -13,7 +14,9 @@ export default async function SignUpPage() {
 
   return (
     <main className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <AuthForm mode="signup" />
+      <Suspense>
+        <AuthForm mode="signup" />
+      </Suspense>
     </main>
   )
 }

@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import { Loader2 } from "lucide-react"
 import { SpaceCard } from "./space-card"
-import { SpaceTypeFilter } from "./space-type-filter"
 import { CommunitySearch } from "@/components/communities/community-search"
+import { FacetFilter, type FacetOption } from "@/components/ui/facet-filter"
 import { getSpaces } from "@/lib/actions/space-actions"
 import type { SpaceWithMeta, SpaceType } from "@/types/space"
+import { SPACE_TYPE_LABELS, SPACE_VISIBILITY_LABELS } from "@/types/space"
 import { Button } from "@/components/ui/button"
 
 interface SpaceListProps {
@@ -16,19 +17,47 @@ interface SpaceListProps {
 }
 
 export function SpaceList({ initialData, initialTotal, communityId }: SpaceListProps) {
+  const [allSpaces, setAllSpaces] = useState(initialData)
   const [spaces, setSpaces] = useState(initialData)
   const [total, setTotal] = useState(initialTotal)
   const [offset, setOffset] = useState(initialData.length)
   const [loading, setLoading] = useState(false)
 
   const [search, setSearch] = useState("")
-  const [type, setType] = useState<SpaceType | null>(null)
+  const [type, setType] = useState<string | null>(null)
+  const [visibility, setVisibility] = useState<string | null>(null)
   const [filtering, setFiltering] = useState(false)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
+  // Compute type facets from all loaded spaces
+  const typeFacets: FacetOption[] = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const s of allSpaces) {
+      counts[s.type] = (counts[s.type] || 0) + 1
+    }
+    return Object.entries(SPACE_TYPE_LABELS).map(([value, label]) => ({
+      value,
+      label,
+      count: counts[value] || 0,
+    }))
+  }, [allSpaces])
+
+  // Compute visibility facets
+  const visFacets: FacetOption[] = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const s of allSpaces) {
+      counts[s.visibility] = (counts[s.visibility] || 0) + 1
+    }
+    return Object.entries(SPACE_VISIBILITY_LABELS).map(([value, label]) => ({
+      value,
+      label,
+      count: counts[value] || 0,
+    }))
+  }, [allSpaces])
+
   const fetchSpaces = useCallback(
-    async (searchVal: string, typeVal: SpaceType | null, offsetVal?: number) => {
+    async (searchVal: string, offsetVal?: number) => {
       const isLoadMore = !!offsetVal && offsetVal > 0
       if (isLoadMore) setLoading(true)
       else setFiltering(true)
@@ -37,15 +66,14 @@ export function SpaceList({ initialData, initialTotal, communityId }: SpaceListP
         const result = await getSpaces({
           community_id: communityId,
           search: searchVal || undefined,
-          type: typeVal || undefined,
           limit: 20,
           offset: isLoadMore ? offsetVal : 0,
         })
 
         if (isLoadMore) {
-          setSpaces((prev) => [...prev, ...result.spaces])
+          setAllSpaces((prev) => [...prev, ...result.spaces])
         } else {
-          setSpaces(result.spaces)
+          setAllSpaces(result.spaces)
         }
         setTotal(result.total)
         setOffset(isLoadMore ? offsetVal + result.spaces.length : result.spaces.length)
@@ -62,23 +90,44 @@ export function SpaceList({ initialData, initialTotal, communityId }: SpaceListP
   useEffect(() => {
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      fetchSpaces(search, type)
+      fetchSpaces(search)
     }, 300)
     return () => clearTimeout(debounceRef.current)
-  }, [search, type, fetchSpaces])
+  }, [search, fetchSpaces])
+
+  // Client-side facet filtering
+  useEffect(() => {
+    let filtered = allSpaces
+    if (type) filtered = filtered.filter((s) => s.type === type)
+    if (visibility) filtered = filtered.filter((s) => s.visibility === visibility)
+    setSpaces(filtered)
+  }, [type, visibility, allSpaces])
 
   const loadMore = () => {
     if (loading || offset >= total) return
-    fetchSpaces(search, type, offset)
+    fetchSpaces(search, offset)
   }
 
-  const hasMore = offset < total
+  const hasMore = offset < total && !type && !visibility
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3">
-        <CommunitySearch value={search} onChange={setSearch} placeholder="Search spaces..." />
-        <SpaceTypeFilter selected={type} onSelect={setType} />
+    <div className="space-y-3">
+      <CommunitySearch value={search} onChange={setSearch} placeholder="Search spaces..." />
+
+      {/* Faceted filters */}
+      <div className="flex items-center gap-2 overflow-x-auto">
+        <FacetFilter
+          label="Type"
+          options={typeFacets}
+          selected={type}
+          onSelect={setType}
+        />
+        <FacetFilter
+          label="Visibility"
+          options={visFacets}
+          selected={visibility}
+          onSelect={setVisibility}
+        />
       </div>
 
       {filtering && (
@@ -97,7 +146,7 @@ export function SpaceList({ initialData, initialTotal, communityId }: SpaceListP
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
               {spaces.map((space) => (
                 <SpaceCard key={space.id} space={space} />
               ))}

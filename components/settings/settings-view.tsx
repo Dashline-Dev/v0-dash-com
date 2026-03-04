@@ -128,9 +128,9 @@ export function SettingsView({
     }
     setDeleting(true)
     const result = await deleteAccount({ password: deletePw })
-    if (result.ok) {
-      window.location.href = "/"
-    } else {
+    // On success, deleteAccount calls redirect("/") server-side (never returns ok).
+    // If we reach here, it means there was an error.
+    if (!result.ok) {
       setDeleting(false)
       setDeleteMsg({ text: result.error, type: "error" })
     }

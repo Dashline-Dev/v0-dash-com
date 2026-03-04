@@ -4,6 +4,7 @@ import { sql } from "@/lib/db"
 import bcrypt from "bcryptjs"
 import { cookies } from "next/headers"
 import crypto from "crypto"
+import { redirect } from "next/navigation"
 import { getSession, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/auth-session"
 
 // NOTE: Do NOT re-export getSession / getAccountInfo from here.
@@ -30,7 +31,7 @@ async function createSession(userId: string): Promise<string> {
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: true,
-    sameSite: "lax",
+    sameSite: "none" as const,
     path: "/",
     maxAge: SESSION_MAX_AGE,
   })
@@ -44,7 +45,13 @@ async function destroySession(): Promise<void> {
   if (token) {
     await sql(`DELETE FROM auth_sessions WHERE token = $1`, [token])
   }
-  jar.delete(SESSION_COOKIE)
+  jar.set(SESSION_COOKIE, "", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none" as const,
+    path: "/",
+    maxAge: 0,
+  })
 }
 
 // ── Auth actions ───────────────────────────────────────────
@@ -90,7 +97,7 @@ export async function signUp(formData: {
   )
 
   await createSession(user.id)
-  return { ok: true, user }
+  redirect("/")
 }
 
 export async function signIn(formData: {
@@ -121,14 +128,12 @@ export async function signIn(formData: {
   }
 
   await createSession(user.id)
-  return {
-    ok: true,
-    user: { id: user.id, email: user.email, display_name: user.display_name, avatar_url: user.avatar_url },
-  }
+  redirect("/")
 }
 
 export async function signOut(): Promise<void> {
   await destroySession()
+  redirect("/")
 }
 
 // ── Account management actions ─────────────────────────────
@@ -246,5 +251,5 @@ export async function deleteAccount(formData: {
 
   await sql(`DELETE FROM auth_users WHERE id = $1`, [session.id])
 
-  return { ok: true }
+  redirect("/")
 }

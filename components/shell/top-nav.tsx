@@ -22,7 +22,7 @@ const NAV_LINKS: { href: string; label: string }[] = [
 ]
 
 interface TopNavProps {
-  user: { id: string; name: string; avatar: string | null } | null
+  user: { id: string; name: string; avatar: string | null; isSuperAdmin: boolean } | null
 }
 
 export function TopNav({ user }: TopNavProps) {

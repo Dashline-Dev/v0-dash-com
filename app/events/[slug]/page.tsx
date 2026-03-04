@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation"
+import { getAuthenticatedUser } from "@/lib/mock-user"
+import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getEventBySlug, getEventRsvps } from "@/lib/actions/event-actions"
 import { EventDetail } from "@/components/events/event-detail"
 
@@ -21,6 +23,9 @@ export default async function EventDetailPage({
 }: {
   params: Promise<{ slug: string }>
 }) {
+  const user = await getAuthenticatedUser()
+  if (!user) return <AuthRequiredModal />
+
   const { slug } = await params
   const event = await getEventBySlug(slug)
 

@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation"
+import { getAuthenticatedUser } from "@/lib/mock-user"
+import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getCommunityBySlug } from "@/lib/actions/community-actions"
 import { getSpacesByCommunity } from "@/lib/actions/space-actions"
 import { CreateAnnouncementForm } from "@/components/announcements/create-announcement-form"
@@ -8,6 +10,9 @@ export default async function CommunityCreateAnnouncementPage({
 }: {
   params: Promise<{ slug: string }>
 }) {
+  const user = await getAuthenticatedUser()
+  if (!user) return <AuthRequiredModal />
+
   const { slug } = await params
   const community = await getCommunityBySlug(slug)
   if (!community) notFound()

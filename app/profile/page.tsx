@@ -1,7 +1,7 @@
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { getUserProfile, getUserCommunities, getUserStats } from "@/lib/actions/user-actions"
 import { ProfileView } from "@/components/profile/profile-view"
-import { redirect } from "next/navigation"
+import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 
 export const metadata = {
   title: "Your Profile | Community Circle",
@@ -10,7 +10,7 @@ export const metadata = {
 
 export default async function ProfilePage() {
   const user = await getAuthenticatedUser()
-  if (!user) redirect("/signin")
+  if (!user) return <AuthRequiredModal />
 
   const [profile, communities, stats] = await Promise.all([
     getUserProfile(user.id),

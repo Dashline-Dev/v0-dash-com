@@ -5,6 +5,7 @@ import { APIProvider, Map as GoogleMapComponent, AdvancedMarker, InfoWindow, use
 import Link from "next/link"
 import { Users, CalendarDays, MapPin } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 /* ── Color palette for neighborhood overlays ─────────────── */
 
@@ -33,8 +34,11 @@ export interface AreaMapProps {
   events?: MapEvent[]
   neighborhoods?: MapNeighborhood[]
   areaPlaceId?: string
-  bounds?: { north: number; south: number; east: number; west: number }
+  bounds?: { north: number; south: number; east: number; west: number } | { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } } | null
+  center?: { lat: number; lng: number }
+  zoom?: number
   height?: string
+  className?: string
 }
 
 /* ── Dedup helper (uses Set, NOT native Map, to avoid Turbopack collision) ── */
@@ -113,14 +117,23 @@ export function AreaMap({
   events = [],
   neighborhoods = [],
   bounds,
+  center: centerProp,
+  zoom: zoomProp,
   height = "360px",
+  className,
 }: AreaMapProps) {
   const [selectedCommunity, setSelectedCommunity] = useState<MapCommunity | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<MapEvent | null>(null)
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<MapNeighborhood | null>(null)
 
-  const uniqueC = dedupById(communities)
-  const uniqueE = dedupById(events)
+  // Coerce any value (string from DB or number) to finite number or null
+  const toFinite = (v: unknown): number | null => {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }
+
+  const uniqueC = dedupById(communities).filter((c) => toFinite(c.lat) != null && toFinite(c.lng) != null)
+  const uniqueE = dedupById(events).filter((e) => toFinite(e.lat) != null && toFinite(e.lng) != null)
 
   const handleNeighborhoodClick = useCallback((n: MapNeighborhood) => {
     setSelectedNeighborhood(n)
@@ -128,19 +141,36 @@ export function AreaMap({
     setSelectedEvent(null)
   }, [])
 
-  // Compute center from bounds or first marker
-  let center = { lat: 40.7128, lng: -74.006 }
-  let zoom = 12
+  // Normalize bounds to { north, south, east, west } regardless of input format
+  let normBounds: { north: number; south: number; east: number; west: number } | null = null
   if (bounds) {
-    center = { lat: (bounds.north + bounds.south) / 2, lng: (bounds.east + bounds.west) / 2 }
+    if ("ne" in bounds && "sw" in bounds) {
+      const n = toFinite(bounds.ne.lat), e = toFinite(bounds.ne.lng), s = toFinite(bounds.sw.lat), w = toFinite(bounds.sw.lng)
+      if (n != null && e != null && s != null && w != null) normBounds = { north: n, south: s, east: e, west: w }
+    } else if ("north" in bounds) {
+      const n = toFinite(bounds.north), s = toFinite(bounds.south), e = toFinite(bounds.east), w = toFinite(bounds.west)
+      if (n != null && s != null && e != null && w != null) normBounds = { north: n, south: s, east: e, west: w }
+    }
+  }
+
+  // Compute center from prop > bounds > first marker > fallback
+  const fallback = { lat: 40.7128, lng: -74.006 }
+  let center = fallback
+  let zoom = zoomProp ?? 12
+
+  const cLat = toFinite(centerProp?.lat), cLng = toFinite(centerProp?.lng)
+  if (cLat != null && cLng != null) {
+    center = { lat: cLat, lng: cLng }
+  } else if (normBounds) {
+    center = { lat: (normBounds.north + normBounds.south) / 2, lng: (normBounds.east + normBounds.west) / 2 }
   } else if (uniqueC.length > 0) {
-    center = { lat: uniqueC[0].lat, lng: uniqueC[0].lng }
+    center = { lat: Number(uniqueC[0].lat), lng: Number(uniqueC[0].lng) }
   } else if (uniqueE.length > 0) {
-    center = { lat: uniqueE[0].lat, lng: uniqueE[0].lng }
+    center = { lat: Number(uniqueE[0].lat), lng: Number(uniqueE[0].lng) }
   }
 
   return (
-    <div className="rounded-xl overflow-hidden border border-border" style={{ height }}>
+    <div className={cn("rounded-xl overflow-hidden border border-border", className)} style={{ height }}>
       <GoogleMapComponent
         defaultCenter={center}
         defaultZoom={zoom}

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { LogOut, Settings, User, LayoutDashboard } from "lucide-react"
+import { LogOut, Settings, User, LayoutDashboard, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -11,13 +11,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { signOut } from "@/lib/auth"
+
 
 interface UserMenuProps {
   user: {
     id: string
     name: string
     avatar: string | null
+    isSuperAdmin: boolean
   } | null
 }
 
@@ -41,12 +42,6 @@ export function UserMenu({ user }: UserMenuProps) {
     .join("")
     .slice(0, 2)
     .toUpperCase()
-
-  async function handleSignOut() {
-    await signOut()
-    // Hard navigation to ensure server picks up cookie deletion
-    window.location.href = "/"
-  }
 
   return (
     <DropdownMenu>
@@ -88,14 +83,31 @@ export function UserMenu({ user }: UserMenuProps) {
             Settings
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={handleSignOut}
-          className="cursor-pointer text-destructive-foreground focus:text-destructive-foreground"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Sign out
-        </DropdownMenuItem>
+        {user.isSuperAdmin ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/admin" className="cursor-pointer">
+                <ShieldCheck className="w-4 h-4 mr-2" />
+                Admin Console
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        ) : (
+          <DropdownMenuSeparator />
+        )}
+        <form method="POST" action="/api/auth/signout">
+          <DropdownMenuItem asChild>
+            <button
+              type="submit"
+              className="w-full cursor-pointer text-destructive-foreground focus:text-destructive-foreground"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign out
+            </button>
+          </DropdownMenuItem>
+        </form>
       </DropdownMenuContent>
     </DropdownMenu>
   )

@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import { getAuthenticatedUser } from "@/lib/mock-user"
+import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { ArrowLeft } from "lucide-react"
 import { neon } from "@neondatabase/serverless"
 import { CreateSpaceForm } from "@/components/spaces/create-space-form"
@@ -20,6 +22,9 @@ export async function generateMetadata({ params }: CreateCommunitySpacePageProps
 }
 
 export default async function CreateCommunitySpacePage({ params }: CreateCommunitySpacePageProps) {
+  const user = await getAuthenticatedUser()
+  if (!user) return <AuthRequiredModal />
+
   const { slug } = await params
   const community = await sql(`SELECT id, name, slug FROM communities WHERE slug = $1`, [slug])
   if (!community[0]) notFound()

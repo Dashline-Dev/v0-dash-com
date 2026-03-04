@@ -1,5 +1,7 @@
-import { getEventsForMonth } from "@/lib/actions/event-actions"
-import { EventCalendar } from "@/components/events/event-calendar"
+import { getAuthenticatedUser } from "@/lib/mock-user"
+import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
+import { getEvents } from "@/lib/actions/event-actions"
+import { EventsView } from "@/components/events/events-view"
 
 export const metadata = {
   title: "Event Calendar | Dash",
@@ -7,23 +9,26 @@ export const metadata = {
 }
 
 export default async function EventCalendarPage() {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
-  const events = await getEventsForMonth(year, month)
+  const user = await getAuthenticatedUser()
+  if (!user) return <AuthRequiredModal />
+
+  const { events, total } = await getEvents({ limit: 20, upcoming: true })
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-          Calendar
-        </h1>
-        <p className="text-muted-foreground mt-1">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-6 pb-24 md:pb-8">
+      <div className="mb-4">
+        <h1 className="text-xl font-bold text-foreground">Calendar</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
           Browse events by date
         </p>
       </div>
 
-      <EventCalendar initialEvents={events} initialYear={year} initialMonth={month} />
+      <EventsView
+        initialEvents={events}
+        initialTotal={total}
+        defaultView="calendar"
+        defaultCalendarMode="month"
+      />
     </div>
   )
 }

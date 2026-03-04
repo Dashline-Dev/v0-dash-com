@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useMemo } from "react"
 import { Loader2, Megaphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CommunitySearch } from "@/components/communities/community-search"
+import { FacetFilter, type FacetOption } from "@/components/ui/facet-filter"
 import { AnnouncementCard } from "./announcement-card"
 import { getAnnouncements } from "@/lib/actions/announcement-actions"
-import type { AnnouncementWithMeta, AnnouncementPriority } from "@/types/announcement"
+import type { AnnouncementWithMeta } from "@/types/announcement"
+import { ANNOUNCEMENT_PRIORITY_LABELS } from "@/types/announcement"
 
 interface AnnouncementListProps {
   initialAnnouncements: AnnouncementWithMeta[]
@@ -16,13 +18,6 @@ interface AnnouncementListProps {
   spaceId?: string
 }
 
-const PRIORITY_FILTERS: { value: string; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "critical", label: "Critical" },
-  { value: "high", label: "High" },
-  { value: "normal", label: "Normal" },
-]
-
 export function AnnouncementList({
   initialAnnouncements,
   initialCursor,
@@ -30,23 +25,62 @@ export function AnnouncementList({
   communityId,
   spaceId,
 }: AnnouncementListProps) {
+  const [allAnnouncements, setAllAnnouncements] = useState(initialAnnouncements)
   const [announcements, setAnnouncements] = useState(initialAnnouncements)
   const [cursor, setCursor] = useState(initialCursor)
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [search, setSearch] = useState("")
-  const [priority, setPriority] = useState("all")
+  const [priority, setPriority] = useState<string | null>(null)
+  const [communityFilter, setCommunityFilter] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  function applyFilters(newSearch: string, newPriority: string) {
+  // Priority facets
+  const priorityFacets: FacetOption[] = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const a of allAnnouncements) {
+      counts[a.priority] = (counts[a.priority] || 0) + 1
+    }
+    return Object.entries(ANNOUNCEMENT_PRIORITY_LABELS).map(([value, label]) => ({
+      value,
+      label,
+      count: counts[value] || 0,
+    }))
+  }, [allAnnouncements])
+
+  // Community facets (when not scoped)
+  const communityFacets: FacetOption[] = useMemo(() => {
+    if (communityId) return []
+    const counts: Record<string, { name: string; count: number }> = {}
+    for (const a of allAnnouncements) {
+      if (!counts[a.community_slug]) {
+        counts[a.community_slug] = { name: a.community_name, count: 0 }
+      }
+      counts[a.community_slug].count++
+    }
+    return Object.entries(counts).map(([slug, { name, count }]) => ({
+      value: slug,
+      label: name,
+      count,
+    }))
+  }, [allAnnouncements, communityId])
+
+  function applyClientFilters(all: AnnouncementWithMeta[], p: string | null, cf: string | null) {
+    let filtered = all
+    if (p) filtered = filtered.filter((a) => a.priority === p)
+    if (cf) filtered = filtered.filter((a) => a.community_slug === cf)
+    setAnnouncements(filtered)
+  }
+
+  function fetchAnnouncements(searchVal: string) {
     startTransition(async () => {
       const result = await getAnnouncements({
         communityId,
         spaceId,
-        search: newSearch || undefined,
-        priority: newPriority,
+        search: searchVal || undefined,
         limit: 20,
       })
-      setAnnouncements(result.announcements)
+      setAllAnnouncements(result.announcements)
+      applyClientFilters(result.announcements, priority, communityFilter)
       setCursor(result.cursor)
       setHasMore(result.hasMore)
     })
@@ -54,12 +88,17 @@ export function AnnouncementList({
 
   function handleSearch(value: string) {
     setSearch(value)
-    applyFilters(value, priority)
+    fetchAnnouncements(value)
   }
 
-  function handlePriority(value: string) {
+  function handlePriority(value: string | null) {
     setPriority(value)
-    applyFilters(search, value)
+    applyClientFilters(allAnnouncements, value, communityFilter)
+  }
+
+  function handleCommunityFilter(value: string | null) {
+    setCommunityFilter(value)
+    applyClientFilters(allAnnouncements, priority, value)
   }
 
   function handleLoadMore() {
@@ -69,40 +108,42 @@ export function AnnouncementList({
         communityId,
         spaceId,
         search: search || undefined,
-        priority,
         cursor,
         limit: 20,
       })
-      setAnnouncements((prev) => [...prev, ...result.announcements])
+      const newAll = [...allAnnouncements, ...result.announcements]
+      setAllAnnouncements(newAll)
+      applyClientFilters(newAll, priority, communityFilter)
       setCursor(result.cursor)
       setHasMore(result.hasMore)
     })
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <CommunitySearch
-          value={search}
-          onChange={handleSearch}
-          placeholder="Search announcements..."
-        />
-      </div>
+    <div className="flex flex-col gap-3">
+      {/* Search */}
+      <CommunitySearch
+        value={search}
+        onChange={handleSearch}
+        placeholder="Search announcements..."
+      />
 
-      {/* Priority filter chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {PRIORITY_FILTERS.map((f) => (
-          <Button
-            key={f.value}
-            variant={priority === f.value ? "default" : "outline"}
-            size="sm"
-            onClick={() => handlePriority(f.value)}
-            className="text-xs shrink-0"
-          >
-            {f.label}
-          </Button>
-        ))}
+      {/* Faceted filters */}
+      <div className="flex items-center gap-2 overflow-x-auto">
+        <FacetFilter
+          label="Priority"
+          options={priorityFacets}
+          selected={priority}
+          onSelect={handlePriority}
+        />
+        {communityFacets.length > 1 && (
+          <FacetFilter
+            label="Community"
+            options={communityFacets}
+            selected={communityFilter}
+            onSelect={handleCommunityFilter}
+          />
+        )}
       </div>
 
       {/* Results */}
@@ -120,13 +161,13 @@ export function AnnouncementList({
         </div>
       ) : (
         <>
-          <div className="flex flex-col gap-3">
+          <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
             {announcements.map((a) => (
               <AnnouncementCard key={a.id} announcement={a} />
             ))}
           </div>
 
-          {hasMore && (
+          {hasMore && !priority && !communityFilter && (
             <div className="flex justify-center pt-2">
               <Button
                 variant="outline"

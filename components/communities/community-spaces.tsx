@@ -40,7 +40,7 @@ export function CommunitySpaces({ communitySlug, spaces }: CommunitySpacesProps)
           </Link>
         </Button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
         {spaces.map((space) => (
           <SpaceCard key={space.id} space={space} />
         ))}

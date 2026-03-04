@@ -11,6 +11,7 @@ export interface AuthUser {
   email: string
   display_name: string
   avatar_url: string | null
+  is_superadmin: boolean
 }
 
 export const SESSION_COOKIE = "session_token"
@@ -24,7 +25,7 @@ export async function getSession(): Promise<AuthUser | null> {
     if (!token) return null
 
     const rows = await sql(
-      `SELECT u.id, u.email, u.display_name, u.avatar_url
+      `SELECT u.id, u.email, u.display_name, u.avatar_url, u.is_superadmin
        FROM auth_sessions s
        JOIN auth_users u ON u.id = s.user_id
        WHERE s.token = $1 AND s.expires_at > now()`,

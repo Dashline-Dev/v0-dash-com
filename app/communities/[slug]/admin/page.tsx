@@ -8,6 +8,7 @@ import {
 } from "@/lib/actions/community-actions"
 import { getAuditLog } from "@/lib/actions/audit-actions"
 import { getCurrentUser } from "@/lib/mock-user"
+import { getSuperAdminSession } from "@/lib/superadmin"
 import { AdminLayout } from "@/components/communities/admin/admin-layout"
 import { Button } from "@/components/ui/button"
 import type { Metadata } from "next"
@@ -35,10 +36,11 @@ export default async function CommunityAdminPage({ params }: PageProps) {
     notFound()
   }
 
-  // Check admin access
+  // Check admin access -- superadmins always have access
   const user = await getCurrentUser()
+  const superAdmin = await getSuperAdminSession()
   const allowedRoles = ["owner", "admin", "moderator"]
-  if (!allowedRoles.includes(community.current_user_role || "")) {
+  if (!superAdmin && !allowedRoles.includes(community.current_user_role || "")) {
     redirect(`/communities/${slug}`)
   }
 
