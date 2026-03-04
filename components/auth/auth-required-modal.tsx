@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { X } from "lucide-react"
@@ -15,21 +15,27 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 
-export function AuthRequiredModal() {
+interface AuthRequiredModalProps {
+  /**
+   * When provided the modal renders as an overlay on top of the children
+   * (blurred page preview). Without children it fills the whole slot.
+   */
+  children?: ReactNode
+}
+
+export function AuthRequiredModal({ children }: AuthRequiredModalProps = {}) {
   const router = useRouter()
   const [open, setOpen] = useState(true)
 
   function handleClose() {
     setOpen(false)
-    router.back()
+    // Only navigate back when there is no underlying page to reveal
+    if (!children) router.back()
   }
 
-  return (
+  const modal = (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent
-        showCloseButton={false}
-        className="sm:max-w-md"
-      >
+      <DialogContent showCloseButton={false} className="sm:max-w-md">
         {/* Close button */}
         <button
           onClick={handleClose}
@@ -49,11 +55,7 @@ export function AuthRequiredModal() {
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          method="POST"
-          action="/api/auth/signup"
-          className="space-y-4 mt-2"
-        >
+        <form method="POST" action="/api/auth/signup" className="space-y-4 mt-2">
           <div className="space-y-2">
             <Label htmlFor="modal-name">Full name</Label>
             <Input
@@ -98,14 +100,29 @@ export function AuthRequiredModal() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link
-            href="/signin"
-            className="text-primary font-medium hover:underline"
-          >
+          <Link href="/signin" className="text-primary font-medium hover:underline">
             Sign in
           </Link>
         </p>
       </DialogContent>
     </Dialog>
   )
+
+  // Overlay mode: blur the page preview behind the modal
+  if (children) {
+    return (
+      <div className="relative">
+        <div
+          className="pointer-events-none select-none"
+          aria-hidden="true"
+          style={{ filter: open ? "blur(4px)" : undefined, opacity: open ? 0.45 : 1 }}
+        >
+          {children}
+        </div>
+        {modal}
+      </div>
+    )
+  }
+
+  return modal
 }

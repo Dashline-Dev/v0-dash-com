@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+import { getAuthenticatedUser } from "@/lib/mock-user"
+import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getAreas } from "@/lib/actions/area-actions"
 import { AreaList } from "@/components/areas/area-list"
 
@@ -8,9 +10,12 @@ export const metadata: Metadata = {
 }
 
 export default async function AreasPage() {
-  const { areas, total } = await getAreas({ type: "city", limit: 12 })
+  const [user, { areas, total }] = await Promise.all([
+    getAuthenticatedUser(),
+    getAreas({ type: "city", limit: 12 }),
+  ])
 
-  return (
+  const content = (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-6 pb-24 md:pb-8">
       <div className="mb-4">
         <h1 className="text-xl font-bold text-foreground">Areas</h1>
@@ -22,4 +27,10 @@ export default async function AreasPage() {
       <AreaList initialAreas={areas} initialTotal={total} />
     </div>
   )
+
+  if (!user) {
+    return <AuthRequiredModal>{content}</AuthRequiredModal>
+  }
+
+  return content
 }
