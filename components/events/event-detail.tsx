@@ -26,6 +26,7 @@ import {
   isEventFull,
   getEventCapacityText,
 } from "@/types/event"
+import { toHebrewDate } from "@/lib/hebrew-date"
 
 interface EventDetailProps {
   event: EventWithMeta
@@ -165,7 +166,14 @@ export function EventDetail({ event }: EventDetailProps) {
                 <p className="font-medium">
                   {formatEventDate(event.start_time, event.timezone)}
                 </p>
-                <p className="text-muted-foreground">
+                <p
+                  className="text-xs text-muted-foreground mt-0.5"
+                  dir="rtl"
+                  lang="he"
+                >
+                  {toHebrewDate(new Date(event.start_time)).full}
+                </p>
+                <p className="text-muted-foreground mt-1">
                   {formatEventTime(event.start_time, event.timezone)} - {formatEventTime(event.end_time, event.timezone)}
                 </p>
               </div>
