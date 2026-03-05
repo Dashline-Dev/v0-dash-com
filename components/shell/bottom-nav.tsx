@@ -4,6 +4,10 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Plus, CalendarDays, User, Search, LogIn } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { GuestNavLink } from "@/components/auth/guest-nav-link"
+
+// Routes that require authentication
+const PROTECTED_HREFS = new Set(["/explore", "/events"])
 
 interface BottomNavProps {
   user: { id: string; name: string; avatar: string | null; isSuperAdmin: boolean } | null
@@ -12,6 +16,7 @@ interface BottomNavProps {
 export function BottomNav({ user }: BottomNavProps) {
   const pathname = usePathname()
   const isAuthenticated = !!user
+  const isGuest = !user
 
   const NAV_ITEMS = [
     { href: "/", label: "Home", icon: Home },
@@ -54,14 +59,33 @@ export function BottomNav({ user }: BottomNavProps) {
             )
           }
 
+          const itemClass = cn(
+            "flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] px-2 transition-colors",
+            isActive ? "text-primary" : "text-muted-foreground"
+          )
+
+          if (isGuest && PROTECTED_HREFS.has(item.href)) {
+            return (
+              <GuestNavLink
+                key={item.href}
+                href={item.href}
+                isGuest
+                className={itemClass}
+                aria-label={item.label}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-[10px] font-medium leading-none">
+                  {item.label}
+                </span>
+              </GuestNavLink>
+            )
+          }
+
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={cn(
-                "flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] px-2 transition-colors",
-                isActive ? "text-primary" : "text-muted-foreground"
-              )}
+              className={itemClass}
               aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
             >
