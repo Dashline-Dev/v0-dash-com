@@ -21,6 +21,18 @@ const MONTH_NAMES = [
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
+// Intl-based Hebrew calendar helpers — no external library needed
+const hebrewDayFmt = new Intl.DateTimeFormat("he-IL-u-ca-hebrew", { day: "numeric" })
+const hebrewMonthFmt = new Intl.DateTimeFormat("he-IL-u-ca-hebrew", { month: "long", year: "numeric" })
+
+function hebrewDay(date: Date): string {
+  return hebrewDayFmt.format(date)
+}
+
+function hebrewMonthYear(date: Date): string {
+  return hebrewMonthFmt.format(date)
+}
+
 export function EventCalendar({
   initialEvents,
   initialYear,
@@ -80,9 +92,18 @@ export function EventCalendar({
     <div className="flex flex-col gap-4">
       {/* Month navigation */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">
-          {MONTH_NAMES[month - 1]} {year}
-        </h2>
+        <div className="flex flex-col">
+          <h2 className="text-lg font-semibold text-foreground leading-tight">
+            {MONTH_NAMES[month - 1]} {year}
+          </h2>
+          <span
+            className="text-xs text-muted-foreground mt-0.5 leading-tight"
+            dir="rtl"
+            lang="he"
+          >
+            {hebrewMonthYear(new Date(year, month - 1, 15))}
+          </span>
+        </div>
         <div className="flex items-center gap-1">
           {isPending && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mr-2" />}
           <Button variant="ghost" size="icon" onClick={prevMonth} aria-label="Previous month">
@@ -119,6 +140,7 @@ export function EventCalendar({
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const day = i + 1
             const dateKey = `${year}-${month}-${day}`
+            const cellDate = new Date(year, month - 1, day)
             const dayEvents = eventsByDate[dateKey] || []
             const hasEvents = dayEvents.length > 0
             const isToday =
@@ -131,7 +153,7 @@ export function EventCalendar({
               <button
                 key={day}
                 onClick={() => setSelectedDate(isSelected ? null : dateKey)}
-                className={`h-12 md:h-16 border-b border-r border-border flex flex-col items-center justify-start pt-1.5 gap-0.5 transition-colors text-left
+                className={`h-14 md:h-18 border-b border-r border-border flex flex-col items-center justify-start pt-1.5 gap-0 transition-colors text-left
                   ${isSelected ? "bg-primary/5 ring-1 ring-primary/30" : "hover:bg-muted/50"}
                   ${isToday ? "bg-accent/10" : ""}
                 `}
@@ -144,6 +166,13 @@ export function EventCalendar({
                   }`}
                 >
                   {day}
+                </span>
+                <span
+                  className="text-[9px] leading-tight text-muted-foreground mt-0.5"
+                  dir="rtl"
+                  lang="he"
+                >
+                  {hebrewDay(cellDate)}
                 </span>
                 {hasEvents && (
                   <div className="flex gap-0.5 mt-0.5">
