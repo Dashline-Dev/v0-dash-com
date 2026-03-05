@@ -21,16 +21,118 @@ const MONTH_NAMES = [
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-// Intl-based Hebrew calendar helpers — no external library needed
-const hebrewDayFmt = new Intl.DateTimeFormat("he-IL-u-ca-hebrew", { day: "numeric" })
-const hebrewMonthFmt = new Intl.DateTimeFormat("he-IL-u-ca-hebrew", { month: "long", year: "numeric" })
+// ── Pure-JS Hebrew calendar conversion ──────────────────────────────────────
+// Implements the standard Gregorian→Hebrew algorithm (Dershowitz & Reingold)
+// so it works in every environment (Node SSR, all browsers) without Intl locale data.
+
+const HEBREW_UNITS = ["", "א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"]
+const HEBREW_TENS  = ["", "י", "כ", "ל", "מ", "נ", "ס", "ע", "פ", "צ"]
+const HEBREW_HUNDREDS = ["", "ק", "ר", "ש", "ת"]
+const HEBREW_MONTH_NAMES = [
+  "תשרי","חשון","כסלו","טבת","שבט","אדר","ניסן","אייר","סיון","תמוז","אב","אלול",
+  "אדר א׳","אדר ב׳",
+]
+
+/** Convert a number 1–29 to Hebrew letter notation (e.g. 1→א, 15→ט״ו) */
+function numToHebrew(n: number): string {
+  // Special cases to avoid divine names
+  if (n === 15) return "ט״ו"
+  if (n === 16) return "ט״ז"
+  let result = ""
+  let rem = n
+  const h = Math.floor(rem / 100)
+  if (h > 0 && h <= 4) { result += HEBREW_HUNDREDS[h]; rem -= h * 100 }
+  const t = Math.floor(rem / 10)
+  if (t > 0) { result += HEBREW_TENS[t]; rem -= t * 10 }
+  if (rem > 0) result += HEBREW_UNITS[rem]
+  if (result.length > 1) {
+    result = result.slice(0, -1) + "״" + result.slice(-1)
+  } else if (result.length === 1) {
+    result += "׳"
+  }
+  return result
+}
+
+/** Julian Day Number from a Gregorian date */
+function gregorianToJD(y: number, m: number, d: number): number {
+  const a = Math.floor((14 - m) / 12)
+  const yr = y + 4800 - a
+  const mo = m + 12 * a - 3
+  return d + Math.floor((153 * mo + 2) / 5) + 365 * yr +
+    Math.floor(yr / 4) - Math.floor(yr / 100) + Math.floor(yr / 400) - 32045
+}
+
+/** Elapsed days since Hebrew epoch for a given Hebrew year */
+function hebrewElapsed(year: number): number {
+  const months = Math.floor((235 * year - 234) / 19)
+  const parts  = 12084 + 13753 * months
+  let day = months * 29 + Math.floor(parts / 25920)
+  if ((3 * (day + 1)) % 7 < 3) day++
+  return day
+}
+
+/** Days in a Hebrew year */
+function hebrewYearDays(year: number): number {
+  return hebrewElapsed(year + 1) - hebrewElapsed(year)
+}
+
+/** Is this Hebrew year a leap year? */
+function isHebrewLeap(year: number): boolean {
+  return ((7 * year) + 1) % 19 < 7
+}
+
+/** Days in each Hebrew month for a given year */
+function hebrewMonthDays(year: number, month: number): number {
+  if ([1, 3, 5, 7, 11].includes(month)) return 30
+  if (month === 6) return isHebrewLeap(year) ? 30 : 29
+  if (month === 8) return hebrewYearDays(year) % 10 === 5 ? 30 : 29
+  if (month === 9) return hebrewYearDays(year) % 10 === 3 ? 29 : 30
+  return 29
+}
+
+/** Convert a Gregorian Date to { year, month, day } in the Hebrew calendar */
+function gregorianToHebrew(date: Date): { year: number; month: number; day: number; monthName: string } {
+  const jd = gregorianToJD(date.getFullYear(), date.getMonth() + 1, date.getDate())
+  const HEBREW_EPOCH = 347997 // JDN of Hebrew epoch (1 Tishri 1)
+  const daysSinceEpoch = jd - HEBREW_EPOCH
+
+  // Approximate year
+  let year = Math.floor((daysSinceEpoch * 98496) / 35975351) + 1
+  while (hebrewElapsed(year) > daysSinceEpoch) year--
+  while (hebrewElapsed(year + 1) <= daysSinceEpoch) year++
+
+  const months = isHebrewLeap(year) ? 13 : 12
+  const startOfYear = hebrewElapsed(year)
+  let dayInYear = daysSinceEpoch - startOfYear + 1
+
+  let month = 1
+  while (month < months && dayInYear > hebrewMonthDays(year, month)) {
+    dayInYear -= hebrewMonthDays(year, month)
+    month++
+  }
+
+  // Remap month index to named months (Hebrew year starts at Tishri = 7)
+  let namedIdx: number
+  if (isHebrewLeap(year)) {
+    // leap: Tishri(1)=0 … Adar-I(13)=12, Adar-II(14)=13
+    const leapMap = [0,1,2,3,4,5,12,6,7,8,9,10,11,13]
+    namedIdx = leapMap[month - 1] ?? month - 1
+  } else {
+    const map = [0,1,2,3,4,5,6,7,8,9,10,11]
+    namedIdx = map[month - 1] ?? month - 1
+  }
+
+  return { year, month, day: dayInYear, monthName: HEBREW_MONTH_NAMES[namedIdx] ?? "" }
+}
 
 function hebrewDay(date: Date): string {
-  return hebrewDayFmt.format(date)
+  const { day } = gregorianToHebrew(date)
+  return numToHebrew(day)
 }
 
 function hebrewMonthYear(date: Date): string {
-  return hebrewMonthFmt.format(date)
+  const { year, monthName } = gregorianToHebrew(date)
+  return `${monthName} ${numToHebrew(year % 1000 === 0 ? 1000 : year % 1000)}`
 }
 
 export function EventCalendar({
