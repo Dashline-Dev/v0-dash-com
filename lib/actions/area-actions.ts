@@ -392,10 +392,16 @@ export async function createArea(data: {
   description?: string
   parentId?: string | null
   placeId?: string
+  latitude: number
+  longitude: number
+  boundsNeLat?: number | null
+  boundsNeLng?: number | null
+  boundsSwLat?: number | null
+  boundsSwLng?: number | null
 }): Promise<{ id: string; slug: string }> {
   const rows = await sql(
-    `INSERT INTO areas (name, slug, type, description, parent_id, place_id, status)
-     VALUES ($1, $2, $3, $4, $5, $6, 'active')
+    `INSERT INTO areas (name, slug, type, description, parent_id, place_id, latitude, longitude, bounds_ne_lat, bounds_ne_lng, bounds_sw_lat, bounds_sw_lng, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'active')
      RETURNING id, slug`,
     [
       data.name,
@@ -404,6 +410,12 @@ export async function createArea(data: {
       data.description || null,
       data.parentId || null,
       data.placeId || null,
+      data.latitude,
+      data.longitude,
+      data.boundsNeLat ?? null,
+      data.boundsNeLng ?? null,
+      data.boundsSwLat ?? null,
+      data.boundsSwLng ?? null,
     ]
   )
 
