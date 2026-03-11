@@ -46,13 +46,15 @@ interface GuestLandingProps {
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-function formatDate(str: string) {
+function formatDate(str: string, timezone?: string | null) {
   const d = new Date(str)
+  // Use the event's timezone (or UTC fallback) for consistent SSR/client rendering
+  const tz = timezone || "UTC"
   return {
-    day: d.getDate().toString(),
-    month: d.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
-    weekday: d.toLocaleDateString("en-US", { weekday: "short" }),
-    time: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+    day: d.toLocaleDateString("en-US", { day: "numeric", timeZone: tz }),
+    month: d.toLocaleDateString("en-US", { month: "short", timeZone: tz }).toUpperCase(),
+    weekday: d.toLocaleDateString("en-US", { weekday: "short", timeZone: tz }),
+    time: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: tz }),
   }
 }
 
@@ -309,7 +311,7 @@ function GuestEventRow({
   event: EventWithMeta
   onSignUp: () => void
 }) {
-  const { day, month, weekday, time } = formatDate(event.start_time)
+  const { day, month, weekday, time } = formatDate(event.start_time, event.timezone)
   const LocationIcon = TYPE_ICON[event.event_type] ?? MapPin
 
   return (
