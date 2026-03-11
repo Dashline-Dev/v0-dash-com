@@ -180,3 +180,8 @@ export const SPACE_ICON_OPTIONS = [
 
 // Legacy aliases for backwards compatibility
 export type CreateSpaceData = CreateSpaceInput
+
+// Select option format for forms
+export const SPACE_TYPE_OPTIONS = SPACE_TYPES.map(t => ({ value: t.value, label: t.label }))
+export const SPACE_VISIBILITY_OPTIONS = SPACE_VISIBILITIES.map(v => ({ value: v.value, label: v.label }))
+export const SPACE_JOIN_POLICY_OPTIONS = SPACE_JOIN_POLICIES.map(p => ({ value: p.value, label: p.label }))

@@ -83,15 +83,6 @@ export function AdminCommunities({
     visibility: "public",
     join_policy: "open",
   })
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [createForm, setCreateForm] = useState({
-    name: "",
-    slug: "",
-    description: "",
-    visibility: "public",
-    join_policy: "open",
-  })
-  const [createError, setCreateError] = useState("")
   const [offset, setOffset] = useState(0)
   const limit = 50
 
@@ -179,39 +170,6 @@ export function AdminCommunities({
   setActionLoading(null)
   }
 
-  const handleCreateCommunity = async () => {
-    if (!createForm.name || !createForm.slug) {
-      setCreateError("Name and slug are required")
-      return
-    }
-    setActionLoading("create")
-    setCreateError("")
-    const result = await adminCreateCommunity(createForm)
-    if (result.ok && result.id) {
-      setCommunities((prev) => [
-        {
-          id: result.id!,
-          name: createForm.name,
-          slug: createForm.slug,
-          description: createForm.description || null,
-          avatar_url: null,
-          is_verified: false,
-          member_count: 0,
-          created_at: new Date().toISOString(),
-          owner_name: null,
-          visibility: createForm.visibility,
-        },
-        ...prev,
-      ])
-      setTotal((prev) => prev + 1)
-      setShowCreateDialog(false)
-      setCreateForm({ name: "", slug: "", description: "", visibility: "public" })
-    } else {
-      setCreateError(result.error || "Failed to create community")
-    }
-    setActionLoading(null)
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
@@ -229,9 +187,11 @@ export function AdminCommunities({
             {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
           </Button>
         </form>
-        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Add Community
+        <Button size="sm" asChild>
+          <Link href="/communities/create">
+            <Plus className="w-4 h-4 mr-1.5" />
+            Add Community
+          </Link>
         </Button>
       </div>
 
@@ -360,112 +320,7 @@ export function AdminCommunities({
         </div>
       )}
 
-      {/* Create Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Community</DialogTitle>
-            <DialogDescription>
-              Add a new community to the platform
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="create-name">Name</Label>
-              <Input
-                id="create-name"
-                value={createForm.name}
-                onChange={(e) => {
-                  const name = e.target.value
-                  setCreateForm((f) => ({
-                    ...f,
-                    name,
-                    slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
-                  }))
-                }}
-                placeholder="My Community"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="create-slug">Slug</Label>
-              <Input
-                id="create-slug"
-                value={createForm.slug}
-                onChange={(e) =>
-                  setCreateForm((f) => ({ ...f, slug: e.target.value }))
-                }
-                placeholder="my-community"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="create-description">Description</Label>
-              <Textarea
-                id="create-description"
-                value={createForm.description}
-                onChange={(e) =>
-                  setCreateForm((f) => ({ ...f, description: e.target.value }))
-                }
-                placeholder="A brief description of the community"
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Visibility</Label>
-                <Select
-                  value={createForm.visibility}
-                  onValueChange={(val) =>
-                    setCreateForm((f) => ({ ...f, visibility: val }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="unlisted">Unlisted</SelectItem>
-                    <SelectItem value="private">Private</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Join Policy</Label>
-                <Select
-                  value={createForm.join_policy || "open"}
-                  onValueChange={(val) =>
-                    setCreateForm((f) => ({ ...f, join_policy: val }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="approval">Approval Required</SelectItem>
-                    <SelectItem value="invite_only">Invite Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {createError && (
-              <p className="text-sm text-destructive">{createError}</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateCommunity} disabled={actionLoading === "create"}>
-              {actionLoading === "create" ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : null}
-              Create Community
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Dialog */}
+{/* Edit Dialog */}
       <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
         <DialogContent>
           <DialogHeader>
