@@ -641,11 +641,8 @@ export async function adminDeleteArea(
     const areaRows = await sql(`SELECT name FROM areas WHERE id = $1`, [areaId])
     if (areaRows.length === 0) return { ok: false, error: "Area not found." }
 
-    // Soft delete
-    await sql(
-      `UPDATE areas SET status = 'inactive', updated_at = NOW() WHERE id = $1`,
-      [areaId]
-    )
+    // Hard delete - remove the area completely
+    await sql(`DELETE FROM areas WHERE id = $1`, [areaId])
 
     await logAuditEvent({
       actorId: admin.id,
