@@ -30,6 +30,7 @@ import { toHebrewDate } from "@/lib/hebrew-date"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -671,6 +672,9 @@ function DateDetailDialog({ date, events, onClose, basePath }: {
               </span>
             )}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Events for {date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4">
