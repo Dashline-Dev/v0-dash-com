@@ -79,6 +79,7 @@ export interface Event {
 export interface EventWithMeta extends Event {
   community_name: string | null
   community_slug: string | null
+  community_avatar: string | null
   space_name: string | null
   space_slug: string | null
   current_user_rsvp: RsvpStatus | null

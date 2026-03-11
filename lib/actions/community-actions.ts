@@ -157,7 +157,7 @@ export async function getCommunityBySlug(
 
 export async function createCommunity(
   input: CreateCommunityInput
-): Promise<{ success: boolean; slug?: string; error?: string }> {
+): Promise<{ success: boolean; slug?: string; id?: string; error?: string }> {
   const user = await getCurrentUser()
 
   try {
@@ -233,7 +233,7 @@ export async function createCommunity(
     }
 
     revalidatePath("/")
-    return { success: true, slug: input.slug }
+    return { success: true, slug: input.slug, id: communityId as string }
   } catch (error) {
     console.error("Failed to create community:", error)
     return { success: false, error: "Something went wrong. Please try again." }

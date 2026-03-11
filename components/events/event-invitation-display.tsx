@@ -48,6 +48,9 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
                 event={event}
                 template={template}
                 className="w-full shadow-lg"
+                communityLogo={event.community_avatar}
+                communityName={event.community_name}
+                showBranding={true}
               />
             </div>
           </div>

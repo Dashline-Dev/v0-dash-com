@@ -28,6 +28,9 @@ interface InvitationCardProps {
   className?: string
   size?: CardSize
   previewScale?: number // Scale factor for preview display
+  communityLogo?: string | null // Community logo URL to display at top
+  communityName?: string | null // Community name for header
+  showBranding?: boolean // Show "Created by Kesher" footer
 }
 
 // Enhanced decorative SVG elements
@@ -467,6 +470,9 @@ export function InvitationCard({
   className = "",
   size = "whatsapp",
   previewScale,
+  communityLogo,
+  communityName,
+  showBranding = true,
 }: InvitationCardProps) {
   const template = providedTemplate || (templateId ? getTemplateById(templateId) : undefined)
   const sizeConfig = CARD_SIZES[size]
@@ -649,6 +655,29 @@ export function InvitationCard({
           </p>
         )}
       </div>
+
+      {/* Community logo at top */}
+      {communityLogo && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+          <img 
+            src={communityLogo.startsWith('/api/file') ? communityLogo : `/api/file?pathname=${encodeURIComponent(communityLogo)}`} 
+            alt={communityName || "Community"} 
+            className="w-16 h-16 rounded-full object-cover border-2 shadow-md"
+            style={{ borderColor: style.frameColor || style.accentColor }}
+          />
+        </div>
+      )}
+
+      {/* Created by Kesher branding */}
+      {showBranding && (
+        <div 
+          className="absolute bottom-2 right-3 z-20 flex items-center gap-1 opacity-60"
+          style={{ color: style.secondaryTextColor }}
+        >
+          <span className="text-[10px] font-medium">Created by</span>
+          <span className="text-[10px] font-bold tracking-wide">Kesher</span>
+        </div>
+      )}
     </div>
   )
 }

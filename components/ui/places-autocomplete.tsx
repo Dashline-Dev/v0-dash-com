@@ -70,12 +70,11 @@ export function PlacesAutocomplete({
       setIsLoading(true)
       try {
         // Use the new AutocompleteSuggestion API
+        // Note: "address" type cannot be mixed with other types in Google Places API
         const { suggestions: results } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input,
           sessionToken: sessionTokenRef.current || undefined,
-          includedPrimaryTypes: types.includes("establishment") 
-            ? ["establishment", "street_address", "premise"] 
-            : ["street_address", "premise", "subpremise"],
+          includedPrimaryTypes: ["street_address", "premise", "establishment", "point_of_interest"],
         })
 
         const formatted: Suggestion[] = results
