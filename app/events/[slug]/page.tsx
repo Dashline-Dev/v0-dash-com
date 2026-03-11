@@ -53,9 +53,12 @@ export default async function EventDetailPage({
       // User may not be in any communities
     }
 
+    // Check if user can edit (creator or admin)
+    const canEdit = event.created_by === user.id || user.role === "admin"
+
     return (
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8">
-        <EventDetail event={event} rsvps={rsvps} communities={communities} />
+        <EventDetail event={event} rsvps={rsvps} communities={communities} canEdit={canEdit} />
       </div>
     )
   }

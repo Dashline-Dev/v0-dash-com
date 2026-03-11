@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   Share2,
   Monitor,
+  Pencil,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -34,6 +35,7 @@ interface EventDetailProps {
   event: EventWithMeta
   rsvps?: { id: string; user_id: string; status: string }[]
   communities?: { id: string; name: string; slug: string }[]
+  canEdit?: boolean
 }
 
 const TYPE_ICON: Record<string, React.ElementType> = {
@@ -42,7 +44,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   hybrid: Video,
 }
 
-export function EventDetail({ event, rsvps, communities = [] }: EventDetailProps) {
+export function EventDetail({ event, rsvps, communities = [], canEdit = false }: EventDetailProps) {
   const past = isEventPast(event.end_time)
   const full = isEventFull(event)
   const capacityText = getEventCapacityText(event)
@@ -114,21 +116,36 @@ export function EventDetail({ event, rsvps, communities = [] }: EventDetailProps
             </h1>
           </div>
 
-          <EventShareDialog
-            eventId={event.id}
-            eventSlug={event.slug}
-            currentCommunityId={event.community_id}
-            communities={communities}
-          >
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground shrink-0"
-              aria-label="Share event"
+          <div className="flex items-center gap-1">
+            {canEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground shrink-0"
+                aria-label="Edit event"
+                asChild
+              >
+                <Link href={`/events/${event.slug}/edit`}>
+                  <Pencil className="w-4 h-4" />
+                </Link>
+              </Button>
+            )}
+            <EventShareDialog
+              eventId={event.id}
+              eventSlug={event.slug}
+              currentCommunityId={event.community_id}
+              communities={communities}
             >
-              <Share2 className="w-4 h-4" />
-            </Button>
-          </EventShareDialog>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground shrink-0"
+                aria-label="Share event"
+              >
+                <Share2 className="w-4 h-4" />
+              </Button>
+            </EventShareDialog>
+          </div>
         </div>
 
         {/* RSVP */}

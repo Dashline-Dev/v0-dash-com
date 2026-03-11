@@ -18,14 +18,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,19 +36,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
   getAllEvents,
   adminDeleteEvent,
-  adminUpdateEvent,
-  adminCreateEvent,
-  getAllCommunities,
   type AdminEvent,
 } from "@/lib/actions/admin-actions"
 
@@ -72,13 +53,6 @@ export function AdminEvents({ initialEvents, initialTotal }: AdminEventsProps) {
   const [searching, setSearching] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AdminEvent | null>(null)
-  const [editTarget, setEditTarget] = useState<AdminEvent | null>(null)
-  const [editForm, setEditForm] = useState({
-    title: "",
-    slug: "",
-    status: "published",
-    event_type: "in_person",
-  })
   const [offset, setOffset] = useState(0)
   const limit = 50
 
@@ -118,39 +92,6 @@ export function AdminEvents({ initialEvents, initialTotal }: AdminEventsProps) {
     }
     setDeleteTarget(null)
     setActionLoading(null)
-  }
-
-  const openEditDialog = (event: AdminEvent) => {
-    setEditTarget(event)
-    setEditForm({
-      title: event.title,
-      slug: event.slug,
-      status: event.status,
-      event_type: event.event_type,
-    })
-  }
-
-  const handleEditEvent = async () => {
-    if (!editTarget) return
-    setActionLoading(editTarget.id)
-    const result = await adminUpdateEvent(editTarget.id, editForm)
-    if (result.ok) {
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === editTarget.id
-            ? {
-                ...e,
-                title: editForm.title,
-                slug: editForm.slug,
-                status: editForm.status,
-                event_type: editForm.event_type,
-              }
-            : e
-        )
-      )
-    }
-  setEditTarget(null)
-  setActionLoading(null)
   }
 
   
@@ -278,9 +219,11 @@ export function AdminEvents({ initialEvents, initialTotal }: AdminEventsProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => openEditDialog(event)}>
-                    <Pencil className="w-4 h-4 mr-2" />
-                    Edit Event
+                  <DropdownMenuItem asChild>
+                    <Link href={`/events/${event.slug}/edit`}>
+                      <Pencil className="w-4 h-4 mr-2" />
+                      Edit Event
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href={`/events/${event.slug}`}>
@@ -326,85 +269,6 @@ export function AdminEvents({ initialEvents, initialTotal }: AdminEventsProps) {
           </Button>
         </div>
       )}
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Event</DialogTitle>
-            <DialogDescription>
-              Update event information for {editTarget?.title}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-title">Title</Label>
-              <Input
-                id="edit-title"
-                value={editForm.title}
-                onChange={(e) =>
-                  setEditForm((f) => ({ ...f, title: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-slug">Slug</Label>
-              <Input
-                id="edit-slug"
-                value={editForm.slug}
-                onChange={(e) =>
-                  setEditForm((f) => ({ ...f, slug: e.target.value }))
-                }
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={editForm.status}
-                  onValueChange={(v) => setEditForm((f) => ({ ...f, status: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="published">Published</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Event Type</Label>
-                <Select
-                  value={editForm.event_type}
-                  onValueChange={(v) => setEditForm((f) => ({ ...f, event_type: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="in_person">In Person</SelectItem>
-                    <SelectItem value="virtual">Virtual</SelectItem>
-                    <SelectItem value="hybrid">Hybrid</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditTarget(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditEvent} disabled={actionLoading === editTarget?.id}>
-              {actionLoading === editTarget?.id ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : null}
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Dialog */}
       <AlertDialog
