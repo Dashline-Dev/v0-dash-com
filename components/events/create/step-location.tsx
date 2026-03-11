@@ -2,6 +2,8 @@
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { PlacesAutocomplete, type PlaceResult } from "@/components/ui/places-autocomplete"
+import { GoogleMapsProvider } from "@/components/maps/google-maps-provider"
 import { MapPin, Video } from "lucide-react"
 import type { EventFormData } from "./create-wizard"
 
@@ -13,6 +15,14 @@ interface StepLocationProps {
 export function StepLocation({ formData, updateFormData }: StepLocationProps) {
   const showPhysical = formData.event_type === "in_person" || formData.event_type === "hybrid"
   const showVirtual = formData.event_type === "virtual" || formData.event_type === "hybrid"
+
+  const handlePlaceSelect = (place: PlaceResult) => {
+    updateFormData({
+      location_address: place.formattedAddress,
+      // If no venue name set, use the place name
+      location_name: formData.location_name || place.name,
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -47,13 +57,20 @@ export function StepLocation({ formData, updateFormData }: StepLocationProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location_address">Address (optional)</Label>
-                <Input
-                  id="location_address"
-                  value={formData.location_address}
-                  onChange={(e) => updateFormData({ location_address: e.target.value })}
-                  placeholder="e.g., 123 Main St, New York, NY 10001"
-                />
+                <Label htmlFor="location_address">Address</Label>
+                <GoogleMapsProvider>
+                  <PlacesAutocomplete
+                    id="location_address"
+                    value={formData.location_address}
+                    onChange={(val) => updateFormData({ location_address: val })}
+                    onPlaceSelect={handlePlaceSelect}
+                    placeholder="Start typing an address..."
+                    types={["address", "establishment"]}
+                  />
+                </GoogleMapsProvider>
+                <p className="text-xs text-muted-foreground">
+                  Search for a venue or enter an address
+                </p>
               </div>
             </div>
           </div>

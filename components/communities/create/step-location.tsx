@@ -1,10 +1,10 @@
 "use client"
 
 import { X } from "lucide-react"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -18,6 +18,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
+import { PlacesAutocomplete, type PlaceResult } from "@/components/ui/places-autocomplete"
+import { GoogleMapsProvider } from "@/components/maps/google-maps-provider"
 import type { CreateCommunityInput } from "@/types/community"
 
 const TIMEZONES = [
@@ -61,6 +63,10 @@ export function StepLocation({ data, onChange, availableAreas = [] }: StepLocati
 
   const selectedAreas = availableAreas.filter((a) => selectedAreaIds.includes(a.id))
 
+  const handlePlaceSelect = (place: PlaceResult) => {
+    onChange({ location_name: place.formattedAddress })
+  }
+
   return (
     <div className="space-y-5">
       <p className="text-sm text-muted-foreground">
@@ -69,13 +75,20 @@ export function StepLocation({ data, onChange, availableAreas = [] }: StepLocati
       </p>
 
       <div className="space-y-1.5">
-        <Label htmlFor="location">Location name</Label>
-        <Input
-          id="location"
-          placeholder="e.g. Austin, TX"
-          value={data.location_name || ""}
-          onChange={(e) => onChange({ location_name: e.target.value || null })}
-        />
+        <Label htmlFor="location">Location</Label>
+        <GoogleMapsProvider>
+          <PlacesAutocomplete
+            id="location"
+            value={data.location_name || ""}
+            onChange={(val) => onChange({ location_name: val || null })}
+            onPlaceSelect={handlePlaceSelect}
+            placeholder="Search for a city or address..."
+            types={["geocode"]}
+          />
+        </GoogleMapsProvider>
+        <p className="text-xs text-muted-foreground">
+          Enter a city, neighborhood, or address
+        </p>
       </div>
 
       {availableAreas.length > 0 && (

@@ -29,6 +29,8 @@ import {
   Globe,
   Info,
 } from "lucide-react"
+import { PlacesAutocomplete, type PlaceResult } from "@/components/ui/places-autocomplete"
+import { GoogleMapsProvider } from "@/components/maps/google-maps-provider"
 
 interface CreateEventFormProps {
   communityId: string
@@ -236,12 +238,21 @@ export function CreateEventForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="location_address">Address</Label>
-              <Input
-                id="location_address"
-                placeholder="Full street address"
-                value={form.location_address ?? ""}
-                onChange={(e) => update("location_address", e.target.value)}
-              />
+              <GoogleMapsProvider>
+                <PlacesAutocomplete
+                  id="location_address"
+                  value={form.location_address ?? ""}
+                  onChange={(val) => update("location_address", val)}
+                  onPlaceSelect={(place: PlaceResult) => {
+                    update("location_address", place.formattedAddress)
+                    if (!form.location_name) {
+                      update("location_name", place.name)
+                    }
+                  }}
+                  placeholder="Search for an address..."
+                  types={["address", "establishment"]}
+                />
+              </GoogleMapsProvider>
             </div>
           </CardContent>
         </Card>
