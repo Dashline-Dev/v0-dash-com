@@ -403,6 +403,249 @@ const Decorations = {
       </div>
     </>
   ),
+
+  // Baby boy - booties/shoes
+  babyBoy: (color: string) => (
+    <>
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 opacity-40">
+        <svg viewBox="0 0 100 50" width="80" height="40" fill={color}>
+          {/* Left bootie */}
+          <ellipse cx="25" cy="35" rx="18" ry="12" />
+          <ellipse cx="20" cy="20" rx="12" ry="18" />
+          <circle cx="15" cy="12" r="4" fill="white" opacity="0.3" />
+          {/* Right bootie */}
+          <ellipse cx="75" cy="35" rx="18" ry="12" />
+          <ellipse cx="80" cy="20" rx="12" ry="18" />
+          <circle cx="85" cy="12" r="4" fill="white" opacity="0.3" />
+          {/* Laces */}
+          <path d="M18,28 Q25,25 32,28" fill="none" stroke="white" strokeWidth="1.5" opacity="0.5" />
+          <path d="M68,28 Q75,25 82,28" fill="none" stroke="white" strokeWidth="1.5" opacity="0.5" />
+        </svg>
+      </div>
+      {/* Small decorative stars */}
+      <div className="absolute top-6 left-10 opacity-25">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill={color}>
+          <path d="M12 2l2.4 4.8 5.3.8-3.8 3.7.9 5.3-4.8-2.5-4.8 2.5.9-5.3-3.8-3.7 5.3-.8z" />
+        </svg>
+      </div>
+      <div className="absolute top-10 right-12 opacity-20">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill={color}>
+          <path d="M12 2l2.4 4.8 5.3.8-3.8 3.7.9 5.3-4.8-2.5-4.8 2.5.9-5.3-3.8-3.7 5.3-.8z" />
+        </svg>
+      </div>
+    </>
+  ),
+
+  // Baby girl - pacifier
+  babyGirl: (color: string) => (
+    <>
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 opacity-40">
+        <svg viewBox="0 0 60 50" width="60" height="50" fill={color}>
+          {/* Pacifier ring */}
+          <ellipse cx="30" cy="15" rx="18" ry="12" fill="none" stroke={color} strokeWidth="4" />
+          {/* Pacifier shield */}
+          <ellipse cx="30" cy="32" rx="22" ry="14" />
+          {/* Center hole */}
+          <ellipse cx="30" cy="32" rx="8" ry="6" fill="white" opacity="0.3" />
+          {/* Nipple */}
+          <ellipse cx="30" cy="44" rx="8" ry="5" />
+          {/* Decorative bow */}
+          <path d="M12,32 Q5,25 12,20 Q18,25 12,32" fill={color} opacity="0.7" />
+          <path d="M48,32 Q55,25 48,20 Q42,25 48,32" fill={color} opacity="0.7" />
+        </svg>
+      </div>
+      {/* Hearts */}
+      <div className="absolute bottom-10 left-8 opacity-25">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill={color}>
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+        </svg>
+      </div>
+      <div className="absolute bottom-12 right-10 opacity-20">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill={color}>
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+        </svg>
+      </div>
+    </>
+  ),
+
+  // Scissors for Upsherin
+  scissors: (color: string) => (
+    <div className="absolute top-8 left-1/2 -translate-x-1/2 opacity-35">
+      <svg viewBox="0 0 80 60" width="70" height="52" fill={color}>
+        {/* Left blade */}
+        <ellipse cx="15" cy="45" rx="10" ry="8" />
+        <path d="M20,42 L50,15 L48,12 L18,39" />
+        {/* Right blade */}
+        <ellipse cx="65" cy="45" rx="10" ry="8" />
+        <path d="M60,42 L30,15 L32,12 L62,39" />
+        {/* Screw */}
+        <circle cx="40" cy="28" r="5" />
+        <circle cx="40" cy="28" r="2" fill="white" opacity="0.4" />
+        {/* Hair locks */}
+        <path d="M35,8 Q40,2 45,8 Q50,14 45,18 Q40,14 35,18 Q30,14 35,8" fill={color} opacity="0.5" />
+      </svg>
+    </div>
+  ),
+
+  // Chuppah for weddings
+  chuppah: (color: string) => (
+    <div className="absolute top-6 left-1/2 -translate-x-1/2 opacity-30">
+      <svg viewBox="0 0 120 80" width="100" height="67" fill="none" stroke={color} strokeWidth="2">
+        {/* Poles */}
+        <line x1="15" y1="20" x2="15" y2="75" />
+        <line x1="105" y1="20" x2="105" y2="75" />
+        <line x1="15" y1="75" x2="5" y2="80" />
+        <line x1="105" y1="75" x2="115" y2="80" />
+        {/* Canopy */}
+        <path d="M10,20 Q60,5 110,20" fill={color} fillOpacity="0.2" />
+        <path d="M10,20 Q60,5 110,20" />
+        {/* Draping */}
+        <path d="M10,20 Q25,30 15,40" />
+        <path d="M110,20 Q95,30 105,40" />
+        {/* Decorative flowers */}
+        <circle cx="60" cy="12" r="4" fill={color} />
+        <circle cx="50" cy="15" r="3" fill={color} opacity="0.7" />
+        <circle cx="70" cy="15" r="3" fill={color} opacity="0.7" />
+      </svg>
+    </div>
+  ),
+
+  // Kiddush cup
+  kiddushCup: (color: string) => (
+    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-30">
+      <svg viewBox="0 0 50 70" width="45" height="63" fill={color}>
+        {/* Cup */}
+        <path d="M10,10 L12,45 L38,45 L40,10 Z" />
+        {/* Wine */}
+        <path d="M12,15 L13,40 L37,40 L38,15 Z" fill="#722F37" opacity="0.6" />
+        {/* Stem */}
+        <rect x="22" y="45" width="6" height="12" />
+        {/* Base */}
+        <ellipse cx="25" cy="62" rx="15" ry="5" />
+        {/* Decorative pattern */}
+        <path d="M15,20 Q25,25 35,20" fill="none" stroke="white" strokeWidth="1" opacity="0.3" />
+        <path d="M15,30 Q25,35 35,30" fill="none" stroke="white" strokeWidth="1" opacity="0.3" />
+      </svg>
+    </div>
+  ),
+
+  // Challah for Shabbos
+  challah: (color: string) => (
+    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 opacity-35">
+      <svg viewBox="0 0 100 40" width="90" height="36" fill={color}>
+        {/* Braided challah */}
+        <ellipse cx="50" cy="25" rx="45" ry="12" fill={color} />
+        {/* Braid pattern */}
+        <path d="M15,20 Q25,15 35,25 Q45,35 55,25 Q65,15 75,25 Q85,35 90,25" 
+              fill="none" stroke="white" strokeWidth="2" opacity="0.3" />
+        <path d="M10,25 Q20,30 30,20 Q40,10 50,20 Q60,30 70,20 Q80,10 90,20" 
+              fill="none" stroke="white" strokeWidth="2" opacity="0.3" />
+        {/* Sesame seeds */}
+        {[...Array(8)].map((_, i) => (
+          <ellipse key={i} cx={20 + i * 10} cy={22 + (i % 2) * 4} rx="2" ry="1" fill="#F5DEB3" opacity="0.6" />
+        ))}
+      </svg>
+    </div>
+  ),
+
+  // Dreidel for Chanukah
+  dreidel: (color: string) => (
+    <div className="absolute top-8 right-8 opacity-35">
+      <svg viewBox="0 0 40 60" width="36" height="54" fill={color}>
+        {/* Handle */}
+        <rect x="16" y="2" width="8" height="12" rx="2" />
+        {/* Body */}
+        <rect x="8" y="14" width="24" height="28" rx="3" />
+        {/* Point */}
+        <polygon points="20,42 8,42 20,58 32,42" />
+        {/* Hebrew letter */}
+        <text x="20" y="32" textAnchor="middle" fill="white" fontSize="14" fontFamily="serif" opacity="0.5">ג</text>
+      </svg>
+    </div>
+  ),
+
+  // Hamantaschen for Purim
+  hamantaschen: (color: string) => (
+    <>
+      <div className="absolute top-6 left-8 opacity-40">
+        <svg viewBox="0 0 50 50" width="40" height="40" fill={color}>
+          <polygon points="25,5 45,42 5,42" rx="5" />
+          <circle cx="25" cy="28" r="10" fill="#8B4513" /> {/* Filling */}
+        </svg>
+      </div>
+      <div className="absolute top-10 right-10 opacity-30">
+        <svg viewBox="0 0 50 50" width="32" height="32" fill={color}>
+          <polygon points="25,5 45,42 5,42" rx="5" />
+          <circle cx="25" cy="28" r="10" fill="#C41E3A" /> {/* Different filling */}
+        </svg>
+      </div>
+      <div className="absolute bottom-12 left-12 opacity-25">
+        <svg viewBox="0 0 50 50" width="28" height="28" fill={color}>
+          <polygon points="25,5 45,42 5,42" rx="5" />
+          <circle cx="25" cy="28" r="10" fill="#4A0E4E" /> {/* Poppy filling */}
+        </svg>
+      </div>
+    </>
+  ),
+
+  // Matzah for Pesach
+  matzah: (color: string) => (
+    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-30">
+      <svg viewBox="0 0 80 50" width="72" height="45" fill={color}>
+        {/* Matzah shape */}
+        <rect x="5" y="5" width="70" height="40" rx="3" fill="#F5DEB3" />
+        {/* Perforations */}
+        {[...Array(5)].map((_, row) => (
+          [...Array(7)].map((_, col) => (
+            <circle key={`${row}-${col}`} cx={12 + col * 10} cy={10 + row * 8} r="2" fill={color} opacity="0.4" />
+          ))
+        ))}
+        {/* Burn marks */}
+        <ellipse cx="25" cy="25" rx="8" ry="5" fill="#8B4513" opacity="0.3" />
+        <ellipse cx="55" cy="30" rx="6" ry="4" fill="#8B4513" opacity="0.25" />
+      </svg>
+    </div>
+  ),
+
+  // Sukkah
+  sukkah: (color: string) => (
+    <div className="absolute top-6 left-1/2 -translate-x-1/2 opacity-30">
+      <svg viewBox="0 0 100 70" width="90" height="63" fill="none" stroke={color} strokeWidth="2">
+        {/* Frame */}
+        <line x1="10" y1="15" x2="10" y2="65" />
+        <line x1="90" y1="15" x2="90" y2="65" />
+        <line x1="10" y1="15" x2="90" y2="15" />
+        {/* Schach (roof covering) */}
+        <path d="M5,15 Q20,8 35,15 Q50,22 65,15 Q80,8 95,15" fill={color} fillOpacity="0.3" />
+        <line x1="20" y1="12" x2="20" y2="20" stroke="#228B22" />
+        <line x1="40" y1="10" x2="40" y2="18" stroke="#228B22" />
+        <line x1="60" y1="12" x2="60" y2="20" stroke="#228B22" />
+        <line x1="80" y1="10" x2="80" y2="18" stroke="#228B22" />
+        {/* Decorations hanging */}
+        <circle cx="30" cy="30" r="5" fill="#FF6347" opacity="0.6" />
+        <circle cx="50" cy="35" r="6" fill="#FFD700" opacity="0.6" />
+        <circle cx="70" cy="28" r="5" fill="#32CD32" opacity="0.6" />
+      </svg>
+    </div>
+  ),
+
+  // Number 12 for Bat Mitzvah
+  number12: (color: string) => (
+    <div className="absolute top-8 right-8 opacity-25">
+      <svg viewBox="0 0 60 40" width="54" height="36" fill={color}>
+        <text x="30" y="32" textAnchor="middle" fontSize="36" fontFamily="serif" fontWeight="bold">12</text>
+      </svg>
+    </div>
+  ),
+
+  // Number 13 for Bar Mitzvah
+  number13: (color: string) => (
+    <div className="absolute top-8 right-8 opacity-25">
+      <svg viewBox="0 0 60 40" width="54" height="36" fill={color}>
+        <text x="30" y="32" textAnchor="middle" fontSize="36" fontFamily="serif" fontWeight="bold">13</text>
+      </svg>
+    </div>
+  ),
 }
 
 // Frame styles

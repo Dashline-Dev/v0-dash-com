@@ -17,7 +17,7 @@ export interface EventTemplate {
     fontFamily: "serif" | "sans-serif" | "script" | "hebrew" | "mixed"
     headerFont?: string
     layout: "centered" | "top-aligned" | "split" | "asymmetric"
-    decorations?: ("floral" | "floralCorners" | "geometric" | "musical" | "violins" | "stars" | "starOfDavid" | "hearts" | "confetti" | "balloons" | "ribbons" | "candles" | "menorah" | "torah" | "dove" | "rings" | "grapes" | "borderPattern")[]
+    decorations?: ("floral" | "floralCorners" | "geometric" | "musical" | "violins" | "stars" | "starOfDavid" | "hearts" | "confetti" | "balloons" | "ribbons" | "candles" | "menorah" | "torah" | "dove" | "rings" | "grapes" | "borderPattern" | "babyBoy" | "babyGirl" | "scissors" | "chuppah" | "kiddushCup" | "challah" | "dreidel" | "hamantaschen" | "matzah" | "sukkah" | "number12" | "number13")[]
   }
   // Field configuration - which fields to show and their labels
   fields: {
@@ -71,8 +71,64 @@ export const TEMPLATE_CATEGORIES = {
 }
 
 export const EVENT_TEMPLATES: EventTemplate[] = [
+  // Pesach Seder
+  {
+    id: "pesach-seder",
+    name: "Pesach Seder",
+    category: "holiday",
+    subcategory: "Pesach",
+    description: "Passover seder invitation with matzah",
+    style: {
+      background: "linear-gradient(180deg, #FFFBEB 0%, #FEF3C7 100%)",
+      frameStyle: "ornate",
+      frameColor: "#92400E",
+      accentColor: "#92400E",
+      textColor: "#78350F",
+      secondaryTextColor: "#B45309",
+      fontFamily: "mixed",
+      layout: "centered",
+      decorations: ["matzah", "kiddushCup", "starOfDavid"],
+    },
+    fields: {
+      showHebrewDate: true,
+      showHostLine: true,
+      hostLineTemplate: "You are invited to join us for the Pesach Seder",
+      eventTypeLabel: "ליל הסדר",
+      showVenue: true,
+      showTime: true,
+    },
+  },
+
+  // Sukkos
+  {
+    id: "sukkos-party",
+    name: "Sukkos Celebration",
+    category: "holiday",
+    subcategory: "Sukkos",
+    description: "Sukkos party invitation with sukkah",
+    style: {
+      background: "linear-gradient(180deg, #F0FDF4 0%, #DCFCE7 100%)",
+      frameStyle: "rounded",
+      frameColor: "#15803D",
+      accentColor: "#15803D",
+      textColor: "#14532D",
+      secondaryTextColor: "#22C55E",
+      fontFamily: "mixed",
+      layout: "centered",
+      decorations: ["sukkah", "stars"],
+    },
+    fields: {
+      showHebrewDate: true,
+      showHostLine: true,
+      hostLineTemplate: "Please join us in our Sukkah",
+      eventTypeLabel: "חג סוכות שמח",
+      showVenue: true,
+      showTime: true,
+    },
+  },
+
   // ═══════════════════════════════════════════════════════════
-  // WEDDING TEMPLATES
+  // PROFESSIONAL TEMPLATES
   // ═══════════════════════════════════════════════════════════
   
   // Classic Jewish Wedding - Ornate Frame
@@ -81,7 +137,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     name: "Classic Ornate",
     category: "wedding",
     subcategory: "Invitations",
-    description: "Traditional ornate frame with elegant typography",
+    description: "Traditional ornate frame with chuppah and violins",
     style: {
       background: "linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)",
       frameStyle: "ornate",
@@ -91,7 +147,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#D4D4D4",
       fontFamily: "mixed",
       layout: "centered",
-      decorations: ["violins", "grapes"],
+      decorations: ["chuppah", "violins", "grapes"],
     },
     fields: {
       showHebrewDate: true,
@@ -279,7 +335,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     name: "Classic Bar Mitzvah",
     category: "bar_mitzvah",
     subcategory: "Invitations",
-    description: "Traditional elegant design",
+    description: "Traditional elegant design with Torah and 13",
     style: {
       background: "linear-gradient(180deg, #1E3A5F 0%, #0F2744 100%)",
       frameStyle: "ornate",
@@ -289,7 +345,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#94A3B8",
       fontFamily: "mixed",
       layout: "centered",
-      decorations: ["torah", "starOfDavid", "ribbons"],
+      decorations: ["torah", "number13", "starOfDavid"],
     },
     fields: {
       showHebrewDate: true,
@@ -364,7 +420,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     name: "Elegant Bat Mitzvah",
     category: "bat_mitzvah",
     subcategory: "Invitations",
-    description: "Sophisticated floral design",
+    description: "Sophisticated floral design with 12",
     style: {
       background: "linear-gradient(180deg, #FDF4FF 0%, #FAE8FF 100%)",
       frameStyle: "ornate",
@@ -374,7 +430,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#C026D3",
       fontFamily: "script",
       layout: "centered",
-      decorations: ["floral", "stars"],
+      decorations: ["number12", "floral", "stars"],
     },
     fields: {
       showHebrewDate: true,
@@ -422,7 +478,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     name: "It's a Boy - Classic",
     category: "baby",
     subcategory: "It's a Boy",
-    description: "Traditional blue announcement",
+    description: "Traditional blue announcement with baby booties",
     style: {
       background: "linear-gradient(180deg, #DBEAFE 0%, #BFDBFE 100%)",
       frameStyle: "rounded",
@@ -432,7 +488,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#2563EB",
       fontFamily: "serif",
       layout: "centered",
-      decorations: ["stars"],
+      decorations: ["babyBoy", "stars"],
     },
     fields: {
       showHebrewDate: true,
@@ -449,7 +505,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     name: "It's a Girl - Classic",
     category: "baby",
     subcategory: "It's a Girl",
-    description: "Traditional pink announcement",
+    description: "Traditional pink announcement with pacifier",
     style: {
       background: "linear-gradient(180deg, #FCE7F3 0%, #FBCFE8 100%)",
       frameStyle: "rounded",
@@ -459,7 +515,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#DB2777",
       fontFamily: "serif",
       layout: "centered",
-      decorations: ["hearts", "floral"],
+      decorations: ["babyGirl", "hearts", "floral"],
     },
     fields: {
       showHebrewDate: true,
@@ -503,7 +559,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     name: "Upsherin",
     category: "baby",
     subcategory: "Upsherin",
-    description: "Upsherin celebration invitation",
+    description: "Upsherin celebration with scissors motif",
     style: {
       background: "linear-gradient(180deg, #F0FDF4 0%, #DCFCE7 100%)",
       frameStyle: "rounded",
@@ -513,6 +569,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#22C55E",
       fontFamily: "mixed",
       layout: "centered",
+      decorations: ["scissors", "floral"],
     },
     fields: {
       showHebrewDate: true,
@@ -592,7 +649,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     name: "Purim Seuda",
     category: "holiday",
     subcategory: "Purim",
-    description: "Festive Purim celebration",
+    description: "Festive Purim with hamantaschen",
     style: {
       background: "linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)",
       frameStyle: "artistic",
@@ -602,7 +659,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#E9D5FF",
       fontFamily: "mixed",
       layout: "centered",
-      decorations: ["confetti", "stars"],
+      decorations: ["hamantaschen", "confetti", "stars"],
     },
     fields: {
       showHebrewDate: true,
@@ -619,7 +676,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     name: "Chanukah Party",
     category: "holiday",
     subcategory: "Chanukah",
-    description: "Bright Chanukah celebration",
+    description: "Bright Chanukah with menorah and dreidel",
     style: {
       background: "linear-gradient(180deg, #1E3A8A 0%, #1E40AF 100%)",
       frameStyle: "ornate",
@@ -629,7 +686,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#93C5FD",
       fontFamily: "mixed",
       layout: "centered",
-      decorations: ["candles", "stars"],
+      decorations: ["menorah", "dreidel", "stars"],
     },
     fields: {
       showHebrewDate: true,
@@ -646,7 +703,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     name: "Shabbos Meal",
     category: "holiday",
     subcategory: "Shabbos",
-    description: "Shabbos invitation",
+    description: "Shabbos invitation with challah and candles",
     style: {
       background: "#FFFBEB",
       frameStyle: "simple",
@@ -656,7 +713,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#B45309",
       fontFamily: "mixed",
       layout: "centered",
-      decorations: ["candles"],
+      decorations: ["candles", "challah", "kiddushCup"],
     },
     fields: {
       showHebrewDate: true,
