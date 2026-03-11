@@ -40,6 +40,10 @@ export function CreateAreaForm({ existingAreas }: CreateAreaFormProps) {
   const [parentId, setParentId] = useState<string | null>(null)
   const [zipCodes, setZipCodes] = useState("")
 
+  // Required coordinates
+  const [latitude, setLatitude] = useState("")
+  const [longitude, setLongitude] = useState("")
+
   // Optional bounds
   const [boundsNeLat, setBoundsNeLat] = useState("")
   const [boundsNeLng, setBoundsNeLng] = useState("")
@@ -63,6 +67,10 @@ export function CreateAreaForm({ existingAreas }: CreateAreaFormProps) {
       setError("Slug is required")
       return
     }
+    if (!latitude.trim() || !longitude.trim()) {
+      setError("Latitude and Longitude are required")
+      return
+    }
 
     startTransition(async () => {
       try {
@@ -72,6 +80,8 @@ export function CreateAreaForm({ existingAreas }: CreateAreaFormProps) {
           type,
           description: description.trim() || undefined,
           parentId: parentId || undefined,
+          latitude: parseFloat(latitude),
+          longitude: parseFloat(longitude),
           boundsNeLat: boundsNeLat ? parseFloat(boundsNeLat) : undefined,
           boundsNeLng: boundsNeLng ? parseFloat(boundsNeLng) : undefined,
           boundsSwLat: boundsSwLat ? parseFloat(boundsSwLat) : undefined,
@@ -203,6 +213,43 @@ export function CreateAreaForm({ existingAreas }: CreateAreaFormProps) {
               Comma-separated list of zip codes in this area
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base">Coordinates</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="latitude">Latitude</Label>
+              <Input
+                id="latitude"
+                type="number"
+                step="any"
+                value={latitude}
+                onChange={(e) => setLatitude(e.target.value)}
+                placeholder="e.g., 40.7128"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="longitude">Longitude</Label>
+              <Input
+                id="longitude"
+                type="number"
+                step="any"
+                value={longitude}
+                onChange={(e) => setLongitude(e.target.value)}
+                placeholder="e.g., -74.0060"
+                required
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Center point coordinates for this area (required)
+          </p>
         </CardContent>
       </Card>
 
