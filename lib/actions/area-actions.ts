@@ -185,7 +185,7 @@ export async function getAreaCommunities(
   })) as AreaCommunity[]
 }
 
-// ── Get events in an area (from public communities) ─────────
+// ── Get events in an area (from public communities and spaces) ─────────
 
 export async function getAreaEvents(
   areaId: string,
@@ -195,16 +195,27 @@ export async function getAreaEvents(
   const offset = opts?.offset ?? 0
   const upcomingFilter = opts?.upcoming ? `AND e.end_time > NOW()` : ""
 
-  // Also include events from child neighborhoods
+  // Include events from:
+  // 1. Communities linked to this area or child neighborhoods
+  // 2. Spaces linked to this area or child neighborhoods (only public spaces in public communities)
   const countResult = await sql(
     `SELECT COUNT(DISTINCT e.id) as total
      FROM events e
-     JOIN community_areas ca ON ca.community_id = e.community_id
      JOIN communities c ON c.id = e.community_id
-     WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
-       AND e.status = 'published'
-       AND c.visibility = 'public'
-       ${upcomingFilter}`,
+     LEFT JOIN community_areas ca ON ca.community_id = e.community_id
+     LEFT JOIN space_areas sa ON sa.space_id = e.space_id
+     LEFT JOIN spaces s ON s.id = e.space_id
+     WHERE (
+       -- Events from communities linked to area
+       (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+       OR
+       -- Events from spaces linked to area (only public spaces)
+       ((sa.area_id = $1 OR sa.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+        AND s.visibility = 'public')
+     )
+     AND e.status = 'published'
+     AND c.visibility = 'public'
+     ${upcomingFilter}`,
     [areaId]
   )
 
@@ -216,12 +227,21 @@ export async function getAreaEvents(
       e.virtual_link, e.rsvp_count, e.max_attendees,
       c.name as community_name, c.slug as community_slug
     FROM events e
-    JOIN community_areas ca ON ca.community_id = e.community_id
     JOIN communities c ON c.id = e.community_id
-    WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
-      AND e.status = 'published'
-      AND c.visibility = 'public'
-      ${upcomingFilter}
+    LEFT JOIN community_areas ca ON ca.community_id = e.community_id
+    LEFT JOIN space_areas sa ON sa.space_id = e.space_id
+    LEFT JOIN spaces s ON s.id = e.space_id
+    WHERE (
+      -- Events from communities linked to area
+      (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+      OR
+      -- Events from spaces linked to area (only public spaces)
+      ((sa.area_id = $1 OR sa.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+       AND s.visibility = 'public')
+    )
+    AND e.status = 'published'
+    AND c.visibility = 'public'
+    ${upcomingFilter}
     ORDER BY e.start_time ASC, e.id
     LIMIT $2 OFFSET $3`,
     [areaId, limit, offset]
@@ -332,6 +352,209 @@ export async function unlinkCommunityFromArea(
     `DELETE FROM community_areas WHERE community_id = $1 AND area_id = $2`,
     [communityId, areaId]
   )
+}
+
+// ── Link / unlink space to area ─────────────────────────────
+
+export async function linkSpaceToArea(
+  spaceId: string,
+  areaId: string
+): Promise<void> {
+  await sql(
+    `INSERT INTO space_areas (space_id, area_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    [spaceId, areaId]
+  )
+}
+
+export async function unlinkSpaceFromArea(
+  spaceId: string,
+  areaId: string
+): Promise<void> {
+  await sql(
+    `DELETE FROM space_areas WHERE space_id = $1 AND area_id = $2`,
+    [spaceId, areaId]
+  )
+}
+
+// ── Get areas for a space ───────────────────────────────────
+
+export async function getSpaceAreas(spaceId: string): Promise<AreaWithMeta[]> {
+  const rows = await sql(
+    `SELECT
+      a.*,
+      p.name as parent_name,
+      p.slug as parent_slug,
+      COALESCE((SELECT COUNT(*) FROM community_areas ca WHERE ca.area_id = a.id), 0) as community_count,
+      0 as event_count,
+      COALESCE((SELECT COUNT(*) FROM areas sub WHERE sub.parent_id = a.id AND sub.status = 'active'), 0) as neighborhood_count,
+      '[]'::json as zip_codes
+    FROM areas a
+    JOIN space_areas sa ON sa.area_id = a.id
+    LEFT JOIN areas p ON a.parent_id = p.id
+    WHERE sa.space_id = $1 AND a.status = 'active'
+    ORDER BY a.type ASC, a.name ASC`,
+    [spaceId]
+  )
+
+  return rows.map((r) => ({
+    ...r,
+    community_count: Number(r.community_count),
+    event_count: 0,
+    neighborhood_count: Number(r.neighborhood_count),
+    zip_codes: [],
+  })) as AreaWithMeta[]
+}
+
+// ── Admin: Create area (superadmin only) ────────────────────
+
+export async function createArea(data: {
+  name: string
+  slug: string
+  type: "city" | "neighborhood" | "region"
+  description?: string
+  parentId?: string | null
+  placeId?: string
+  boundsNeLat?: number
+  boundsNeLng?: number
+  boundsSwLat?: number
+  boundsSwLng?: number
+}): Promise<{ id: string; slug: string }> {
+  const rows = await sql(
+    `INSERT INTO areas (name, slug, type, description, parent_id, place_id, bounds_ne_lat, bounds_ne_lng, bounds_sw_lat, bounds_sw_lng, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'active')
+     RETURNING id, slug`,
+    [
+      data.name,
+      data.slug,
+      data.type,
+      data.description || null,
+      data.parentId || null,
+      data.placeId || null,
+      data.boundsNeLat || null,
+      data.boundsNeLng || null,
+      data.boundsSwLat || null,
+      data.boundsSwLng || null,
+    ]
+  )
+
+  return { id: rows[0].id as string, slug: rows[0].slug as string }
+}
+
+// ── Admin: Update area (superadmin only) ────────────────────
+
+export async function updateArea(
+  areaId: string,
+  data: {
+    name?: string
+    slug?: string
+    description?: string
+    parentId?: string | null
+    placeId?: string
+    boundsNeLat?: number
+    boundsNeLng?: number
+    boundsSwLat?: number
+    boundsSwLng?: number
+    status?: "active" | "inactive"
+  }
+): Promise<void> {
+  const updates: string[] = []
+  const params: unknown[] = []
+  let idx = 1
+
+  if (data.name !== undefined) {
+    updates.push(`name = $${idx++}`)
+    params.push(data.name)
+  }
+  if (data.slug !== undefined) {
+    updates.push(`slug = $${idx++}`)
+    params.push(data.slug)
+  }
+  if (data.description !== undefined) {
+    updates.push(`description = $${idx++}`)
+    params.push(data.description)
+  }
+  if (data.parentId !== undefined) {
+    updates.push(`parent_id = $${idx++}`)
+    params.push(data.parentId)
+  }
+  if (data.placeId !== undefined) {
+    updates.push(`place_id = $${idx++}`)
+    params.push(data.placeId)
+  }
+  if (data.boundsNeLat !== undefined) {
+    updates.push(`bounds_ne_lat = $${idx++}`)
+    params.push(data.boundsNeLat)
+  }
+  if (data.boundsNeLng !== undefined) {
+    updates.push(`bounds_ne_lng = $${idx++}`)
+    params.push(data.boundsNeLng)
+  }
+  if (data.boundsSwLat !== undefined) {
+    updates.push(`bounds_sw_lat = $${idx++}`)
+    params.push(data.boundsSwLat)
+  }
+  if (data.boundsSwLng !== undefined) {
+    updates.push(`bounds_sw_lng = $${idx++}`)
+    params.push(data.boundsSwLng)
+  }
+  if (data.status !== undefined) {
+    updates.push(`status = $${idx++}`)
+    params.push(data.status)
+  }
+
+  if (updates.length === 0) return
+
+  updates.push(`updated_at = NOW()`)
+  params.push(areaId)
+
+  await sql(
+    `UPDATE areas SET ${updates.join(", ")} WHERE id = $${idx}`,
+    params
+  )
+}
+
+// ── Admin: Delete area (superadmin only) ────────────────────
+
+export async function deleteArea(areaId: string): Promise<void> {
+  // Soft delete by setting status to inactive
+  await sql(`UPDATE areas SET status = 'inactive', updated_at = NOW() WHERE id = $1`, [areaId])
+}
+
+// ── Admin: Add zip codes to area ────────────────────────────
+
+export async function addAreaZipCodes(areaId: string, zipCodes: string[]): Promise<void> {
+  if (zipCodes.length === 0) return
+  
+  const values = zipCodes.map((_, i) => `($1, $${i + 2})`).join(", ")
+  await sql(
+    `INSERT INTO area_zip_codes (area_id, zip_code) VALUES ${values} ON CONFLICT DO NOTHING`,
+    [areaId, ...zipCodes]
+  )
+}
+
+// ── Admin: Remove zip code from area ────────────────────────
+
+export async function removeAreaZipCode(areaId: string, zipCode: string): Promise<void> {
+  await sql(`DELETE FROM area_zip_codes WHERE area_id = $1 AND zip_code = $2`, [areaId, zipCode])
+}
+
+// ── Get all areas (for dropdowns) ───────────────────────────
+
+export async function getAllAreasForSelect(): Promise<{ id: string; name: string; type: string; parentName: string | null }[]> {
+  const rows = await sql(
+    `SELECT a.id, a.name, a.type, p.name as parent_name
+     FROM areas a
+     LEFT JOIN areas p ON a.parent_id = p.id
+     WHERE a.status = 'active'
+     ORDER BY a.type ASC, a.name ASC`
+  )
+  
+  return rows.map((r) => ({
+    id: r.id as string,
+    name: r.name as string,
+    type: r.type as string,
+    parentName: r.parent_name as string | null,
+  }))
 }
 
 // ── Get areas for a community ───────────────────────────────

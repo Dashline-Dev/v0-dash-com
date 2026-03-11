@@ -110,6 +110,7 @@ export interface CreateCommunityInput {
   timezone?: string
   tags?: string[]
   rules?: { title: string; description: string }[]
+  areaIds?: string[]
 }
 
 export interface UpdateCommunityInput {
