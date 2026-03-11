@@ -84,8 +84,8 @@ export function StepSettings({ data, onChange }: StepSettingsProps) {
         <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
           <li><strong>Public + Open:</strong> Anyone can find and join instantly</li>
           <li><strong>Public + Approval:</strong> Anyone can find, but must request to join</li>
-          <li><strong>Visible + Approval:</strong> Visible in search, join requires approval</li>
-          <li><strong>Private + Invite Only:</strong> Hidden from search, invite required</li>
+          <li><strong>Unlisted + Open:</strong> Only via direct link, anyone with link can join</li>
+          <li><strong>Private + Invite Only:</strong> Hidden, only invited members can see</li>
         </ul>
       </div>
     </div>

@@ -3,10 +3,10 @@
 // Type: What kind of space is this?
 export type SpaceType = "general" | "discussion" | "events" | "announcements" | "resources" | "projects"
 
-// Visibility: Who can see this space exists?
-export type SpaceVisibility = "public" | "visible" | "private"
+// Visibility: Who can see this space exists? (matches community model)
+export type SpaceVisibility = "public" | "unlisted" | "private"
 
-// Join Policy: How do members join?
+// Join Policy: How do members join? (matches community model)
 export type SpaceJoinPolicy = "open" | "approval" | "invite_only"
 
 export type SpaceStatus = "active" | "archived" | "draft"
@@ -41,21 +41,21 @@ export const SPACE_TYPE_ICONS: Record<SpaceType, string> = {
   projects: "Rocket",
 }
 
-// ─── Visibility Labels and Descriptions ─────────────────────────────────────
+// ─── Visibility Labels and Descriptions (aligned with community model) ──────
 
 export const SPACE_VISIBILITIES: { value: SpaceVisibility; label: string; description: string }[] = [
   { value: "public", label: "Public", description: "Anyone can find and view this space" },
-  { value: "visible", label: "Visible", description: "Visible in search but content is restricted" },
+  { value: "unlisted", label: "Unlisted", description: "Only accessible via direct link" },
   { value: "private", label: "Private", description: "Only members can see this space exists" },
 ]
 
 export const SPACE_VISIBILITY_LABELS: Record<SpaceVisibility, string> = {
   public: "Public",
-  visible: "Visible",
+  unlisted: "Unlisted",
   private: "Private",
 }
 
-// ─── Join Policy Labels and Descriptions ────────────────────────────────────
+// ─── Join Policy Labels and Descriptions (aligned with community model) ─────
 
 export const SPACE_JOIN_POLICIES: { value: SpaceJoinPolicy; label: string; description: string }[] = [
   { value: "open", label: "Open", description: "Anyone can join instantly" },

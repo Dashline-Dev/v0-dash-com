@@ -77,6 +77,7 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
     slug: "",
     type: "general",
     visibility: "public",
+    join_policy: "open",
   })
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [createForm, setCreateForm] = useState({
@@ -85,6 +86,7 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
     communityId: "",
     type: "general",
     visibility: "public",
+    join_policy: "open",
   })
   const [createError, setCreateError] = useState("")
   const [communities, setCommunities] = useState<{ id: string; name: string }[]>([])
@@ -418,26 +420,28 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select
+                value={createForm.type}
+                onValueChange={(val) =>
+                  setCreateForm((f) => ({ ...f, type: val }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="discussion">Discussion</SelectItem>
+                  <SelectItem value="events">Events</SelectItem>
+                  <SelectItem value="announcements">Announcements</SelectItem>
+                  <SelectItem value="resources">Resources</SelectItem>
+                  <SelectItem value="projects">Projects</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <Select
-                  value={createForm.type}
-                  onValueChange={(val) =>
-                    setCreateForm((f) => ({ ...f, type: val }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">General</SelectItem>
-                    <SelectItem value="events">Events</SelectItem>
-                    <SelectItem value="announcements">Announcements</SelectItem>
-                    <SelectItem value="discussions">Discussions</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="space-y-2">
                 <Label>Visibility</Label>
                 <Select
@@ -451,7 +455,26 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="unlisted">Unlisted</SelectItem>
                     <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Join Policy</Label>
+                <Select
+                  value={createForm.join_policy || "open"}
+                  onValueChange={(val) =>
+                    setCreateForm((f) => ({ ...f, join_policy: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="approval">Approval Required</SelectItem>
+                    <SelectItem value="invite_only">Invite Only</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -504,24 +527,26 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
                 }
               />
             </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select
+                value={editForm.type}
+                onValueChange={(v) => setEditForm((f) => ({ ...f, type: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="discussion">Discussion</SelectItem>
+                  <SelectItem value="events">Events</SelectItem>
+                  <SelectItem value="announcements">Announcements</SelectItem>
+                  <SelectItem value="resources">Resources</SelectItem>
+                  <SelectItem value="projects">Projects</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <Select
-                  value={editForm.type}
-                  onValueChange={(v) => setEditForm((f) => ({ ...f, type: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">General</SelectItem>
-                    <SelectItem value="events">Events</SelectItem>
-                    <SelectItem value="announcements">Announcements</SelectItem>
-                    <SelectItem value="discussions">Discussions</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="space-y-2">
                 <Label>Visibility</Label>
                 <Select
@@ -533,7 +558,24 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="unlisted">Unlisted</SelectItem>
                     <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Join Policy</Label>
+                <Select
+                  value={editForm.join_policy || "open"}
+                  onValueChange={(v) => setEditForm((f) => ({ ...f, join_policy: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="approval">Approval Required</SelectItem>
+                    <SelectItem value="invite_only">Invite Only</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

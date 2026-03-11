@@ -32,7 +32,12 @@ import {
   deleteCommunity,
   updateCommunityTags,
 } from "@/lib/actions/community-actions"
-import { COMMUNITY_CATEGORIES, type CommunityWithMeta } from "@/types/community"
+import {
+  COMMUNITY_CATEGORIES,
+  COMMUNITY_VISIBILITY_OPTIONS,
+  JOIN_POLICY_OPTIONS,
+  type CommunityWithMeta,
+} from "@/types/community"
 
 export function SettingsForm({ community }: { community: CommunityWithMeta }) {
   const router = useRouter()
@@ -43,7 +48,6 @@ export function SettingsForm({ community }: { community: CommunityWithMeta }) {
   const [name, setName] = useState(community.name)
   const [description, setDescription] = useState(community.description || "")
   const [category, setCategory] = useState(community.category)
-  const [type, setType] = useState(community.type)
   const [visibility, setVisibility] = useState(community.visibility)
   const [joinPolicy, setJoinPolicy] = useState(community.join_policy)
   const [postingPolicy, setPostingPolicy] = useState(community.posting_policy)
@@ -63,7 +67,6 @@ export function SettingsForm({ community }: { community: CommunityWithMeta }) {
           name,
           description,
           category,
-          type,
           visibility,
           join_policy: joinPolicy,
           posting_policy: postingPolicy,
@@ -143,39 +146,38 @@ export function SettingsForm({ community }: { community: CommunityWithMeta }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="space-y-1.5">
-          <Label>Type</Label>
-          <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="public">Public</SelectItem>
-              <SelectItem value="private">Private</SelectItem>
-              <SelectItem value="restricted">Restricted</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label>Visibility</Label>
           <Select value={visibility} onValueChange={(v) => setVisibility(v as typeof visibility)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="public">Public</SelectItem>
-              <SelectItem value="visible-with-approval">Visible + Approval</SelectItem>
-              <SelectItem value="private">Private</SelectItem>
+              {COMMUNITY_VISIBILITY_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground">
+            {COMMUNITY_VISIBILITY_OPTIONS.find((o) => o.value === visibility)?.description}
+          </p>
         </div>
         <div className="space-y-1.5">
-          <Label>Join policy</Label>
+          <Label>Join Policy</Label>
           <Select value={joinPolicy} onValueChange={(v) => setJoinPolicy(v as typeof joinPolicy)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="approval">Needs Approval</SelectItem>
-              <SelectItem value="invite_only">Invite Only</SelectItem>
+              {JOIN_POLICY_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground">
+            {JOIN_POLICY_OPTIONS.find((o) => o.value === joinPolicy)?.description}
+          </p>
         </div>
       </div>
 

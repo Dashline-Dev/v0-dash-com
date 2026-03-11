@@ -10,7 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { COMMUNITY_CATEGORIES } from "@/types/community"
+import {
+  COMMUNITY_CATEGORIES,
+  COMMUNITY_VISIBILITY_OPTIONS,
+  JOIN_POLICY_OPTIONS,
+} from "@/types/community"
 import type { CreateCommunityInput } from "@/types/community"
 
 interface StepBasicsProps {
@@ -99,26 +103,7 @@ export function StepBasics({ data, onChange }: StepBasicsProps) {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="space-y-1.5">
-          <Label>Type</Label>
-          <Select
-            value={data.type}
-            onValueChange={(val) =>
-              onChange({ type: val as CreateCommunityInput["type"] })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="public">Public</SelectItem>
-              <SelectItem value="private">Private</SelectItem>
-              <SelectItem value="restricted">Restricted</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label>Visibility</Label>
           <Select
@@ -131,15 +116,22 @@ export function StepBasics({ data, onChange }: StepBasicsProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="public">Public</SelectItem>
-              <SelectItem value="visible-with-approval">Visible + Approval</SelectItem>
-              <SelectItem value="private">Private</SelectItem>
+              {COMMUNITY_VISIBILITY_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  <div className="flex flex-col">
+                    <span>{opt.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground">
+            {COMMUNITY_VISIBILITY_OPTIONS.find((o) => o.value === data.visibility)?.description}
+          </p>
         </div>
 
         <div className="space-y-1.5">
-          <Label>Join policy</Label>
+          <Label>Join Policy</Label>
           <Select
             value={data.join_policy}
             onValueChange={(val) =>
@@ -150,11 +142,18 @@ export function StepBasics({ data, onChange }: StepBasicsProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="approval">Needs Approval</SelectItem>
-              <SelectItem value="invite_only">Invite Only</SelectItem>
+              {JOIN_POLICY_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  <div className="flex flex-col">
+                    <span>{opt.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground">
+            {JOIN_POLICY_OPTIONS.find((o) => o.value === data.join_policy)?.description}
+          </p>
         </div>
       </div>
     </div>

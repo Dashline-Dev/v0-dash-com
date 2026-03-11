@@ -1,8 +1,56 @@
-// ── Enums ──────────────────────────────────────────────────────────────
+// ── Visibility: Who can discover/see the community ─────────────────────
 
-export type CommunityType = "public" | "private" | "restricted"
+export type CommunityVisibility = "public" | "unlisted" | "private"
 
-export type CommunityVisibility = "public" | "visible-with-approval" | "private"
+export const COMMUNITY_VISIBILITY_OPTIONS: {
+  value: CommunityVisibility
+  label: string
+  description: string
+}[] = [
+  {
+    value: "public",
+    label: "Public",
+    description: "Anyone can find and view this community",
+  },
+  {
+    value: "unlisted",
+    label: "Unlisted",
+    description: "Only accessible via direct link",
+  },
+  {
+    value: "private",
+    label: "Private",
+    description: "Only members can see it exists",
+  },
+]
+
+// ── Join Policy: How people can join ───────────────────────────────────
+
+export type JoinPolicy = "open" | "approval" | "invite_only"
+
+export const JOIN_POLICY_OPTIONS: {
+  value: JoinPolicy
+  label: string
+  description: string
+}[] = [
+  {
+    value: "open",
+    label: "Open",
+    description: "Anyone can join instantly",
+  },
+  {
+    value: "approval",
+    label: "Approval Required",
+    description: "Members must request to join",
+  },
+  {
+    value: "invite_only",
+    label: "Invite Only",
+    description: "Only by invitation from admins",
+  },
+]
+
+// ── Category: What kind of community ───────────────────────────────────
 
 export type CommunityCategory =
   | "general"
@@ -18,13 +66,44 @@ export type CommunityCategory =
   | "business"
   | "social"
 
+export const COMMUNITY_CATEGORIES: { value: CommunityCategory; label: string }[] = [
+  { value: "general", label: "General" },
+  { value: "technology", label: "Technology" },
+  { value: "sports", label: "Sports" },
+  { value: "arts", label: "Arts" },
+  { value: "neighborhood", label: "Neighborhood" },
+  { value: "wellness", label: "Wellness" },
+  { value: "education", label: "Education" },
+  { value: "music", label: "Music" },
+  { value: "food", label: "Food" },
+  { value: "gaming", label: "Gaming" },
+  { value: "business", label: "Business" },
+  { value: "social", label: "Social" },
+]
+
+// ── Posting Policy ─────────────────────────────────────────────────────
+
 export type PostingPolicy = "everyone" | "admins_only" | "selected_users"
 
-export type JoinPolicy = "open" | "approval" | "invite_only"
+// ── Member Enums ───────────────────────────────────────────────────────
 
 export type MemberRole = "owner" | "admin" | "moderator" | "member"
 
 export type MemberStatus = "active" | "pending" | "banned" | "muted"
+
+export const MEMBER_ROLE_LABELS: Record<MemberRole, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  moderator: "Moderator",
+  member: "Member",
+}
+
+export const MEMBER_ROLE_HIERARCHY: Record<MemberRole, number> = {
+  owner: 4,
+  admin: 3,
+  moderator: 2,
+  member: 1,
+}
 
 // ── Core Records ───────────────────────────────────────────────────────
 
@@ -34,7 +113,6 @@ export interface Community {
   slug: string
   description: string | null
   category: CommunityCategory
-  type: CommunityType
   cover_image_url: string | null
   avatar_url: string | null
   location_name: string | null
@@ -43,8 +121,8 @@ export interface Community {
   member_count: number
   is_verified: boolean
   visibility: CommunityVisibility
-  posting_policy: PostingPolicy
   join_policy: JoinPolicy
+  posting_policy: PostingPolicy
   contact_email: string | null
   timezone: string
   created_by: string
@@ -97,10 +175,9 @@ export interface CreateCommunityInput {
   slug: string
   description: string
   category: CommunityCategory
-  type: CommunityType
   visibility: CommunityVisibility
-  posting_policy: PostingPolicy
   join_policy: JoinPolicy
+  posting_policy: PostingPolicy
   cover_image_url?: string | null
   avatar_url?: string | null
   location_name?: string | null
@@ -118,10 +195,9 @@ export interface UpdateCommunityInput {
   slug?: string
   description?: string
   category?: CommunityCategory
-  type?: CommunityType
   visibility?: CommunityVisibility
-  posting_policy?: PostingPolicy
   join_policy?: JoinPolicy
+  posting_policy?: PostingPolicy
   cover_image_url?: string | null
   avatar_url?: string | null
   location_name?: string | null
@@ -151,35 +227,4 @@ export interface CommunityFilters {
   category?: CommunityCategory | null
   cursor?: string | null
   limit?: number
-}
-
-// ── Constants ──────────────────────────────────────────────────────────
-
-export const COMMUNITY_CATEGORIES: { value: CommunityCategory; label: string }[] = [
-  { value: "general", label: "General" },
-  { value: "technology", label: "Technology" },
-  { value: "sports", label: "Sports" },
-  { value: "arts", label: "Arts" },
-  { value: "neighborhood", label: "Neighborhood" },
-  { value: "wellness", label: "Wellness" },
-  { value: "education", label: "Education" },
-  { value: "music", label: "Music" },
-  { value: "food", label: "Food" },
-  { value: "gaming", label: "Gaming" },
-  { value: "business", label: "Business" },
-  { value: "social", label: "Social" },
-]
-
-export const MEMBER_ROLE_LABELS: Record<MemberRole, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  moderator: "Moderator",
-  member: "Member",
-}
-
-export const MEMBER_ROLE_HIERARCHY: Record<MemberRole, number> = {
-  owner: 4,
-  admin: 3,
-  moderator: 2,
-  member: 1,
 }

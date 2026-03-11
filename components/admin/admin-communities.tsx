@@ -81,6 +81,7 @@ export function AdminCommunities({
     slug: "",
     description: "",
     visibility: "public",
+    join_policy: "open",
   })
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [createForm, setCreateForm] = useState({
@@ -88,6 +89,7 @@ export function AdminCommunities({
     slug: "",
     description: "",
     visibility: "public",
+    join_policy: "open",
   })
   const [createError, setCreateError] = useState("")
   const [offset, setOffset] = useState(0)
@@ -407,22 +409,43 @@ export function AdminCommunities({
                 rows={3}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Visibility</Label>
-              <Select
-                value={createForm.visibility}
-                onValueChange={(val) =>
-                  setCreateForm((f) => ({ ...f, visibility: val }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Visibility</Label>
+                <Select
+                  value={createForm.visibility}
+                  onValueChange={(val) =>
+                    setCreateForm((f) => ({ ...f, visibility: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="unlisted">Unlisted</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Join Policy</Label>
+                <Select
+                  value={createForm.join_policy || "open"}
+                  onValueChange={(val) =>
+                    setCreateForm((f) => ({ ...f, join_policy: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="approval">Approval Required</SelectItem>
+                    <SelectItem value="invite_only">Invite Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             {createError && (
               <p className="text-sm text-destructive">{createError}</p>
@@ -483,21 +506,39 @@ export function AdminCommunities({
                 rows={3}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Visibility</Label>
-              <Select
-                value={editForm.visibility}
-                onValueChange={(v) => setEditForm((f) => ({ ...f, visibility: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                  <SelectItem value="hidden">Hidden</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Visibility</Label>
+                <Select
+                  value={editForm.visibility}
+                  onValueChange={(v) => setEditForm((f) => ({ ...f, visibility: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="unlisted">Unlisted</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Join Policy</Label>
+                <Select
+                  value={editForm.join_policy || "open"}
+                  onValueChange={(v) => setEditForm((f) => ({ ...f, join_policy: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="approval">Approval Required</SelectItem>
+                    <SelectItem value="invite_only">Invite Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>

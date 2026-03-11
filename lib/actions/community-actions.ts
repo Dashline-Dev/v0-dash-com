@@ -174,11 +174,11 @@ export async function createCommunity(
     const rows = await sql(
       `
       INSERT INTO communities (
-        name, slug, description, category, type, visibility, posting_policy, join_policy,
+        name, slug, description, category, visibility, posting_policy, join_policy,
         cover_image_url, avatar_url, location_name, latitude, longitude,
         contact_email, timezone, created_by, member_count
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 1
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 1
       )
       RETURNING id
       `,
@@ -187,7 +187,6 @@ export async function createCommunity(
         input.slug,
         input.description,
         input.category,
-        input.type,
         input.visibility,
         input.posting_policy,
         input.join_policy,
