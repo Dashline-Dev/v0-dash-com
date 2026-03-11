@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -10,9 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Globe, Lock, Link2 } from "lucide-react"
+import { Globe, Lock, Link2, Loader2, LayoutGrid } from "lucide-react"
 import type { EventFormData } from "./create-wizard"
 import type { EventVisibility } from "@/types/event"
+import { getSpacesByCommunity } from "@/lib/actions/space-actions"
 
 interface StepSettingsProps {
   formData: EventFormData
@@ -47,12 +49,42 @@ const VISIBILITY_OPTIONS: {
 ]
 
 export function StepSettings({ formData, updateFormData, communities = [] }: StepSettingsProps) {
+  const [spaces, setSpaces] = useState<{ id: string; name: string; slug: string }[]>([])
+  const [loadingSpaces, setLoadingSpaces] = useState(false)
+
+  // Load spaces when community changes
+  useEffect(() => {
+    if (!formData.community_id) {
+      setSpaces([])
+      updateFormData({ space_id: "" })
+      return
+    }
+
+    const community = communities.find(c => c.id === formData.community_id)
+    if (!community) return
+
+    async function loadSpaces() {
+      setLoadingSpaces(true)
+      try {
+        const communitySpaces = await getSpacesByCommunity(community!.slug)
+        setSpaces(communitySpaces.map(s => ({ id: s.id, name: s.name, slug: s.slug })))
+      } catch (error) {
+        console.error("Failed to load spaces:", error)
+        setSpaces([])
+      } finally {
+        setLoadingSpaces(false)
+      }
+    }
+
+    loadSpaces()
+  }, [formData.community_id, communities])
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-1">Settings</h2>
         <p className="text-sm text-muted-foreground">
-          Configure who can see your event and optional limits.
+          Configure who can see your event and where to post it.
         </p>
       </div>
 
@@ -108,27 +140,74 @@ export function StepSettings({ formData, updateFormData, communities = [] }: Ste
         </div>
 
         {communities.length > 0 && (
-          <div className="space-y-2">
-            <Label htmlFor="community">Post to Community (optional)</Label>
-            <Select
-              value={formData.community_id || "none"}
-              onValueChange={(val) => updateFormData({ community_id: val === "none" ? "" : val })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="No community - personal event" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No community - personal event</SelectItem>
-                {communities.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Optionally share this event with a community you are a member of
-            </p>
+          <div className="space-y-4 p-4 rounded-lg bg-muted/30 border border-border">
+            <div className="space-y-2">
+              <Label htmlFor="community">Post to Community (optional)</Label>
+              <Select
+                value={formData.community_id || "none"}
+                onValueChange={(val) => {
+                  updateFormData({ 
+                    community_id: val === "none" ? "" : val,
+                    space_id: "" // Reset space when community changes
+                  })
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="No community - personal event" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No community - personal event</SelectItem>
+                  {communities.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Share this event with a community you are a member of
+              </p>
+            </div>
+
+            {/* Space selection - only show when community is selected */}
+            {formData.community_id && (
+              <div className="space-y-2">
+                <Label htmlFor="space" className="flex items-center gap-2">
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  Post to Space (optional)
+                </Label>
+                {loadingSpaces ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading spaces...
+                  </div>
+                ) : spaces.length > 0 ? (
+                  <Select
+                    value={formData.space_id || "none"}
+                    onValueChange={(val) => updateFormData({ space_id: val === "none" ? "" : val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="No specific space" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No specific space - community feed</SelectItem>
+                      {spaces.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-xs text-muted-foreground py-2">
+                    No spaces available in this community
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Post this event to a specific space within the community
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
