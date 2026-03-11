@@ -13,6 +13,13 @@ export interface PlaceResult {
   lng?: number
 }
 
+interface Suggestion {
+  placeId: string
+  mainText: string
+  secondaryText: string
+  description: string
+}
+
 interface PlacesAutocompleteProps {
   value: string
   onChange: (value: string) => void
@@ -21,7 +28,7 @@ interface PlacesAutocompleteProps {
   disabled?: boolean
   className?: string
   id?: string
-  types?: string[] // e.g., ['address'], ['establishment'], ['geocode']
+  types?: string[]
 }
 
 export function PlacesAutocomplete({
@@ -34,55 +41,59 @@ export function PlacesAutocomplete({
   id,
   types = ["address"],
 }: PlacesAutocompleteProps) {
-  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([])
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
-  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
-  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
   const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
 
-  // Initialize Google services
+  // Initialize session token
   useEffect(() => {
-    if (typeof google !== "undefined" && google.maps && google.maps.places) {
-      autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
-      // Create a dummy div for PlacesService (required but we won't render it)
-      const dummyDiv = document.createElement("div")
-      placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
+    if (typeof google !== "undefined" && google.maps?.places) {
       sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken()
     }
   }, [])
 
   const fetchSuggestions = useCallback(
     async (input: string) => {
-      if (!input || input.length < 2 || !autocompleteServiceRef.current) {
+      if (!input || input.length < 2) {
         setSuggestions([])
+        return
+      }
+
+      if (typeof google === "undefined" || !google.maps?.places) {
         return
       }
 
       setIsLoading(true)
       try {
-        const request: google.maps.places.AutocompletionRequest = {
+        // Use the new AutocompleteSuggestion API
+        const { suggestions: results } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input,
           sessionToken: sessionTokenRef.current || undefined,
-          types,
-        }
+          includedPrimaryTypes: types.includes("establishment") 
+            ? ["establishment", "street_address", "premise"] 
+            : ["street_address", "premise", "subpremise"],
+        })
 
-        autocompleteServiceRef.current.getPlacePredictions(
-          request,
-          (predictions, status) => {
-            setIsLoading(false)
-            if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-              setSuggestions(predictions)
-              setIsOpen(true)
-            } else {
-              setSuggestions([])
-            }
-          }
-        )
-      } catch {
+        const formatted: Suggestion[] = results
+          .filter((s): s is google.maps.places.PlacePrediction & { placePrediction: NonNullable<google.maps.places.PlacePrediction["placePrediction"]> } => 
+            s.placePrediction != null
+          )
+          .map((s) => ({
+            placeId: s.placePrediction.placeId || "",
+            mainText: s.placePrediction.mainText?.text || "",
+            secondaryText: s.placePrediction.secondaryText?.text || "",
+            description: s.placePrediction.text?.text || "",
+          }))
+
+        setSuggestions(formatted)
+        setIsOpen(formatted.length > 0)
+        setIsLoading(false)
+      } catch (error) {
+        console.error("Places autocomplete error:", error)
         setIsLoading(false)
         setSuggestions([])
       }
@@ -99,35 +110,41 @@ export function PlacesAutocomplete({
   }, [value, fetchSuggestions])
 
   const selectPlace = useCallback(
-    (prediction: google.maps.places.AutocompletePrediction) => {
-      onChange(prediction.description)
+    async (suggestion: Suggestion) => {
+      onChange(suggestion.description)
       setSuggestions([])
       setIsOpen(false)
       setActiveIndex(-1)
 
-      // Get place details for coordinates
-      if (placesServiceRef.current && onPlaceSelect) {
-        placesServiceRef.current.getDetails(
-          {
-            placeId: prediction.place_id,
-            fields: ["formatted_address", "geometry", "name"],
-            sessionToken: sessionTokenRef.current || undefined,
-          },
-          (place, status) => {
-            // Reset session token after place selection
-            sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken()
+      if (!onPlaceSelect || !suggestion.placeId) return
 
-            if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-              onPlaceSelect({
-                placeId: prediction.place_id,
-                name: place.name || prediction.structured_formatting?.main_text || "",
-                formattedAddress: place.formatted_address || prediction.description,
-                lat: place.geometry?.location?.lat(),
-                lng: place.geometry?.location?.lng(),
-              })
-            }
-          }
-        )
+      try {
+        // Use the new Place class to fetch details
+        const { Place } = google.maps.places
+        const place = new Place({ id: suggestion.placeId })
+        
+        await place.fetchFields({
+          fields: ["displayName", "formattedAddress", "location"],
+        })
+
+        // Reset session token after place selection
+        sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken()
+
+        onPlaceSelect({
+          placeId: suggestion.placeId,
+          name: place.displayName || suggestion.mainText,
+          formattedAddress: place.formattedAddress || suggestion.description,
+          lat: place.location?.lat(),
+          lng: place.location?.lng(),
+        })
+      } catch (error) {
+        console.error("Place details error:", error)
+        // Still call onPlaceSelect with available data
+        onPlaceSelect({
+          placeId: suggestion.placeId,
+          name: suggestion.mainText,
+          formattedAddress: suggestion.description,
+        })
       }
     },
     [onChange, onPlaceSelect]
@@ -182,7 +199,7 @@ export function PlacesAutocomplete({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const isGoogleLoaded = typeof google !== "undefined" && google.maps && google.maps.places
+  const isGoogleLoaded = typeof google !== "undefined" && google.maps?.places
 
   return (
     <div className="relative">
@@ -213,7 +230,7 @@ export function PlacesAutocomplete({
         >
           {suggestions.map((suggestion, index) => (
             <li
-              key={suggestion.place_id}
+              key={suggestion.placeId}
               role="option"
               aria-selected={index === activeIndex}
               className={cn(
@@ -229,11 +246,11 @@ export function PlacesAutocomplete({
                 <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
                 <div className="min-w-0">
                   <div className="font-medium truncate">
-                    {suggestion.structured_formatting?.main_text || suggestion.description}
+                    {suggestion.mainText}
                   </div>
-                  {suggestion.structured_formatting?.secondary_text && (
+                  {suggestion.secondaryText && (
                     <div className="text-xs text-muted-foreground truncate">
-                      {suggestion.structured_formatting.secondary_text}
+                      {suggestion.secondaryText}
                     </div>
                   )}
                 </div>
