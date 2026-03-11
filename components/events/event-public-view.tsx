@@ -7,20 +7,18 @@ import {
   Video,
   Users,
   Globe,
-  ArrowLeft,
   Share2,
   Monitor,
+  LogIn,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { RsvpButton } from "./rsvp-button"
-import { EventShareDialog } from "./event-share-dialog"
+import { Card, CardContent } from "@/components/ui/card"
 import type { EventWithMeta } from "@/types/event"
 import {
   EVENT_TYPE_LABELS,
-  formatEventDateRange,
   formatEventDate,
   formatEventTime,
   isEventPast,
@@ -29,10 +27,8 @@ import {
 } from "@/types/event"
 import { toHebrewDate } from "@/lib/hebrew-date"
 
-interface EventDetailProps {
+interface EventPublicViewProps {
   event: EventWithMeta
-  rsvps?: { id: string; user_id: string; status: string }[]
-  communities?: { id: string; name: string; slug: string }[]
 }
 
 const TYPE_ICON: Record<string, React.ElementType> = {
@@ -41,43 +37,22 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   hybrid: Video,
 }
 
-export function EventDetail({ event, rsvps, communities = [] }: EventDetailProps) {
+export function EventPublicView({ event }: EventPublicViewProps) {
   const past = isEventPast(event.end_time)
   const full = isEventFull(event)
   const capacityText = getEventCapacityText(event)
   const TypeIcon = TYPE_ICON[event.event_type] ?? Calendar
 
-
+  function handleShare() {
+    try {
+      navigator.clipboard.writeText(window.location.href)
+    } catch {
+      // Clipboard not available
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Back link */}
-      <div>
-        {event.community_slug ? (
-          <Link
-            href={`/communities/${event.community_slug}`}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {event.community_name}
-            {event.space_name && (
-              <>
-                <span className="text-border">/</span>
-                {event.space_name}
-              </>
-            )}
-          </Link>
-        ) : (
-          <Link
-            href="/events"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            All Events
-          </Link>
-        )}
-      </div>
-
       {/* Cover image */}
       {event.cover_image_url && (
         <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden bg-secondary">
@@ -94,10 +69,7 @@ export function EventDetail({ event, rsvps, communities = [] }: EventDetailProps
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <Badge
-                variant="secondary"
-                className="text-xs"
-              >
+              <Badge variant="secondary" className="text-xs">
                 <TypeIcon className="w-3 h-3 mr-1" />
                 {EVENT_TYPE_LABELS[event.event_type]}
               </Badge>
@@ -113,36 +85,39 @@ export function EventDetail({ event, rsvps, communities = [] }: EventDetailProps
             </h1>
           </div>
 
-          <EventShareDialog
-            eventId={event.id}
-            eventSlug={event.slug}
-            currentCommunityId={event.community_id}
-            communities={communities}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleShare}
+            className="text-muted-foreground shrink-0"
+            aria-label="Share event"
           >
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground shrink-0"
-              aria-label="Share event"
-            >
-              <Share2 className="w-4 h-4" />
-            </Button>
-          </EventShareDialog>
+            <Share2 className="w-4 h-4" />
+          </Button>
         </div>
 
-        {/* RSVP */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <RsvpButton
-            eventId={event.id}
-            currentStatus={event.current_user_rsvp}
-            isFull={full}
-            isPast={past}
-          />
-          <span className="text-sm text-muted-foreground flex items-center gap-1">
-            <Users className="w-3.5 h-3.5" />
-            {event.rsvp_count} going
-          </span>
-        </div>
+        {/* Sign in prompt for RSVP */}
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="font-medium text-foreground">Want to attend?</p>
+              <p className="text-sm text-muted-foreground">
+                Sign in to RSVP and get event updates
+              </p>
+            </div>
+            <Button asChild>
+              <Link href="/sign-in">
+                <LogIn className="w-4 h-4 mr-2" />
+                Sign In to RSVP
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <span className="text-sm text-muted-foreground flex items-center gap-1">
+          <Users className="w-3.5 h-3.5" />
+          {event.rsvp_count} going
+        </span>
       </div>
 
       <Separator />
@@ -159,11 +134,6 @@ export function EventDetail({ event, rsvps, communities = [] }: EventDetailProps
               </p>
             </div>
           )}
-
-          {/* Extension point: Announcements */}
-          {/* TODO: Wire in when Announcements module is built
-          <AnnouncementsFeed eventId={event.id} />
-          */}
         </div>
 
         {/* Right: info sidebar */}
@@ -220,15 +190,10 @@ export function EventDetail({ event, rsvps, communities = [] }: EventDetailProps
                 <div className="flex items-start gap-3">
                   <Video className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <div className="text-sm">
-                    <p className="font-medium text-foreground">Online</p>
-                    <a
-                      href={event.virtual_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary text-xs hover:underline break-all"
-                    >
-                      Join link
-                    </a>
+                    <p className="font-medium text-foreground">Online Event</p>
+                    <p className="text-muted-foreground text-xs">
+                      Sign in to access the link
+                    </p>
                   </div>
                 </div>
               )}
@@ -274,11 +239,6 @@ export function EventDetail({ event, rsvps, communities = [] }: EventDetailProps
               >
                 {event.community_name}
               </Link>
-              {event.space_name && (
-                <p className="text-xs text-muted-foreground">
-                  in {event.space_name}
-                </p>
-              )}
             </div>
           )}
         </div>

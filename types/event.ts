@@ -31,9 +31,17 @@ export const EVENT_TYPES: { value: EventType; label: string }[] = [
 
 // ── Core interfaces ─────────────────────────────────────────
 
+export type EventVisibility = "public" | "private" | "unlisted"
+
+export const EVENT_VISIBILITY_LABELS: Record<EventVisibility, string> = {
+  public: "Public",
+  private: "Private",
+  unlisted: "Unlisted (link only)",
+}
+
 export interface Event {
   id: string
-  community_id: string
+  community_id: string | null
   space_id: string | null
   title: string
   slug: string
@@ -41,6 +49,7 @@ export interface Event {
   cover_image_url: string | null
   event_type: EventType
   status: EventStatus
+  visibility: EventVisibility
   start_time: string
   end_time: string
   timezone: string
@@ -51,17 +60,20 @@ export interface Event {
   virtual_link: string | null
   max_attendees: number | null
   rsvp_count: number
+  organizer_id: string | null
   created_by: string
   created_at: string
   updated_at: string
 }
 
 export interface EventWithMeta extends Event {
-  community_name: string
-  community_slug: string
+  community_name: string | null
+  community_slug: string | null
   space_name: string | null
   space_slug: string | null
   current_user_rsvp: RsvpStatus | null
+  organizer_name: string | null
+  organizer_avatar: string | null
 }
 
 export interface EventRsvp {
@@ -75,12 +87,13 @@ export interface EventRsvp {
 // ── Form data ───────────────────────────────────────────────
 
 export interface CreateEventData {
-  community_id: string
-  space_id?: string
+  community_id?: string | null
+  space_id?: string | null
   title: string
   description?: string
   cover_image_url?: string
   event_type: EventType
+  visibility?: EventVisibility
   start_time: string
   end_time: string
   timezone: string

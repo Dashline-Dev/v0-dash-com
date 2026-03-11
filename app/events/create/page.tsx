@@ -1,35 +1,41 @@
-import { redirect } from "next/navigation"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
-import { getCommunities } from "@/lib/actions/community-actions"
-import { EventCreatePicker } from "@/components/events/event-create-picker"
+import { getUserCommunities } from "@/lib/actions/user-actions"
+import { CreateEventWizard } from "@/components/events/create/create-wizard"
+import { Card } from "@/components/ui/card"
 
 export const metadata = {
   title: "Create Event | Dash",
-  description: "Create a new event for your community.",
+  description: "Create a new event - share it publicly or with your communities.",
 }
 
 export default async function CreateEventPage() {
   const user = await getAuthenticatedUser()
   if (!user) return <AuthRequiredModal />
 
-  const result = await getCommunities({ limit: 50 })
-  const communities = result.data ?? []
-
-  if (communities.length === 0) {
-    redirect("/communities/create")
+  // Get communities the user is a member of
+  let communities: { id: string; name: string; slug: string }[] = []
+  try {
+    const memberships = await getUserCommunities(user.id)
+    communities = memberships.map((m) => ({
+      id: m.community_id as string,
+      name: m.community_name as string,
+      slug: m.community_slug as string,
+    }))
+  } catch {
+    // User may not be in any communities - that's fine
   }
 
   return (
     <div className="max-w-2xl mx-auto px-4 md:px-6 py-6 md:py-8">
-      <div className="mb-6">
+      <Card className="p-6 mb-6">
         <h1 className="text-2xl font-bold text-foreground">Create Event</h1>
         <p className="text-muted-foreground mt-1">
-          Choose a community, then fill in the details.
+          Plan a gathering, celebration, or meetup. Share it with anyone via link or post to your communities.
         </p>
-      </div>
+      </Card>
 
-      <EventCreatePicker communities={communities} />
+      <CreateEventWizard communities={communities} />
     </div>
   )
 }
