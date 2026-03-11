@@ -19,6 +19,8 @@ import {
   ArrowRight,
   Calendar,
   Star,
+  Map as MapIcon,
+  List,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -33,11 +35,13 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { globalSearch } from "@/lib/actions/search-actions"
-import type { SearchResult, SearchResultType } from "@/types/search"
+import { globalSearch, getExploreMapMarkers } from "@/lib/actions/search-actions"
+import type { SearchResult, SearchResultType, ExploreMapMarker } from "@/types/search"
 import type { TrendingItem } from "@/types/search"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { AreaMap, type MapCommunity, type MapEvent } from "@/components/google-area-map"
+import { GoogleMapsProvider } from "@/components/maps/google-maps-provider"
 
 const TYPE_FILTERS: { value: SearchResultType | "all"; label: string; icon: React.ElementType }[] = [
   { value: "all", label: "All", icon: Sparkles },
@@ -81,6 +85,31 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [viewMode, setViewMode] = useState<"list" | "map">("list")
+  const [mapMarkers, setMapMarkers] = useState<ExploreMapMarker[]>([])
+  const [loadingMarkers, setLoadingMarkers] = useState(false)
+
+  // Load map markers when view mode changes to map or type filter changes
+  useEffect(() => {
+    if (viewMode !== "map") return
+
+    const loadMarkers = async () => {
+      setLoadingMarkers(true)
+      try {
+        const markers = await getExploreMapMarkers({
+          type: typeFilter === "all" ? "all" : typeFilter,
+        })
+        setMapMarkers(markers)
+      } catch (error) {
+        console.error("Failed to load map markers:", error)
+        setMapMarkers([])
+      } finally {
+        setLoadingMarkers(false)
+      }
+    }
+
+    loadMarkers()
+  }, [viewMode, typeFilter])
 
   // Debounced search
   useEffect(() => {
@@ -126,6 +155,37 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
 
   const isSearching = query.trim().length >= 2
   const showResults = isSearching && (loading || results.length > 0 || hasSearched)
+
+  // Convert markers for AreaMap component
+  const communityMarkers: MapCommunity[] = useMemo(
+    () =>
+      mapMarkers
+        .filter((m) => m.type === "community")
+        .map((m) => ({
+          id: m.id,
+          name: m.title,
+          slug: m.href.replace("/communities/", ""),
+          lat: m.latitude,
+          lng: m.longitude,
+          member_count: 0,
+        })),
+    [mapMarkers]
+  )
+
+  const eventMarkers: MapEvent[] = useMemo(
+    () =>
+      mapMarkers
+        .filter((m) => m.type === "event")
+        .map((m) => ({
+          id: m.id,
+          title: m.title,
+          slug: m.href.replace("/events/", ""),
+          lat: m.latitude,
+          lng: m.longitude,
+          start_time: new Date().toISOString(),
+        })),
+    [mapMarkers]
+  )
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background">
@@ -212,14 +272,89 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
                 </DropdownMenu>
               </div>
             )}
+
+            {/* View toggle */}
+            <div className="flex items-center justify-center gap-1 mt-4">
+              <div className="inline-flex rounded-lg border border-border p-1 bg-muted/30">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                    viewMode === "list"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <List className="w-4 h-4" />
+                  List
+                </button>
+                <button
+                  onClick={() => setViewMode("map")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                    viewMode === "map"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <MapIcon className="w-4 h-4" />
+                  Map
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Content area */}
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
+        {/* Map View */}
+        {viewMode === "map" && (
+          <div className="mb-8">
+            <GoogleMapsProvider>
+              {loadingMarkers ? (
+                <div className="h-[500px] rounded-xl border border-border bg-muted/30 flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : mapMarkers.length === 0 ? (
+                <div className="h-[500px] rounded-xl border border-border bg-muted/30 flex flex-col items-center justify-center">
+                  <MapPin className="w-12 h-12 text-muted-foreground/30 mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-1">No locations found</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Try a different filter to see locations on the map
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <AreaMap
+                    communities={communityMarkers}
+                    events={eventMarkers}
+                    height="500px"
+                    zoom={10}
+                    className="shadow-lg"
+                  />
+                  <div className="flex items-center justify-center gap-6 mt-3 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                        <Users className="w-3 h-3 text-primary-foreground" />
+                      </div>
+                      <span>Communities ({communityMarkers.length})</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
+                        <CalendarDays className="w-3 h-3 text-white" />
+                      </div>
+                      <span>Events ({eventMarkers.length})</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </GoogleMapsProvider>
+          </div>
+        )}
+
         {/* Search results */}
-        {showResults && (
+        {viewMode === "list" && showResults && (
           <div className="mb-8">
             {loading ? (
               <div className="flex items-center justify-center py-16">
@@ -252,7 +387,7 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
         )}
 
         {/* Default view - Trending & Featured */}
-        {!showResults && (
+        {viewMode === "list" && !showResults && (
           <div className="space-y-10">
             {/* Quick actions */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
