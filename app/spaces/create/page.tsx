@@ -1,6 +1,6 @@
 import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getAuthenticatedUser } from "@/lib/mock-user"
-import { CreateSpaceForm } from "@/components/spaces/create-space-form"
+import { CreateWizard } from "@/components/spaces/create/create-wizard"
 
 export const metadata = {
   title: "Create Space | Dash",
@@ -19,11 +19,13 @@ export default async function CreateSpacePage() {
             Create a Space
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Set up a new space for discussions and content
+            Set up a new space in a few simple steps
           </p>
         </div>
 
-        <CreateSpaceForm />
+        <div className="rounded-xl border border-border bg-card p-5 md:p-6">
+          <CreateWizard />
+        </div>
       </div>
     </div>
   )

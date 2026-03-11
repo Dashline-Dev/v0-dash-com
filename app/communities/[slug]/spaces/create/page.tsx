@@ -5,7 +5,7 @@ import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { neon } from "@neondatabase/serverless"
-import { CreateSpaceForm } from "@/components/spaces/create-space-form"
+import { CreateWizard } from "@/components/spaces/create/create-wizard"
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -45,11 +45,17 @@ export default async function CreateCommunitySpacePage({ params }: CreateCommuni
             Create a Space
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Add a new space to {community[0].name}
+            Set up a new space in a few simple steps
           </p>
         </div>
 
-        <CreateSpaceForm communityId={community[0].id} communitySlug={community[0].slug} />
+        <div className="rounded-xl border border-border bg-card p-5 md:p-6">
+          <CreateWizard
+            communityId={community[0].id}
+            communitySlug={community[0].slug}
+            communityName={community[0].name}
+          />
+        </div>
       </div>
     </div>
   )
