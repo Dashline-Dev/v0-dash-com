@@ -9,7 +9,6 @@ import {
   CalendarDays,
   MapPin,
   LayoutGrid,
-  Filter,
   TrendingUp,
   Loader2,
   X,
@@ -18,7 +17,6 @@ import {
   Sparkles,
   ArrowRight,
   Calendar,
-  Star,
   Map as MapIcon,
   List,
 } from "lucide-react"
@@ -389,38 +387,6 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
         {/* Default view - Trending & Featured */}
         {viewMode === "list" && !showResults && (
           <div className="space-y-10">
-            {/* Quick actions */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <QuickActionCard
-                icon={Users}
-                title="Browse Communities"
-                subtitle="Find your people"
-                href="/communities"
-                color="blue"
-              />
-              <QuickActionCard
-                icon={CalendarDays}
-                title="Upcoming Events"
-                subtitle="What's happening"
-                href="/events"
-                color="orange"
-              />
-              <QuickActionCard
-                icon={MapPin}
-                title="Explore Areas"
-                subtitle="By location"
-                href="/areas"
-                color="emerald"
-              />
-              <QuickActionCard
-                icon={Star}
-                title="Featured"
-                subtitle="Editor's picks"
-                href="/featured"
-                color="amber"
-              />
-            </div>
-
             {/* Trending Communities */}
             {trendingCommunities.length > 0 && (
               <section>
@@ -469,77 +435,10 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
               </section>
             )}
 
-            {/* Categories */}
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-4">
-                Browse by Category
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {[
-                  "Torah Study",
-                  "Shabbat",
-                  "Women's",
-                  "Young Professionals",
-                  "Families",
-                  "Seniors",
-                  "Singles",
-                  "Teens",
-                  "Chesed",
-                  "Prayer",
-                  "Social",
-                  "Learning",
-                ].map((category) => (
-                  <Link
-                    key={category}
-                    href={`/explore?category=${encodeURIComponent(category.toLowerCase())}`}
-                    className="flex items-center justify-center px-4 py-3 rounded-lg border border-border bg-card hover:bg-muted/50 hover:border-primary/30 transition-all text-sm font-medium text-foreground"
-                  >
-                    {category}
-                  </Link>
-                ))}
-              </div>
-            </section>
           </div>
         )}
       </div>
     </div>
-  )
-}
-
-// ── Quick Action Card ────────────────────────────────────────
-
-function QuickActionCard({
-  icon: Icon,
-  title,
-  subtitle,
-  href,
-  color,
-}: {
-  icon: React.ElementType
-  title: string
-  subtitle: string
-  href: string
-  color: "blue" | "orange" | "emerald" | "amber"
-}) {
-  const colorClasses = {
-    blue: "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900",
-    orange: "bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-900",
-    emerald: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900",
-    amber: "bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900",
-  }
-
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "flex flex-col items-center justify-center p-4 md:p-5 rounded-xl border-2 transition-all hover:scale-[1.02] hover:shadow-md",
-        colorClasses[color]
-      )}
-    >
-      <Icon className="w-6 h-6 md:w-7 md:h-7 mb-2" />
-      <span className="font-semibold text-sm text-foreground">{title}</span>
-      <span className="text-xs text-muted-foreground">{subtitle}</span>
-    </Link>
   )
 }
 
