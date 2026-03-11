@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default async function AreasPage() {
   const [user, { areas, total }] = await Promise.all([
     getAuthenticatedUser(),
-    getAreas({ type: "city", limit: 12 }),
+    getAreas({ limit: 20 }),
   ])
 
   const content = (

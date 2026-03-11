@@ -151,6 +151,41 @@ export async function toggleSuperAdmin(
   }
 }
 
+export async function adminCreateUser(
+  data: { email: string; display_name: string; password: string }
+): Promise<{ ok: boolean; error?: string; id?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    // Hash password
+    const bcrypt = await import("bcryptjs")
+    const passwordHash = await bcrypt.hash(data.password, 12)
+
+    const rows = await sql(
+      `INSERT INTO auth_users (email, display_name, password_hash)
+       VALUES ($1, $2, $3)
+       RETURNING id`,
+      [data.email, data.display_name, passwordHash]
+    )
+
+    await logAuditEvent({
+      actorId: admin.id,
+      targetUserId: rows[0].id as string,
+      action: "user_created_by_admin",
+      details: { email: data.email, display_name: data.display_name },
+    })
+
+    revalidatePath("/admin")
+    return { ok: true, id: rows[0].id as string }
+  } catch (e: unknown) {
+    console.error("adminCreateUser error:", e)
+    if ((e as { code?: string }).code === "23505") {
+      return { ok: false, error: "A user with this email already exists." }
+    }
+    return { ok: false, error: "Something went wrong." }
+  }
+}
+
 export async function adminUpdateUser(
   userId: string,
   data: { display_name?: string; email?: string }
@@ -316,6 +351,44 @@ export async function toggleCommunityVerified(
   }
 }
 
+export async function adminCreateCommunity(
+  data: { name: string; slug: string; description?: string; visibility?: string }
+): Promise<{ ok: boolean; error?: string; id?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    const rows = await sql(
+      `INSERT INTO communities (name, slug, description, visibility, owner_id)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
+      [
+        data.name,
+        data.slug,
+        data.description || null,
+        data.visibility || "public",
+        admin.id,
+      ]
+    )
+
+    await logAuditEvent({
+      actorId: admin.id,
+      communityId: rows[0].id as string,
+      action: "community_created_by_admin",
+      details: { name: data.name, slug: data.slug },
+    })
+
+    revalidatePath("/admin")
+    revalidatePath("/communities")
+    return { ok: true, id: rows[0].id as string }
+  } catch (e: unknown) {
+    console.error("adminCreateCommunity error:", e)
+    if ((e as { code?: string }).code === "23505") {
+      return { ok: false, error: "A community with this slug already exists." }
+    }
+    return { ok: false, error: "Something went wrong." }
+  }
+}
+
 export async function adminUpdateCommunity(
   communityId: string,
   data: { name?: string; slug?: string; description?: string; visibility?: string }
@@ -456,6 +529,51 @@ export async function getAllAreas(params: {
   return {
     areas: rows as AdminArea[],
     total: Number(countRows[0]?.count ?? 0),
+  }
+}
+
+export async function adminCreateArea(
+  data: {
+    name: string
+    slug: string
+    type: string
+    description?: string
+    latitude: number
+    longitude: number
+  }
+): Promise<{ ok: boolean; error?: string; id?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    const rows = await sql(
+      `INSERT INTO areas (name, slug, type, description, latitude, longitude, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'active')
+       RETURNING id`,
+      [
+        data.name,
+        data.slug,
+        data.type,
+        data.description || null,
+        data.latitude,
+        data.longitude,
+      ]
+    )
+
+    await logAuditEvent({
+      actorId: admin.id,
+      action: "area_created_by_admin",
+      details: { name: data.name, slug: data.slug, type: data.type },
+    })
+
+    revalidatePath("/admin")
+    revalidatePath("/areas")
+    return { ok: true, id: rows[0].id as string }
+  } catch (e: unknown) {
+    console.error("adminCreateArea error:", e)
+    if ((e as { code?: string }).code === "23505") {
+      return { ok: false, error: "An area with this slug already exists." }
+    }
+    return { ok: false, error: "Something went wrong." }
   }
 }
 
@@ -600,6 +718,52 @@ export async function getAllEvents(params: {
   }
 }
 
+export async function adminCreateEvent(
+  data: {
+    title: string
+    slug: string
+    communityId: string
+    event_type?: string
+    start_time: string
+    end_time: string
+  }
+): Promise<{ ok: boolean; error?: string; id?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    const rows = await sql(
+      `INSERT INTO events (title, slug, community_id, event_type, start_time, end_time, status, organizer_id)
+       VALUES ($1, $2, $3, $4, $5, $6, 'draft', $7)
+       RETURNING id`,
+      [
+        data.title,
+        data.slug,
+        data.communityId,
+        data.event_type || "in_person",
+        data.start_time,
+        data.end_time,
+        admin.id,
+      ]
+    )
+
+    await logAuditEvent({
+      actorId: admin.id,
+      action: "event_created_by_admin",
+      details: { title: data.title, slug: data.slug },
+    })
+
+    revalidatePath("/admin")
+    revalidatePath("/events")
+    return { ok: true, id: rows[0].id as string }
+  } catch (e: unknown) {
+    console.error("adminCreateEvent error:", e)
+    if ((e as { code?: string }).code === "23505") {
+      return { ok: false, error: "An event with this slug already exists." }
+    }
+    return { ok: false, error: "Something went wrong." }
+  }
+}
+
 export async function adminUpdateEvent(
   eventId: string,
   data: { title?: string; slug?: string; status?: string; event_type?: string }
@@ -734,6 +898,48 @@ export async function getAllSpaces(params: {
   return {
     spaces: rows as AdminSpace[],
     total: Number(countRows[0]?.count ?? 0),
+  }
+}
+
+export async function adminCreateSpace(
+  data: {
+    name: string
+    slug: string
+    communityId: string
+    type?: string
+    visibility?: string
+  }
+): Promise<{ ok: boolean; error?: string; id?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    const rows = await sql(
+      `INSERT INTO spaces (name, slug, community_id, type, visibility, status)
+       VALUES ($1, $2, $3, $4, $5, 'active')
+       RETURNING id`,
+      [
+        data.name,
+        data.slug,
+        data.communityId,
+        data.type || "general",
+        data.visibility || "public",
+      ]
+    )
+
+    await logAuditEvent({
+      actorId: admin.id,
+      action: "space_created_by_admin",
+      details: { name: data.name, slug: data.slug },
+    })
+
+    revalidatePath("/admin")
+    return { ok: true, id: rows[0].id as string }
+  } catch (e: unknown) {
+    console.error("adminCreateSpace error:", e)
+    if ((e as { code?: string }).code === "23505") {
+      return { ok: false, error: "A space with this slug already exists." }
+    }
+    return { ok: false, error: "Something went wrong." }
   }
 }
 

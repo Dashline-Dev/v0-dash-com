@@ -12,6 +12,7 @@ import {
   Eye,
   EyeOff,
   Pencil,
+  Plus,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -53,6 +54,8 @@ import {
   getAllSpaces,
   adminDeleteSpace,
   adminUpdateSpace,
+  adminCreateSpace,
+  getAllCommunities,
   type AdminSpace,
 } from "@/lib/actions/admin-actions"
 
@@ -75,6 +78,16 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
     type: "general",
     visibility: "public",
   })
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    slug: "",
+    communityId: "",
+    type: "general",
+    visibility: "public",
+  })
+  const [createError, setCreateError] = useState("")
+  const [communities, setCommunities] = useState<{ id: string; name: string }[]>([])
   const [offset, setOffset] = useState(0)
   const limit = 50
 
@@ -145,10 +158,60 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
         )
       )
     }
-    setEditTarget(null)
-    setActionLoading(null)
+  setEditTarget(null)
+  setActionLoading(null)
   }
 
+  const openCreateDialog = async () => {
+    try {
+      const result = await getAllCommunities({ limit: 100 })
+      setCommunities(result.communities.map((c) => ({ id: c.id, name: c.name })))
+    } catch {
+      // ignore
+    }
+    setShowCreateDialog(true)
+  }
+
+  const handleCreateSpace = async () => {
+    if (!createForm.name || !createForm.slug || !createForm.communityId) {
+      setCreateError("Name, slug, and community are required")
+      return
+    }
+    setActionLoading("create")
+    setCreateError("")
+    const result = await adminCreateSpace({
+      name: createForm.name,
+      slug: createForm.slug,
+      communityId: createForm.communityId,
+      type: createForm.type,
+      visibility: createForm.visibility,
+    })
+    if (result.ok && result.id) {
+      const community = communities.find((c) => c.id === createForm.communityId)
+      setSpaces((prev) => [
+        {
+          id: result.id!,
+          name: createForm.name,
+          slug: createForm.slug,
+          type: createForm.type,
+          visibility: createForm.visibility,
+          status: "active",
+          community_name: community?.name || null,
+          community_slug: null,
+          member_count: 0,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ])
+      setTotal((prev) => prev + 1)
+      setShowCreateDialog(false)
+      setCreateForm({ name: "", slug: "", communityId: "", type: "general", visibility: "public" })
+    } else {
+      setCreateError(result.error || "Failed to create space")
+    }
+    setActionLoading(null)
+  }
+  
   const typeColor: Record<string, string> = {
     general: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
     events: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
@@ -159,21 +222,27 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <form onSubmit={handleSearch} className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search spaces..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Button type="submit" variant="secondary" size="sm" disabled={searching}>
-          {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
-        </Button>
-      </form>
+  <div className="space-y-4">
+  <div className="flex items-center justify-between gap-4">
+  <form onSubmit={handleSearch} className="flex items-center gap-2 flex-1">
+  <div className="relative flex-1 max-w-sm">
+  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+  <Input
+  placeholder="Search spaces..."
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  className="pl-9"
+  />
+  </div>
+  <Button type="submit" variant="secondary" size="sm" disabled={searching}>
+  {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
+  </Button>
+  </form>
+  <Button size="sm" onClick={openCreateDialog}>
+  <Plus className="w-4 h-4 mr-1.5" />
+  Add Space
+  </Button>
+  </div>
 
       <p className="text-xs text-muted-foreground">
         {total} space{total !== 1 ? "s" : ""} total
@@ -291,6 +360,119 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
           </Button>
         </div>
       )}
+
+      {/* Create Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Space</DialogTitle>
+            <DialogDescription>
+              Add a new space to a community
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="create-name">Name</Label>
+              <Input
+                id="create-name"
+                value={createForm.name}
+                onChange={(e) => {
+                  const name = e.target.value
+                  setCreateForm((f) => ({
+                    ...f,
+                    name,
+                    slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+                  }))
+                }}
+                placeholder="General Discussion"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-slug">Slug</Label>
+              <Input
+                id="create-slug"
+                value={createForm.slug}
+                onChange={(e) =>
+                  setCreateForm((f) => ({ ...f, slug: e.target.value }))
+                }
+                placeholder="general-discussion"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Community</Label>
+              <Select
+                value={createForm.communityId}
+                onValueChange={(val) =>
+                  setCreateForm((f) => ({ ...f, communityId: val }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a community" />
+                </SelectTrigger>
+                <SelectContent>
+                  {communities.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select
+                  value={createForm.type}
+                  onValueChange={(val) =>
+                    setCreateForm((f) => ({ ...f, type: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="events">Events</SelectItem>
+                    <SelectItem value="announcements">Announcements</SelectItem>
+                    <SelectItem value="discussions">Discussions</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Visibility</Label>
+                <Select
+                  value={createForm.visibility}
+                  onValueChange={(val) =>
+                    setCreateForm((f) => ({ ...f, visibility: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {createError && (
+              <p className="text-sm text-destructive">{createError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateSpace} disabled={actionLoading === "create"}>
+              {actionLoading === "create" ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Create Space
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>

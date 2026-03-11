@@ -82,7 +82,7 @@ export function AdminOverview({ stats }: AdminOverviewProps) {
                     {label}
                   </p>
                   <p className="text-2xl font-bold text-foreground tabular-nums">
-                    {stats[key].toLocaleString()}
+                    {(stats[key] ?? 0).toLocaleString()}
                   </p>
                 </div>
                 <div className={`p-2 rounded-lg ${bgColor}`}>

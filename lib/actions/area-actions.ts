@@ -33,11 +33,6 @@ export async function getAreas(opts?: {
   if (opts?.parentId) {
     conditions.push(`a.parent_id = $${idx++}`)
     params.push(opts.parentId)
-  } else if (!opts?.type || opts.type === "city") {
-    // Default: top-level cities (no parent)
-    if (!opts?.parentId && !opts?.search) {
-      conditions.push(`a.parent_id IS NULL`)
-    }
   }
   if (opts?.search) {
     conditions.push(`(a.name ILIKE $${idx} OR a.description ILIKE $${idx})`)
