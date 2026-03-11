@@ -72,6 +72,8 @@ export interface AreaEvent {
   max_attendees: number | null
   community_name: string
   community_slug: string
+  space_name: string | null
+  space_slug: string | null
 }
 
 

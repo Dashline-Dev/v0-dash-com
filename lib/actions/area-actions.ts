@@ -190,27 +190,17 @@ export async function getAreaEvents(
   const offset = opts?.offset ?? 0
   const upcomingFilter = opts?.upcoming ? `AND e.end_time > NOW()` : ""
 
-  // Include events from:
-  // 1. Communities linked to this area or child neighborhoods
-  // 2. Spaces linked to this area or child neighborhoods (only public spaces in public communities)
+  // Include ALL events from communities linked to this area or child neighborhoods
+  // This ensures events posted to any space within a community also appear under the area
   const countResult = await sql(
     `SELECT COUNT(DISTINCT e.id) as total
      FROM events e
      JOIN communities c ON c.id = e.community_id
-     LEFT JOIN community_areas ca ON ca.community_id = e.community_id
-     LEFT JOIN space_areas sa ON sa.space_id = e.space_id
-     LEFT JOIN spaces s ON s.id = e.space_id
-     WHERE (
-       -- Events from communities linked to area
-       (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
-       OR
-       -- Events from spaces linked to area (only public spaces)
-       ((sa.area_id = $1 OR sa.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
-        AND s.visibility = 'public')
-     )
-     AND e.status = 'published'
-     AND c.visibility = 'public'
-     ${upcomingFilter}`,
+     JOIN community_areas ca ON ca.community_id = e.community_id
+     WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+       AND e.status = 'published'
+       AND c.visibility = 'public'
+       ${upcomingFilter}`,
     [areaId]
   )
 
@@ -220,23 +210,16 @@ export async function getAreaEvents(
       e.start_time, e.end_time, e.timezone,
       e.location_name, e.location_address, e.latitude, e.longitude,
       e.virtual_link, e.rsvp_count, e.max_attendees,
-      c.name as community_name, c.slug as community_slug
+      c.name as community_name, c.slug as community_slug,
+      s.name as space_name, s.slug as space_slug
     FROM events e
     JOIN communities c ON c.id = e.community_id
-    LEFT JOIN community_areas ca ON ca.community_id = e.community_id
-    LEFT JOIN space_areas sa ON sa.space_id = e.space_id
+    JOIN community_areas ca ON ca.community_id = e.community_id
     LEFT JOIN spaces s ON s.id = e.space_id
-    WHERE (
-      -- Events from communities linked to area
-      (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
-      OR
-      -- Events from spaces linked to area (only public spaces)
-      ((sa.area_id = $1 OR sa.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
-       AND s.visibility = 'public')
-    )
-    AND e.status = 'published'
-    AND c.visibility = 'public'
-    ${upcomingFilter}
+    WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+      AND e.status = 'published'
+      AND c.visibility = 'public'
+      ${upcomingFilter}
     ORDER BY e.start_time ASC, e.id
     LIMIT $2 OFFSET $3`,
     [areaId, limit, offset]
