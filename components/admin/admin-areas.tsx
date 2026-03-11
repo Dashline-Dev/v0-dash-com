@@ -10,10 +10,20 @@ import {
   ExternalLink,
   Plus,
   MapPin,
+  Pencil,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,8 +42,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   getAllAreas,
   adminDeleteArea,
+  adminUpdateArea,
   type AdminArea,
 } from "@/lib/actions/admin-actions"
 
@@ -49,6 +68,14 @@ export function AdminAreas({ initialAreas, initialTotal }: AdminAreasProps) {
   const [searching, setSearching] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AdminArea | null>(null)
+  const [editTarget, setEditTarget] = useState<AdminArea | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: "",
+    slug: "",
+    description: "",
+    type: "city",
+    status: "active",
+  })
   const [offset, setOffset] = useState(0)
   const limit = 50
 
@@ -87,6 +114,41 @@ export function AdminAreas({ initialAreas, initialTotal }: AdminAreasProps) {
       setTotal((prev) => prev - 1)
     }
     setDeleteTarget(null)
+    setActionLoading(null)
+  }
+
+  const openEditDialog = (area: AdminArea) => {
+    setEditTarget(area)
+    setEditForm({
+      name: area.name,
+      slug: area.slug,
+      description: area.description || "",
+      type: area.type,
+      status: area.status,
+    })
+  }
+
+  const handleEditArea = async () => {
+    if (!editTarget) return
+    setActionLoading(editTarget.id)
+    const result = await adminUpdateArea(editTarget.id, editForm)
+    if (result.ok) {
+      setAreas((prev) =>
+        prev.map((a) =>
+          a.id === editTarget.id
+            ? {
+                ...a,
+                name: editForm.name,
+                slug: editForm.slug,
+                description: editForm.description,
+                type: editForm.type,
+                status: editForm.status,
+              }
+            : a
+        )
+      )
+    }
+    setEditTarget(null)
     setActionLoading(null)
   }
 
@@ -197,6 +259,10 @@ export function AdminAreas({ initialAreas, initialTotal }: AdminAreasProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openEditDialog(area)}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Area
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href={`/areas/${area.slug}`}>
                     <ExternalLink className="w-4 h-4 mr-2" />
@@ -244,6 +310,96 @@ export function AdminAreas({ initialAreas, initialTotal }: AdminAreasProps) {
         </div>
       )}
 
+      {/* Edit Dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Area</DialogTitle>
+            <DialogDescription>
+              Update area information for {editTarget?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, name: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-slug">Slug</Label>
+              <Input
+                id="edit-slug"
+                value={editForm.slug}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, slug: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editForm.description}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, description: e.target.value }))
+                }
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select
+                  value={editForm.type}
+                  onValueChange={(v) => setEditForm((f) => ({ ...f, type: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="region">Region</SelectItem>
+                    <SelectItem value="city">City</SelectItem>
+                    <SelectItem value="neighborhood">Neighborhood</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={editForm.status}
+                  onValueChange={(v) => setEditForm((f) => ({ ...f, status: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditArea} disabled={actionLoading === editTarget?.id}>
+              {actionLoading === editTarget?.id ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}

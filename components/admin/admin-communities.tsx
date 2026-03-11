@@ -10,11 +10,21 @@ import {
   Loader2,
   MoreHorizontal,
   ExternalLink,
+  Pencil,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,9 +43,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   getAllCommunities,
   toggleCommunityVerified,
   adminDeleteCommunity,
+  adminUpdateCommunity,
   type AdminCommunity,
 } from "@/lib/actions/admin-actions"
 
@@ -54,6 +73,13 @@ export function AdminCommunities({
   const [searching, setSearching] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AdminCommunity | null>(null)
+  const [editTarget, setEditTarget] = useState<AdminCommunity | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: "",
+    slug: "",
+    description: "",
+    visibility: "public",
+  })
   const [offset, setOffset] = useState(0)
   const limit = 50
 
@@ -105,6 +131,39 @@ export function AdminCommunities({
       setTotal((prev) => prev - 1)
     }
     setDeleteTarget(null)
+    setActionLoading(null)
+  }
+
+  const openEditDialog = (community: AdminCommunity) => {
+    setEditTarget(community)
+    setEditForm({
+      name: community.name,
+      slug: community.slug,
+      description: community.description || "",
+      visibility: community.visibility,
+    })
+  }
+
+  const handleEditCommunity = async () => {
+    if (!editTarget) return
+    setActionLoading(editTarget.id)
+    const result = await adminUpdateCommunity(editTarget.id, editForm)
+    if (result.ok) {
+      setCommunities((prev) =>
+        prev.map((c) =>
+          c.id === editTarget.id
+            ? {
+                ...c,
+                name: editForm.name,
+                slug: editForm.slug,
+                description: editForm.description,
+                visibility: editForm.visibility,
+              }
+            : c
+        )
+      )
+    }
+    setEditTarget(null)
     setActionLoading(null)
   }
 
@@ -187,6 +246,10 @@ export function AdminCommunities({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openEditDialog(community)}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Community
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href={`/communities/${community.slug}/admin`}>
                     <ExternalLink className="w-4 h-4 mr-2" />
@@ -246,6 +309,79 @@ export function AdminCommunities({
         </div>
       )}
 
+      {/* Edit Dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Community</DialogTitle>
+            <DialogDescription>
+              Update community information for {editTarget?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, name: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-slug">Slug</Label>
+              <Input
+                id="edit-slug"
+                value={editForm.slug}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, slug: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editForm.description}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, description: e.target.value }))
+                }
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Visibility</Label>
+              <Select
+                value={editForm.visibility}
+                onValueChange={(v) => setEditForm((f) => ({ ...f, visibility: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public">Public</SelectItem>
+                  <SelectItem value="private">Private</SelectItem>
+                  <SelectItem value="hidden">Hidden</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditCommunity} disabled={actionLoading === editTarget?.id}>
+              {actionLoading === editTarget?.id ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}

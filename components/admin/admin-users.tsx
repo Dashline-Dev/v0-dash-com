@@ -8,10 +8,12 @@ import {
   Trash2,
   Loader2,
   MoreHorizontal,
+  Pencil,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -31,9 +33,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   getAllUsers,
   toggleSuperAdmin,
   adminDeleteUser,
+  adminUpdateUser,
   type AdminUser,
 } from "@/lib/actions/admin-actions"
 
@@ -49,6 +60,8 @@ export function AdminUsers({ initialUsers, initialTotal }: AdminUsersProps) {
   const [searching, setSearching] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
+  const [editTarget, setEditTarget] = useState<AdminUser | null>(null)
+  const [editForm, setEditForm] = useState({ display_name: "", email: "" })
   const [offset, setOffset] = useState(0)
   const limit = 50
 
@@ -100,6 +113,28 @@ export function AdminUsers({ initialUsers, initialTotal }: AdminUsersProps) {
       setTotal((prev) => prev - 1)
     }
     setDeleteTarget(null)
+    setActionLoading(null)
+  }
+
+  const openEditDialog = (user: AdminUser) => {
+    setEditTarget(user)
+    setEditForm({ display_name: user.display_name, email: user.email })
+  }
+
+  const handleEditUser = async () => {
+    if (!editTarget) return
+    setActionLoading(editTarget.id)
+    const result = await adminUpdateUser(editTarget.id, editForm)
+    if (result.ok) {
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === editTarget.id
+            ? { ...u, display_name: editForm.display_name, email: editForm.email }
+            : u
+        )
+      )
+    }
+    setEditTarget(null)
     setActionLoading(null)
   }
 
@@ -188,6 +223,11 @@ export function AdminUsers({ initialUsers, initialTotal }: AdminUsersProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit User
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => handleToggleSuperAdmin(user.id)}
                   >
@@ -241,6 +281,53 @@ export function AdminUsers({ initialUsers, initialTotal }: AdminUsersProps) {
         </div>
       )}
 
+      {/* Edit Dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update user information for {editTarget?.display_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Display Name</Label>
+              <Input
+                id="edit-name"
+                value={editForm.display_name}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, display_name: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, email: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditUser} disabled={actionLoading === editTarget?.id}>
+              {actionLoading === editTarget?.id ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}

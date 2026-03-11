@@ -151,6 +151,49 @@ export async function toggleSuperAdmin(
   }
 }
 
+export async function adminUpdateUser(
+  userId: string,
+  data: { display_name?: string; email?: string }
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    const updates: string[] = []
+    const params: (string | number)[] = []
+    let idx = 1
+
+    if (data.display_name !== undefined) {
+      updates.push(`display_name = $${idx++}`)
+      params.push(data.display_name)
+    }
+    if (data.email !== undefined) {
+      updates.push(`email = $${idx++}`)
+      params.push(data.email)
+    }
+
+    if (updates.length === 0) return { ok: true }
+
+    params.push(userId)
+    await sql(
+      `UPDATE auth_users SET ${updates.join(", ")}, updated_at = NOW() WHERE id = $${idx}::uuid`,
+      params
+    )
+
+    await logAuditEvent({
+      actorId: admin.id,
+      targetUserId: userId,
+      action: "user_updated_by_admin",
+      details: data,
+    })
+
+    revalidatePath("/admin")
+    return { ok: true }
+  } catch (e) {
+    console.error("adminUpdateUser error:", e)
+    return { ok: false, error: "Something went wrong." }
+  }
+}
+
 export async function adminDeleteUser(
   userId: string
 ): Promise<{ ok: boolean; error?: string }> {
@@ -273,6 +316,58 @@ export async function toggleCommunityVerified(
   }
 }
 
+export async function adminUpdateCommunity(
+  communityId: string,
+  data: { name?: string; slug?: string; description?: string; visibility?: string }
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    const updates: string[] = []
+    const params: (string | number)[] = []
+    let idx = 1
+
+    if (data.name !== undefined) {
+      updates.push(`name = $${idx++}`)
+      params.push(data.name)
+    }
+    if (data.slug !== undefined) {
+      updates.push(`slug = $${idx++}`)
+      params.push(data.slug)
+    }
+    if (data.description !== undefined) {
+      updates.push(`description = $${idx++}`)
+      params.push(data.description)
+    }
+    if (data.visibility !== undefined) {
+      updates.push(`visibility = $${idx++}`)
+      params.push(data.visibility)
+    }
+
+    if (updates.length === 0) return { ok: true }
+
+    params.push(communityId)
+    await sql(
+      `UPDATE communities SET ${updates.join(", ")}, updated_at = NOW() WHERE id = $${idx}`,
+      params
+    )
+
+    await logAuditEvent({
+      actorId: admin.id,
+      communityId,
+      action: "community_updated_by_admin",
+      details: data,
+    })
+
+    revalidatePath("/admin")
+    revalidatePath("/communities")
+    return { ok: true }
+  } catch (e) {
+    console.error("adminUpdateCommunity error:", e)
+    return { ok: false, error: "Something went wrong." }
+  }
+}
+
 export async function adminDeleteCommunity(
   communityId: string
 ): Promise<{ ok: boolean; error?: string }> {
@@ -364,6 +459,61 @@ export async function getAllAreas(params: {
   }
 }
 
+export async function adminUpdateArea(
+  areaId: string,
+  data: { name?: string; slug?: string; description?: string; type?: string; status?: string }
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    const updates: string[] = []
+    const params: (string | number)[] = []
+    let idx = 1
+
+    if (data.name !== undefined) {
+      updates.push(`name = $${idx++}`)
+      params.push(data.name)
+    }
+    if (data.slug !== undefined) {
+      updates.push(`slug = $${idx++}`)
+      params.push(data.slug)
+    }
+    if (data.description !== undefined) {
+      updates.push(`description = $${idx++}`)
+      params.push(data.description)
+    }
+    if (data.type !== undefined) {
+      updates.push(`type = $${idx++}`)
+      params.push(data.type)
+    }
+    if (data.status !== undefined) {
+      updates.push(`status = $${idx++}`)
+      params.push(data.status)
+    }
+
+    if (updates.length === 0) return { ok: true }
+
+    params.push(areaId)
+    await sql(
+      `UPDATE areas SET ${updates.join(", ")}, updated_at = NOW() WHERE id = $${idx}`,
+      params
+    )
+
+    await logAuditEvent({
+      actorId: admin.id,
+      action: "area_updated_by_admin",
+      details: { area_id: areaId, ...data },
+    })
+
+    revalidatePath("/admin")
+    revalidatePath("/areas")
+    return { ok: true }
+  } catch (e) {
+    console.error("adminUpdateArea error:", e)
+    return { ok: false, error: "Something went wrong." }
+  }
+}
+
 export async function adminDeleteArea(
   areaId: string
 ): Promise<{ ok: boolean; error?: string }> {
@@ -450,6 +600,57 @@ export async function getAllEvents(params: {
   }
 }
 
+export async function adminUpdateEvent(
+  eventId: string,
+  data: { title?: string; slug?: string; status?: string; event_type?: string }
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    const updates: string[] = []
+    const params: (string | number)[] = []
+    let idx = 1
+
+    if (data.title !== undefined) {
+      updates.push(`title = $${idx++}`)
+      params.push(data.title)
+    }
+    if (data.slug !== undefined) {
+      updates.push(`slug = $${idx++}`)
+      params.push(data.slug)
+    }
+    if (data.status !== undefined) {
+      updates.push(`status = $${idx++}`)
+      params.push(data.status)
+    }
+    if (data.event_type !== undefined) {
+      updates.push(`event_type = $${idx++}`)
+      params.push(data.event_type)
+    }
+
+    if (updates.length === 0) return { ok: true }
+
+    params.push(eventId)
+    await sql(
+      `UPDATE events SET ${updates.join(", ")}, updated_at = NOW() WHERE id = $${idx}`,
+      params
+    )
+
+    await logAuditEvent({
+      actorId: admin.id,
+      action: "event_updated_by_admin",
+      details: { event_id: eventId, ...data },
+    })
+
+    revalidatePath("/admin")
+    revalidatePath("/events")
+    return { ok: true }
+  } catch (e) {
+    console.error("adminUpdateEvent error:", e)
+    return { ok: false, error: "Something went wrong." }
+  }
+}
+
 export async function adminDeleteEvent(
   eventId: string
 ): Promise<{ ok: boolean; error?: string }> {
@@ -533,6 +734,56 @@ export async function getAllSpaces(params: {
   return {
     spaces: rows as AdminSpace[],
     total: Number(countRows[0]?.count ?? 0),
+  }
+}
+
+export async function adminUpdateSpace(
+  spaceId: string,
+  data: { name?: string; slug?: string; type?: string; visibility?: string }
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    const updates: string[] = []
+    const params: (string | number)[] = []
+    let idx = 1
+
+    if (data.name !== undefined) {
+      updates.push(`name = $${idx++}`)
+      params.push(data.name)
+    }
+    if (data.slug !== undefined) {
+      updates.push(`slug = $${idx++}`)
+      params.push(data.slug)
+    }
+    if (data.type !== undefined) {
+      updates.push(`type = $${idx++}`)
+      params.push(data.type)
+    }
+    if (data.visibility !== undefined) {
+      updates.push(`visibility = $${idx++}`)
+      params.push(data.visibility)
+    }
+
+    if (updates.length === 0) return { ok: true }
+
+    params.push(spaceId)
+    await sql(
+      `UPDATE spaces SET ${updates.join(", ")}, updated_at = NOW() WHERE id = $${idx}`,
+      params
+    )
+
+    await logAuditEvent({
+      actorId: admin.id,
+      action: "space_updated_by_admin",
+      details: { space_id: spaceId, ...data },
+    })
+
+    revalidatePath("/admin")
+    return { ok: true }
+  } catch (e) {
+    console.error("adminUpdateSpace error:", e)
+    return { ok: false, error: "Something went wrong." }
   }
 }
 

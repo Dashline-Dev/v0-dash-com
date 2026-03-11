@@ -11,10 +11,19 @@ import {
   Layers,
   Eye,
   EyeOff,
+  Pencil,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,8 +42,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   getAllSpaces,
   adminDeleteSpace,
+  adminUpdateSpace,
   type AdminSpace,
 } from "@/lib/actions/admin-actions"
 
@@ -50,6 +68,13 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
   const [searching, setSearching] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AdminSpace | null>(null)
+  const [editTarget, setEditTarget] = useState<AdminSpace | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: "",
+    slug: "",
+    type: "general",
+    visibility: "public",
+  })
   const [offset, setOffset] = useState(0)
   const limit = 50
 
@@ -88,6 +113,39 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
       setTotal((prev) => prev - 1)
     }
     setDeleteTarget(null)
+    setActionLoading(null)
+  }
+
+  const openEditDialog = (space: AdminSpace) => {
+    setEditTarget(space)
+    setEditForm({
+      name: space.name,
+      slug: space.slug,
+      type: space.type,
+      visibility: space.visibility,
+    })
+  }
+
+  const handleEditSpace = async () => {
+    if (!editTarget) return
+    setActionLoading(editTarget.id)
+    const result = await adminUpdateSpace(editTarget.id, editForm)
+    if (result.ok) {
+      setSpaces((prev) =>
+        prev.map((s) =>
+          s.id === editTarget.id
+            ? {
+                ...s,
+                name: editForm.name,
+                slug: editForm.slug,
+                type: editForm.type,
+                visibility: editForm.visibility,
+              }
+            : s
+        )
+      )
+    }
+    setEditTarget(null)
     setActionLoading(null)
   }
 
@@ -184,6 +242,10 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openEditDialog(space)}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Space
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link
                     href={`/communities/${space.community_slug}/spaces/${space.slug}`}
@@ -230,6 +292,86 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
         </div>
       )}
 
+      {/* Edit Dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Space</DialogTitle>
+            <DialogDescription>
+              Update space information for {editTarget?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, name: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-slug">Slug</Label>
+              <Input
+                id="edit-slug"
+                value={editForm.slug}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, slug: e.target.value }))
+                }
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select
+                  value={editForm.type}
+                  onValueChange={(v) => setEditForm((f) => ({ ...f, type: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="events">Events</SelectItem>
+                    <SelectItem value="announcements">Announcements</SelectItem>
+                    <SelectItem value="discussions">Discussions</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Visibility</Label>
+                <Select
+                  value={editForm.visibility}
+                  onValueChange={(v) => setEditForm((f) => ({ ...f, visibility: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditSpace} disabled={actionLoading === editTarget?.id}>
+              {actionLoading === editTarget?.id ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
