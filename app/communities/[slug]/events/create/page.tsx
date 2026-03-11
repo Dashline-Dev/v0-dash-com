@@ -34,25 +34,27 @@ export default async function CommunityCreateEventPage({
   if (!community) notFound()
 
   return (
-    <div className="max-w-2xl mx-auto px-4 md:px-6 py-6 md:py-8">
-      <Button variant="ghost" size="sm" className="mb-4 gap-1.5" asChild>
-        <Link href={`/communities/${slug}`}>
-          <ArrowLeft className="w-4 h-4" />
-          Back to {community.name}
-        </Link>
-      </Button>
+    <div className="px-4 py-5 md:px-6 lg:px-10 md:py-8">
+      <div className="max-w-2xl mx-auto">
+        <Button variant="ghost" size="sm" className="mb-4 gap-1.5" asChild>
+          <Link href={`/communities/${slug}`}>
+            <ArrowLeft className="w-4 h-4" />
+            Back to {community.name}
+          </Link>
+        </Button>
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Create Event</h1>
-        <p className="text-muted-foreground mt-1">
-          Add an event to {community.name}
-        </p>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Create Event</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Add an event to {community.name}
+          </p>
+        </div>
+
+        <CreateEventForm
+          communityId={community.id}
+          communitySlug={community.slug}
+        />
       </div>
-
-      <CreateEventForm
-        communityId={community.id}
-        communitySlug={community.slug}
-      />
     </div>
   )
 }
