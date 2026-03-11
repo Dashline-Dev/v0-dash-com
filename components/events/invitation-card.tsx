@@ -221,9 +221,10 @@ export function InvitationCard({
   const fontFamily = getFontFamily(style.fontFamily)
   
   // Format Hebrew date if needed
-  const hebrewDate = fields.showHebrewDate && event.start_time 
+  const hebrewDateObj = fields.showHebrewDate && event.start_time 
     ? toHebrewDate(new Date(event.start_time))
     : null
+  const hebrewDate = hebrewDateObj ? hebrewDateObj.full : null
 
   return (
     <div
