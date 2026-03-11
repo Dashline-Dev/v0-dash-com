@@ -3,9 +3,15 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import dynamic from "next/dynamic"
-import { Plus } from "lucide-react"
+import { Plus, Users, CalendarPlus, Layers, MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { UserMenu } from "./user-menu"
 import { GuestNavLink } from "@/components/auth/guest-nav-link"
 
@@ -86,12 +92,40 @@ export function TopNav({ user }: TopNavProps) {
         <div className="flex items-center gap-2">
           <CommandPalette />
           {user && (
-            <Button asChild variant="default" size="sm" className="gap-1.5">
-              <Link href="/communities/create">
-                <Plus className="w-4 h-4" />
-                <span>Create</span>
-              </Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="default" size="sm" className="gap-1.5">
+                  <Plus className="w-4 h-4" />
+                  <span>Create</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link href="/events/create" className="flex items-center gap-2 cursor-pointer">
+                    <CalendarPlus className="w-4 h-4" />
+                    <span>Event</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/communities/create" className="flex items-center gap-2 cursor-pointer">
+                    <Users className="w-4 h-4" />
+                    <span>Community</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/spaces/create" className="flex items-center gap-2 cursor-pointer">
+                    <Layers className="w-4 h-4" />
+                    <span>Space</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/areas/create" className="flex items-center gap-2 cursor-pointer">
+                    <MapPin className="w-4 h-4" />
+                    <span>Area</span>
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <UserMenu user={user} />
         </div>
