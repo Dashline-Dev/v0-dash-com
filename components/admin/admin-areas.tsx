@@ -53,7 +53,6 @@ import {
   getAllAreas,
   adminDeleteArea,
   adminUpdateArea,
-  adminCreateArea,
   type AdminArea,
 } from "@/lib/actions/admin-actions"
 
@@ -77,16 +76,6 @@ export function AdminAreas({ initialAreas, initialTotal }: AdminAreasProps) {
     type: "city",
     status: "active",
   })
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [createForm, setCreateForm] = useState({
-    name: "",
-    slug: "",
-    description: "",
-    type: "city",
-    latitude: "",
-    longitude: "",
-  })
-  const [createError, setCreateError] = useState("")
   const [offset, setOffset] = useState(0)
   const limit = 50
 
@@ -163,47 +152,6 @@ export function AdminAreas({ initialAreas, initialTotal }: AdminAreasProps) {
     setActionLoading(null)
   }
 
-  const handleCreateArea = async () => {
-    if (!createForm.name || !createForm.slug || !createForm.latitude || !createForm.longitude) {
-      setCreateError("Name, slug, latitude, and longitude are required")
-      return
-    }
-    setActionLoading("create")
-    setCreateError("")
-    const result = await adminCreateArea({
-      name: createForm.name,
-      slug: createForm.slug,
-      type: createForm.type,
-      description: createForm.description || undefined,
-      latitude: parseFloat(createForm.latitude),
-      longitude: parseFloat(createForm.longitude),
-    })
-    if (result.ok && result.id) {
-      setAreas((prev) => [
-        {
-          id: result.id!,
-          name: createForm.name,
-          slug: createForm.slug,
-          type: createForm.type,
-          description: createForm.description || null,
-          latitude: parseFloat(createForm.latitude),
-          longitude: parseFloat(createForm.longitude),
-          status: "active",
-          parent_name: null,
-          community_count: 0,
-          created_at: new Date().toISOString(),
-        },
-        ...prev,
-      ])
-      setTotal((prev) => prev + 1)
-      setShowCreateDialog(false)
-      setCreateForm({ name: "", slug: "", description: "", type: "city", latitude: "", longitude: "" })
-    } else {
-      setCreateError(result.error || "Failed to create area")
-    }
-    setActionLoading(null)
-  }
-
   const typeColor: Record<string, string> = {
     region: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
     city: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
@@ -234,10 +182,12 @@ export function AdminAreas({ initialAreas, initialTotal }: AdminAreasProps) {
           </Button>
         </form>
 
-  <Button size="sm" className="gap-1.5" onClick={() => setShowCreateDialog(true)}>
-  <Plus className="w-4 h-4" />
-  Add Area
-  </Button>
+        <Button size="sm" className="gap-1.5" asChild>
+          <Link href="/areas/create">
+            <Plus className="w-4 h-4" />
+            Add Area
+          </Link>
+        </Button>
       </div>
 
       <p className="text-xs text-muted-foreground">
@@ -336,9 +286,9 @@ export function AdminAreas({ initialAreas, initialTotal }: AdminAreasProps) {
           <div className="text-center py-12">
             <MapPin className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">No areas found.</p>
-  <Button variant="link" size="sm" className="mt-2" onClick={() => setShowCreateDialog(true)}>
-  Create an area
-  </Button>
+          <Button variant="link" size="sm" className="mt-2" asChild>
+            <Link href="/areas/create">Create an area</Link>
+          </Button>
           </div>
         )}
       </div>
@@ -359,119 +309,6 @@ export function AdminAreas({ initialAreas, initialTotal }: AdminAreasProps) {
           </Button>
         </div>
       )}
-
-      {/* Create Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Area</DialogTitle>
-            <DialogDescription>
-              Add a new geographic area to the platform
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="create-name">Name</Label>
-              <Input
-                id="create-name"
-                value={createForm.name}
-                onChange={(e) => {
-                  const name = e.target.value
-                  setCreateForm((f) => ({
-                    ...f,
-                    name,
-                    slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
-                  }))
-                }}
-                placeholder="Brooklyn"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="create-slug">Slug</Label>
-              <Input
-                id="create-slug"
-                value={createForm.slug}
-                onChange={(e) =>
-                  setCreateForm((f) => ({ ...f, slug: e.target.value }))
-                }
-                placeholder="brooklyn"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <Select
-                value={createForm.type}
-                onValueChange={(val) =>
-                  setCreateForm((f) => ({ ...f, type: val }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="region">Region</SelectItem>
-                  <SelectItem value="city">City</SelectItem>
-                  <SelectItem value="neighborhood">Neighborhood</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="create-lat">Latitude</Label>
-                <Input
-                  id="create-lat"
-                  type="number"
-                  step="any"
-                  value={createForm.latitude}
-                  onChange={(e) =>
-                    setCreateForm((f) => ({ ...f, latitude: e.target.value }))
-                  }
-                  placeholder="40.7128"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-lng">Longitude</Label>
-                <Input
-                  id="create-lng"
-                  type="number"
-                  step="any"
-                  value={createForm.longitude}
-                  onChange={(e) =>
-                    setCreateForm((f) => ({ ...f, longitude: e.target.value }))
-                  }
-                  placeholder="-74.0060"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="create-desc">Description (optional)</Label>
-              <Textarea
-                id="create-desc"
-                value={createForm.description}
-                onChange={(e) =>
-                  setCreateForm((f) => ({ ...f, description: e.target.value }))
-                }
-                placeholder="A brief description of this area"
-                rows={2}
-              />
-            </div>
-            {createError && (
-              <p className="text-sm text-destructive">{createError}</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateArea} disabled={actionLoading === "create"}>
-              {actionLoading === "create" ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : null}
-              Create Area
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>

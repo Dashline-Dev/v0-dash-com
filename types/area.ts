@@ -17,12 +17,6 @@ export interface Area {
   description: string | null
   type: AreaType
   parent_id: string | null
-  latitude: number
-  longitude: number
-  bounds_ne_lat: number | null
-  bounds_ne_lng: number | null
-  bounds_sw_lat: number | null
-  bounds_sw_lng: number | null
   cover_image_url: string | null
   place_id: string | null
   status: AreaStatus
@@ -47,10 +41,6 @@ export interface AreaNeighborhood {
   place_id: string | null
   community_count: number
   event_count: number
-  bounds_ne_lat: number | null
-  bounds_ne_lng: number | null
-  bounds_sw_lat: number | null
-  bounds_sw_lng: number | null
 }
 
 export interface AreaCommunity {
@@ -84,29 +74,4 @@ export interface AreaEvent {
   community_slug: string
 }
 
-// ── Map helpers ─────────────────────────────────────────────
 
-export interface MapMarker {
-  id: string
-  lat: number
-  lng: number
-  title: string
-  type: "community" | "event" | "area"
-  slug: string
-  subtitle?: string
-}
-
-export interface MapBounds {
-  ne: { lat: number; lng: number }
-  sw: { lat: number; lng: number }
-}
-
-export function areaBoundsToMapBounds(area: Area): MapBounds | null {
-  if (!area.bounds_ne_lat || !area.bounds_ne_lng || !area.bounds_sw_lat || !area.bounds_sw_lng) {
-    return null
-  }
-  return {
-    ne: { lat: area.bounds_ne_lat, lng: area.bounds_ne_lng },
-    sw: { lat: area.bounds_sw_lat, lng: area.bounds_sw_lng },
-  }
-}

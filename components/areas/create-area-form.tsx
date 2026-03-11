@@ -40,16 +40,6 @@ export function CreateAreaForm({ existingAreas }: CreateAreaFormProps) {
   const [parentId, setParentId] = useState<string | null>(null)
   const [zipCodes, setZipCodes] = useState("")
 
-  // Required coordinates
-  const [latitude, setLatitude] = useState("")
-  const [longitude, setLongitude] = useState("")
-
-  // Optional bounds
-  const [boundsNeLat, setBoundsNeLat] = useState("")
-  const [boundsNeLng, setBoundsNeLng] = useState("")
-  const [boundsSwLat, setBoundsSwLat] = useState("")
-  const [boundsSwLng, setBoundsSwLng] = useState("")
-
   function handleNameChange(value: string) {
     setName(value)
     setSlug(slugify(value))
@@ -67,10 +57,6 @@ export function CreateAreaForm({ existingAreas }: CreateAreaFormProps) {
       setError("Slug is required")
       return
     }
-    if (!latitude.trim() || !longitude.trim()) {
-      setError("Latitude and Longitude are required")
-      return
-    }
 
     startTransition(async () => {
       try {
@@ -80,12 +66,6 @@ export function CreateAreaForm({ existingAreas }: CreateAreaFormProps) {
           type,
           description: description.trim() || undefined,
           parentId: parentId || undefined,
-          latitude: parseFloat(latitude),
-          longitude: parseFloat(longitude),
-          boundsNeLat: boundsNeLat ? parseFloat(boundsNeLat) : undefined,
-          boundsNeLng: boundsNeLng ? parseFloat(boundsNeLng) : undefined,
-          boundsSwLat: boundsSwLat ? parseFloat(boundsSwLat) : undefined,
-          boundsSwLng: boundsSwLng ? parseFloat(boundsSwLng) : undefined,
         })
 
         // Add zip codes if provided
@@ -125,7 +105,7 @@ export function CreateAreaForm({ existingAreas }: CreateAreaFormProps) {
         <CardHeader className="pb-4">
           <CardTitle className="text-base flex items-center gap-2">
             <MapPin className="w-4 h-4 text-primary" />
-            Basic Information
+            Area Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -213,100 +193,6 @@ export function CreateAreaForm({ existingAreas }: CreateAreaFormProps) {
               Comma-separated list of zip codes in this area
             </p>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Coordinates</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="latitude">Latitude</Label>
-              <Input
-                id="latitude"
-                type="number"
-                step="any"
-                value={latitude}
-                onChange={(e) => setLatitude(e.target.value)}
-                placeholder="e.g., 40.7128"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="longitude">Longitude</Label>
-              <Input
-                id="longitude"
-                type="number"
-                step="any"
-                value={longitude}
-                onChange={(e) => setLongitude(e.target.value)}
-                placeholder="e.g., -74.0060"
-                required
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            Center point coordinates for this area (required)
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Geographic Bounds (optional)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="boundsNeLat">NE Latitude</Label>
-              <Input
-                id="boundsNeLat"
-                type="number"
-                step="any"
-                value={boundsNeLat}
-                onChange={(e) => setBoundsNeLat(e.target.value)}
-                placeholder="40.7128"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="boundsNeLng">NE Longitude</Label>
-              <Input
-                id="boundsNeLng"
-                type="number"
-                step="any"
-                value={boundsNeLng}
-                onChange={(e) => setBoundsNeLng(e.target.value)}
-                placeholder="-73.9060"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="boundsSwLat">SW Latitude</Label>
-              <Input
-                id="boundsSwLat"
-                type="number"
-                step="any"
-                value={boundsSwLat}
-                onChange={(e) => setBoundsSwLat(e.target.value)}
-                placeholder="40.6892"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="boundsSwLng">SW Longitude</Label>
-              <Input
-                id="boundsSwLng"
-                type="number"
-                step="any"
-                value={boundsSwLng}
-                onChange={(e) => setBoundsSwLng(e.target.value)}
-                placeholder="-74.0445"
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            Define the bounding box for map display. Leave empty to auto-detect.
-          </p>
         </CardContent>
       </Card>
 

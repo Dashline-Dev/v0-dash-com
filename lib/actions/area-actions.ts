@@ -409,16 +409,10 @@ export async function createArea(data: {
   description?: string
   parentId?: string | null
   placeId?: string
-  latitude: number
-  longitude: number
-  boundsNeLat?: number
-  boundsNeLng?: number
-  boundsSwLat?: number
-  boundsSwLng?: number
 }): Promise<{ id: string; slug: string }> {
   const rows = await sql(
-    `INSERT INTO areas (name, slug, type, description, parent_id, place_id, latitude, longitude, bounds_ne_lat, bounds_ne_lng, bounds_sw_lat, bounds_sw_lng, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'active')
+    `INSERT INTO areas (name, slug, type, description, parent_id, place_id, status)
+     VALUES ($1, $2, $3, $4, $5, $6, 'active')
      RETURNING id, slug`,
     [
       data.name,
@@ -427,12 +421,6 @@ export async function createArea(data: {
       data.description || null,
       data.parentId || null,
       data.placeId || null,
-      data.latitude,
-      data.longitude,
-      data.boundsNeLat || null,
-      data.boundsNeLng || null,
-      data.boundsSwLat || null,
-      data.boundsSwLng || null,
     ]
   )
 
@@ -449,10 +437,6 @@ export async function updateArea(
     description?: string
     parentId?: string | null
     placeId?: string
-    boundsNeLat?: number
-    boundsNeLng?: number
-    boundsSwLat?: number
-    boundsSwLng?: number
     status?: "active" | "inactive"
   }
 ): Promise<void> {
@@ -479,22 +463,6 @@ export async function updateArea(
   if (data.placeId !== undefined) {
     updates.push(`place_id = $${idx++}`)
     params.push(data.placeId)
-  }
-  if (data.boundsNeLat !== undefined) {
-    updates.push(`bounds_ne_lat = $${idx++}`)
-    params.push(data.boundsNeLat)
-  }
-  if (data.boundsNeLng !== undefined) {
-    updates.push(`bounds_ne_lng = $${idx++}`)
-    params.push(data.boundsNeLng)
-  }
-  if (data.boundsSwLat !== undefined) {
-    updates.push(`bounds_sw_lat = $${idx++}`)
-    params.push(data.boundsSwLat)
-  }
-  if (data.boundsSwLng !== undefined) {
-    updates.push(`bounds_sw_lng = $${idx++}`)
-    params.push(data.boundsSwLng)
   }
   if (data.status !== undefined) {
     updates.push(`status = $${idx++}`)

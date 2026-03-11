@@ -480,8 +480,6 @@ export interface AdminArea {
   slug: string
   type: string
   description: string | null
-  latitude: number
-  longitude: number
   status: string
   parent_name: string | null
   community_count: number
@@ -509,7 +507,7 @@ export async function getAllAreas(params: {
 
   const [rows, countRows] = await Promise.all([
     sql(
-      `SELECT a.id, a.name, a.slug, a.type, a.description, a.latitude, a.longitude,
+      `SELECT a.id, a.name, a.slug, a.type, a.description,
               a.status, a.created_at,
               p.name as parent_name,
               COALESCE(ca.cnt, 0) as community_count
@@ -538,24 +536,20 @@ export async function adminCreateArea(
     slug: string
     type: string
     description?: string
-    latitude: number
-    longitude: number
   }
 ): Promise<{ ok: boolean; error?: string; id?: string }> {
   const admin = await requireSuperAdmin()
 
   try {
     const rows = await sql(
-      `INSERT INTO areas (name, slug, type, description, latitude, longitude, status)
-       VALUES ($1, $2, $3, $4, $5, $6, 'active')
+      `INSERT INTO areas (name, slug, type, description, status)
+       VALUES ($1, $2, $3, $4, 'active')
        RETURNING id`,
       [
         data.name,
         data.slug,
         data.type,
         data.description || null,
-        data.latitude,
-        data.longitude,
       ]
     )
 
