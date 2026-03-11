@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { createArea, addAreaZipCodes } from "@/lib/actions/area-actions"
-import { useGoogleMapsApi } from "@/hooks/use-google-maps-api"
+import { useApiIsLoaded } from "@vis.gl/react-google-maps"
+import { GoogleMapsProvider } from "@/components/maps/google-maps-provider"
 
 interface CreateAreaFormProps {
   existingAreas: { id: string; name: string; type: string; parentName: string | null }[]
@@ -39,11 +40,11 @@ interface GeoResult {
   boundsSwLng?: number
 }
 
-export function CreateAreaForm({ existingAreas }: CreateAreaFormProps) {
+function CreateAreaFormInner({ existingAreas }: CreateAreaFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const { isLoaded } = useGoogleMapsApi()
+  const isLoaded = useApiIsLoaded()
 
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
@@ -374,5 +375,13 @@ export function CreateAreaForm({ existingAreas }: CreateAreaFormProps) {
         </Button>
       </div>
     </form>
+  )
+}
+
+export function CreateAreaForm({ existingAreas }: CreateAreaFormProps) {
+  return (
+    <GoogleMapsProvider>
+      <CreateAreaFormInner existingAreas={existingAreas} />
+    </GoogleMapsProvider>
   )
 }
