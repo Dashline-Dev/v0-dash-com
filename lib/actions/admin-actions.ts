@@ -12,6 +12,7 @@ export interface PlatformStats {
   totalCommunities: number
   totalEvents: number
   totalSpaces: number
+  totalAreas: number
   totalMembers: number
   recentSignups: number // last 7 days
 }
@@ -44,12 +45,13 @@ export interface AdminCommunity {
 export async function getAdminStats(): Promise<PlatformStats> {
   await requireSuperAdmin()
 
-  const [users, communities, events, spaces, members, recent] =
+  const [users, communities, events, spaces, areas, members, recent] =
     await Promise.all([
       sql(`SELECT COUNT(*) as count FROM auth_users`),
       sql(`SELECT COUNT(*) as count FROM communities`),
       sql(`SELECT COUNT(*) as count FROM events`),
       sql(`SELECT COUNT(*) as count FROM spaces`),
+      sql(`SELECT COUNT(*) as count FROM areas WHERE status = 'active'`),
       sql(
         `SELECT COUNT(*) as count FROM community_members WHERE status = 'active'`
       ),
@@ -63,6 +65,7 @@ export async function getAdminStats(): Promise<PlatformStats> {
     totalCommunities: Number(communities[0]?.count ?? 0),
     totalEvents: Number(events[0]?.count ?? 0),
     totalSpaces: Number(spaces[0]?.count ?? 0),
+    totalAreas: Number(areas[0]?.count ?? 0),
     totalMembers: Number(members[0]?.count ?? 0),
     recentSignups: Number(recent[0]?.count ?? 0),
   }
@@ -297,6 +300,265 @@ export async function adminDeleteCommunity(
     return { ok: true }
   } catch (e) {
     console.error("adminDeleteCommunity error:", e)
+    return { ok: false, error: "Something went wrong." }
+  }
+}
+
+// ── Area Management ──────────────────────────────────────────────────────
+
+export interface AdminArea {
+  id: string
+  name: string
+  slug: string
+  type: string
+  description: string | null
+  latitude: number
+  longitude: number
+  status: string
+  parent_name: string | null
+  community_count: number
+  created_at: string
+}
+
+export async function getAllAreas(params: {
+  search?: string
+  limit?: number
+  offset?: number
+}): Promise<{ areas: AdminArea[]; total: number }> {
+  await requireSuperAdmin()
+
+  const { search, limit = 50, offset = 0 } = params
+
+  let whereClause = ""
+  const queryParams: (string | number)[] = []
+  let paramIdx = 1
+
+  if (search && search.trim()) {
+    whereClause = `WHERE a.name ILIKE $${paramIdx} OR a.slug ILIKE $${paramIdx}`
+    queryParams.push(`%${search.trim()}%`)
+    paramIdx++
+  }
+
+  const [rows, countRows] = await Promise.all([
+    sql(
+      `SELECT a.id, a.name, a.slug, a.type, a.description, a.latitude, a.longitude,
+              a.status, a.created_at,
+              p.name as parent_name,
+              COALESCE(ca.cnt, 0) as community_count
+       FROM areas a
+       LEFT JOIN areas p ON a.parent_id = p.id
+       LEFT JOIN (
+         SELECT area_id, COUNT(*) as cnt FROM community_areas GROUP BY area_id
+       ) ca ON ca.area_id = a.id
+       ${whereClause}
+       ORDER BY a.created_at DESC
+       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+      [...queryParams, limit, offset]
+    ),
+    sql(`SELECT COUNT(*) as count FROM areas a ${whereClause}`, queryParams),
+  ])
+
+  return {
+    areas: rows as AdminArea[],
+    total: Number(countRows[0]?.count ?? 0),
+  }
+}
+
+export async function adminDeleteArea(
+  areaId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    const areaRows = await sql(`SELECT name FROM areas WHERE id = $1`, [areaId])
+    if (areaRows.length === 0) return { ok: false, error: "Area not found." }
+
+    // Soft delete
+    await sql(
+      `UPDATE areas SET status = 'inactive', updated_at = NOW() WHERE id = $1`,
+      [areaId]
+    )
+
+    await logAuditEvent({
+      actorId: admin.id,
+      action: "area_deleted_by_admin",
+      details: { area_name: areaRows[0].name, area_id: areaId },
+    })
+
+    revalidatePath("/admin")
+    revalidatePath("/areas")
+    return { ok: true }
+  } catch (e) {
+    console.error("adminDeleteArea error:", e)
+    return { ok: false, error: "Something went wrong." }
+  }
+}
+
+// ── Event Management ─────────────────────────────────────────────────────
+
+export interface AdminEvent {
+  id: string
+  title: string
+  slug: string
+  event_type: string
+  status: string
+  start_time: string
+  end_time: string
+  community_name: string | null
+  community_slug: string | null
+  rsvp_count: number
+  created_at: string
+}
+
+export async function getAllEvents(params: {
+  search?: string
+  limit?: number
+  offset?: number
+}): Promise<{ events: AdminEvent[]; total: number }> {
+  await requireSuperAdmin()
+
+  const { search, limit = 50, offset = 0 } = params
+
+  let whereClause = ""
+  const queryParams: (string | number)[] = []
+  let paramIdx = 1
+
+  if (search && search.trim()) {
+    whereClause = `WHERE e.title ILIKE $${paramIdx} OR e.slug ILIKE $${paramIdx}`
+    queryParams.push(`%${search.trim()}%`)
+    paramIdx++
+  }
+
+  const [rows, countRows] = await Promise.all([
+    sql(
+      `SELECT e.id, e.title, e.slug, e.event_type, e.status, e.start_time, e.end_time,
+              e.rsvp_count, e.created_at,
+              c.name as community_name, c.slug as community_slug
+       FROM events e
+       LEFT JOIN communities c ON c.id = e.community_id
+       ${whereClause}
+       ORDER BY e.start_time DESC
+       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+      [...queryParams, limit, offset]
+    ),
+    sql(`SELECT COUNT(*) as count FROM events e ${whereClause}`, queryParams),
+  ])
+
+  return {
+    events: rows as AdminEvent[],
+    total: Number(countRows[0]?.count ?? 0),
+  }
+}
+
+export async function adminDeleteEvent(
+  eventId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    const eventRows = await sql(`SELECT title FROM events WHERE id = $1`, [
+      eventId,
+    ])
+    if (eventRows.length === 0) return { ok: false, error: "Event not found." }
+
+    await sql(`DELETE FROM events WHERE id = $1`, [eventId])
+
+    await logAuditEvent({
+      actorId: admin.id,
+      action: "event_deleted_by_admin",
+      details: { event_title: eventRows[0].title, event_id: eventId },
+    })
+
+    revalidatePath("/admin")
+    revalidatePath("/events")
+    return { ok: true }
+  } catch (e) {
+    console.error("adminDeleteEvent error:", e)
+    return { ok: false, error: "Something went wrong." }
+  }
+}
+
+// ── Space Management ─────────────────────────────────────────────────────
+
+export interface AdminSpace {
+  id: string
+  name: string
+  slug: string
+  type: string
+  visibility: string
+  status: string
+  community_name: string | null
+  community_slug: string | null
+  member_count: number
+  created_at: string
+}
+
+export async function getAllSpaces(params: {
+  search?: string
+  limit?: number
+  offset?: number
+}): Promise<{ spaces: AdminSpace[]; total: number }> {
+  await requireSuperAdmin()
+
+  const { search, limit = 50, offset = 0 } = params
+
+  let whereClause = ""
+  const queryParams: (string | number)[] = []
+  let paramIdx = 1
+
+  if (search && search.trim()) {
+    whereClause = `WHERE s.name ILIKE $${paramIdx} OR s.slug ILIKE $${paramIdx}`
+    queryParams.push(`%${search.trim()}%`)
+    paramIdx++
+  }
+
+  const [rows, countRows] = await Promise.all([
+    sql(
+      `SELECT s.id, s.name, s.slug, s.type, s.visibility, s.status, s.created_at,
+              c.name as community_name, c.slug as community_slug,
+              COALESCE(sm.cnt, 0) as member_count
+       FROM spaces s
+       LEFT JOIN communities c ON c.id = s.community_id
+       LEFT JOIN (
+         SELECT space_id, COUNT(*) as cnt FROM space_members GROUP BY space_id
+       ) sm ON sm.space_id = s.id
+       ${whereClause}
+       ORDER BY s.created_at DESC
+       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+      [...queryParams, limit, offset]
+    ),
+    sql(`SELECT COUNT(*) as count FROM spaces s ${whereClause}`, queryParams),
+  ])
+
+  return {
+    spaces: rows as AdminSpace[],
+    total: Number(countRows[0]?.count ?? 0),
+  }
+}
+
+export async function adminDeleteSpace(
+  spaceId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = await requireSuperAdmin()
+
+  try {
+    const spaceRows = await sql(`SELECT name FROM spaces WHERE id = $1`, [
+      spaceId,
+    ])
+    if (spaceRows.length === 0) return { ok: false, error: "Space not found." }
+
+    await sql(`DELETE FROM spaces WHERE id = $1`, [spaceId])
+
+    await logAuditEvent({
+      actorId: admin.id,
+      action: "space_deleted_by_admin",
+      details: { space_name: spaceRows[0].name, space_id: spaceId },
+    })
+
+    revalidatePath("/admin")
+    return { ok: true }
+  } catch (e) {
+    console.error("adminDeleteSpace error:", e)
     return { ok: false, error: "Something went wrong." }
   }
 }
