@@ -17,7 +17,7 @@ export interface EventTemplate {
     fontFamily: "serif" | "sans-serif" | "script" | "hebrew" | "mixed"
     headerFont?: string
     layout: "centered" | "top-aligned" | "split" | "asymmetric"
-    decorations?: ("floral" | "geometric" | "musical" | "stars" | "hearts" | "confetti" | "ribbons" | "candles" | "torah" | "dove" | "rings")[]
+    decorations?: ("floral" | "floralCorners" | "geometric" | "musical" | "violins" | "stars" | "starOfDavid" | "hearts" | "confetti" | "balloons" | "ribbons" | "candles" | "menorah" | "torah" | "dove" | "rings" | "grapes" | "borderPattern")[]
   }
   // Field configuration - which fields to show and their labels
   fields: {
@@ -91,7 +91,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#D4D4D4",
       fontFamily: "mixed",
       layout: "centered",
-      decorations: ["musical"],
+      decorations: ["violins", "grapes"],
     },
     fields: {
       showHebrewDate: true,
@@ -119,7 +119,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#6B7280",
       fontFamily: "serif",
       layout: "centered",
-      decorations: ["floral"],
+      decorations: ["floralCorners", "rings"],
     },
     fields: {
       showHebrewDate: true,
@@ -174,7 +174,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#9D174D",
       fontFamily: "script",
       layout: "centered",
-      decorations: ["floral", "hearts"],
+      decorations: ["floralCorners", "floral", "hearts"],
     },
     fields: {
       showHebrewDate: false,
@@ -203,6 +203,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#E9D5FF",
       fontFamily: "sans-serif",
       layout: "centered",
+      decorations: ["hearts", "confetti"],
     },
     fields: {
       showHebrewDate: true,
@@ -229,7 +230,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#A16207",
       fontFamily: "mixed",
       layout: "centered",
-      decorations: ["torah"],
+      decorations: ["torah", "starOfDavid"],
     },
     fields: {
       showHebrewDate: true,
@@ -257,7 +258,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#CBD5E1",
       fontFamily: "mixed",
       layout: "centered",
-      decorations: ["stars"],
+      decorations: ["stars", "grapes", "dove"],
     },
     fields: {
       showHebrewDate: true,
@@ -288,7 +289,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       secondaryTextColor: "#94A3B8",
       fontFamily: "mixed",
       layout: "centered",
-      decorations: ["torah", "geometric"],
+      decorations: ["torah", "starOfDavid", "ribbons"],
     },
     fields: {
       showHebrewDate: true,
@@ -752,7 +753,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     },
   },
 
-  // ═══════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════��
   // PROFESSIONAL TEMPLATES
   // ═══════════════════════════════════════════════════════════
   
