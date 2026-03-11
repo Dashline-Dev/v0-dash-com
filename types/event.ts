@@ -64,6 +64,16 @@ export interface Event {
   created_by: string
   created_at: string
   updated_at: string
+  // Invitation/template fields
+  template_id: string | null
+  invitation_image_url: string | null
+  invitation_message: string | null
+  custom_styles: Record<string, unknown> | null
+  gallery_images: string[] | null
+  additional_info: string | null
+  dress_code: string | null
+  rsvp_deadline: string | null
+  contact_info: string | null
 }
 
 export interface EventWithMeta extends Event {
@@ -103,6 +113,16 @@ export interface CreateEventData {
   longitude?: number
   virtual_link?: string
   max_attendees?: number
+  // Invitation/template fields
+  template_id?: string
+  invitation_image_url?: string
+  invitation_message?: string
+  custom_styles?: Record<string, unknown>
+  gallery_images?: string[]
+  additional_info?: string
+  dress_code?: string
+  rsvp_deadline?: string
+  contact_info?: string
 }
 
 export interface UpdateEventData {

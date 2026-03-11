@@ -204,13 +204,17 @@ export async function createEvent(data: CreateEventData): Promise<string> {
       cover_image_url, event_type, visibility, status,
       start_time, end_time, timezone,
       location_name, location_address, latitude, longitude,
-      virtual_link, max_attendees, created_by, organizer_id
+      virtual_link, max_attendees, created_by, organizer_id,
+      template_id, invitation_image_url, invitation_message,
+      additional_info, dress_code, contact_info, gallery_images, rsvp_deadline
     ) VALUES (
       $1, $2, $3, $4, $5,
       $6, $7, $8, 'published',
       $9, $10, $11,
       $12, $13, $14, $15,
-      $16, $17, $18, $18
+      $16, $17, $18, $18,
+      $19, $20, $21,
+      $22, $23, $24, $25, $26
     ) RETURNING slug`,
     [
       data.community_id || null,
@@ -231,6 +235,15 @@ export async function createEvent(data: CreateEventData): Promise<string> {
       data.virtual_link || null,
       data.max_attendees || null,
       user.id,
+      // Invitation fields
+      data.template_id || null,
+      data.invitation_image_url || null,
+      data.invitation_message || null,
+      data.additional_info || null,
+      data.dress_code || null,
+      data.contact_info || null,
+      data.gallery_images && data.gallery_images.length > 0 ? data.gallery_images : null,
+      data.rsvp_deadline || null,
     ]
   )
 

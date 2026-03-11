@@ -9,9 +9,11 @@ import { Loader2, ArrowLeft, ArrowRight } from "lucide-react"
 import { createEvent } from "@/lib/actions/event-actions"
 import type { EventType, EventVisibility } from "@/types/event"
 
+import { StepTemplate } from "./step-template"
 import { StepBasics } from "./step-basics"
 import { StepDateTime } from "./step-date-time"
 import { StepLocation } from "./step-location"
+import { StepInvitation } from "./step-invitation"
 import { StepSettings } from "./step-settings"
 import { StepReview } from "./step-review"
 
@@ -32,9 +34,18 @@ export interface EventFormData {
   max_attendees: string
   community_id: string
   space_id: string
+  // Template & invitation fields
+  template_id: string
+  invitation_image_url: string
+  invitation_message: string
+  additional_info: string
+  dress_code: string
+  contact_info: string
+  gallery_images: string[]
+  rsvp_deadline: string
 }
 
-const STEPS = ["Basics", "Date & Time", "Location", "Settings", "Review"]
+const STEPS = ["Template", "Basics", "Date & Time", "Location", "Invitation", "Settings", "Review"]
 
 interface CreateEventWizardProps {
   communities?: { id: string; name: string; slug: string }[]
@@ -64,6 +75,15 @@ export function CreateEventWizard({ communities = [], preSelectedCommunityId }: 
     max_attendees: "",
     community_id: preSelectedCommunityId || "",
     space_id: "",
+    // Template & invitation fields
+    template_id: "",
+    invitation_image_url: "",
+    invitation_message: "",
+    additional_info: "",
+    dress_code: "",
+    contact_info: "",
+    gallery_images: [],
+    rsvp_deadline: "",
   })
 
   const updateFormData = (updates: Partial<EventFormData>) => {
@@ -72,20 +92,24 @@ export function CreateEventWizard({ communities = [], preSelectedCommunityId }: 
 
   const canProceed = () => {
     switch (step) {
-      case 0: // Basics
+      case 0: // Template (optional)
+        return true
+      case 1: // Basics
         return formData.title.trim().length >= 3
-      case 1: // Date & Time
+      case 2: // Date & Time
         return formData.start_date && formData.start_time && formData.end_date && formData.end_time
-      case 2: // Location
+      case 3: // Location
         if (formData.event_type === "virtual") {
           return formData.virtual_link.trim().length > 0
         }
         if (formData.event_type === "in_person") {
           return formData.location_name.trim().length > 0
         }
-        // hybrid - need both
+        // hybrid - need at least one
         return formData.location_name.trim().length > 0 || formData.virtual_link.trim().length > 0
-      case 3: // Settings
+      case 4: // Invitation (optional)
+        return true
+      case 5: // Settings
         return true
       default:
         return true
@@ -114,6 +138,15 @@ export function CreateEventWizard({ communities = [], preSelectedCommunityId }: 
           max_attendees: formData.max_attendees ? parseInt(formData.max_attendees) : undefined,
           community_id: formData.community_id || null,
           space_id: formData.space_id || null,
+          // Template & invitation fields
+          template_id: formData.template_id || undefined,
+          invitation_image_url: formData.invitation_image_url || undefined,
+          invitation_message: formData.invitation_message || undefined,
+          additional_info: formData.additional_info || undefined,
+          dress_code: formData.dress_code || undefined,
+          contact_info: formData.contact_info || undefined,
+          gallery_images: formData.gallery_images.length > 0 ? formData.gallery_images : undefined,
+          rsvp_deadline: formData.rsvp_deadline || undefined,
         })
 
         // Redirect to the event page
@@ -128,14 +161,18 @@ export function CreateEventWizard({ communities = [], preSelectedCommunityId }: 
   const renderStep = () => {
     switch (step) {
       case 0:
-        return <StepBasics formData={formData} updateFormData={updateFormData} />
+        return <StepTemplate data={formData} onChange={updateFormData} />
       case 1:
-        return <StepDateTime formData={formData} updateFormData={updateFormData} />
+        return <StepBasics formData={formData} updateFormData={updateFormData} />
       case 2:
-        return <StepLocation formData={formData} updateFormData={updateFormData} />
+        return <StepDateTime formData={formData} updateFormData={updateFormData} />
       case 3:
-        return <StepSettings formData={formData} updateFormData={updateFormData} communities={communities} />
+        return <StepLocation formData={formData} updateFormData={updateFormData} />
       case 4:
+        return <StepInvitation data={formData} onChange={updateFormData} />
+      case 5:
+        return <StepSettings formData={formData} updateFormData={updateFormData} communities={communities} />
+      case 6:
         return <StepReview formData={formData} communities={communities} />
       default:
         return null

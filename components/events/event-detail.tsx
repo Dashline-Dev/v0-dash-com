@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { RsvpButton } from "./rsvp-button"
 import { EventShareDialog } from "./event-share-dialog"
+import { EventInvitationDisplay } from "./event-invitation-display"
 import type { EventWithMeta } from "@/types/event"
 import {
   EVENT_TYPE_LABELS,
@@ -151,6 +152,9 @@ export function EventDetail({ event, rsvps, communities = [] }: EventDetailProps
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left: description */}
         <div className="md:col-span-2 flex flex-col gap-5">
+          {/* Invitation content (image, message, details) */}
+          <EventInvitationDisplay event={event} />
+
           {event.description && (
             <div>
               <h2 className="text-sm font-semibold text-foreground mb-2">About this event</h2>
@@ -159,11 +163,6 @@ export function EventDetail({ event, rsvps, communities = [] }: EventDetailProps
               </p>
             </div>
           )}
-
-          {/* Extension point: Announcements */}
-          {/* TODO: Wire in when Announcements module is built
-          <AnnouncementsFeed eventId={event.id} />
-          */}
         </div>
 
         {/* Right: info sidebar */}

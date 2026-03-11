@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent } from "@/components/ui/card"
+import { EventInvitationDisplay } from "./event-invitation-display"
 import type { EventWithMeta } from "@/types/event"
 import {
   EVENT_TYPE_LABELS,
@@ -124,8 +125,11 @@ export function EventPublicView({ event }: EventPublicViewProps) {
 
       {/* Details grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left: description */}
+        {/* Left: description and invitation */}
         <div className="md:col-span-2 flex flex-col gap-5">
+          {/* Invitation content (image, message, details) */}
+          <EventInvitationDisplay event={event} />
+
           {event.description && (
             <div>
               <h2 className="text-sm font-semibold text-foreground mb-2">About this event</h2>
