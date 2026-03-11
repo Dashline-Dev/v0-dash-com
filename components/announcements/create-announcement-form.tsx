@@ -149,12 +149,12 @@ export function CreateAnnouncementForm({
           {spaces.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="space">Space (optional)</Label>
-              <Select value={spaceId} onValueChange={setSpaceId}>
+              <Select value={spaceId || "all"} onValueChange={(v) => setSpaceId(v === "all" ? "" : v)}>
                 <SelectTrigger id="space">
                   <SelectValue placeholder="All community members" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All community members</SelectItem>
+                  <SelectItem value="all">All community members</SelectItem>
                   {spaces.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
