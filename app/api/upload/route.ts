@@ -35,11 +35,11 @@ export async function POST(request: NextRequest) {
     }
 
     const blob = await put(`${folder}/${Date.now()}-${file.name}`, file, {
-      access: "public",
+      access: "private",
     })
 
     return NextResponse.json({
-      url: blob.url,
+      url: blob.downloadUrl, // Use downloadUrl for private blobs - this is a signed URL
       pathname: blob.pathname,
       filename: file.name,
       size: file.size,
