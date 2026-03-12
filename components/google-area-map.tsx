@@ -7,6 +7,30 @@ import { Users, CalendarDays, MapPin } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
+/* ── MapController - handles programmatic panning/zooming ── */
+
+function MapController({ center, zoom, selectedId }: { center: { lat: number; lng: number }; zoom: number; selectedId?: string | null }) {
+  const map = useMap()
+  const lastSelectedId = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!map) return
+    
+    // Only pan/zoom when selectedId changes (not on initial render or random changes)
+    if (selectedId && selectedId !== lastSelectedId.current) {
+      console.log("[v0] MapController: panning to", center, "zoom:", zoom)
+      map.panTo(center)
+      map.setZoom(zoom)
+      lastSelectedId.current = selectedId
+    } else if (!selectedId && lastSelectedId.current) {
+      // Selection cleared - zoom back out
+      lastSelectedId.current = null
+    }
+  }, [map, center, zoom, selectedId])
+
+  return null
+}
+
 /* ── Color palette for neighborhood overlays ─────────────── */
 
 const COLORS = [
@@ -198,8 +222,8 @@ export function AreaMap({
   return (
     <div className={cn("rounded-xl overflow-hidden border border-border", className)} style={{ height }}>
       <GoogleMapComponent
-        center={center}
-        zoom={zoom}
+        defaultCenter={center}
+        defaultZoom={zoom}
         gestureHandling="cooperative"
         disableDefaultUI
         zoomControl
@@ -209,6 +233,9 @@ export function AreaMap({
         mapId={process.env.NEXT_PUBLIC_GOOGLE_MAP_ID || "DEMO_MAP_ID"}
         style={{ width: "100%", height: "100%" }}
       >
+        {/* Controller for programmatic panning/zooming */}
+        <MapController center={center} zoom={zoom} selectedId={selectedId} />
+
         {/* Neighborhood rectangles */}
         {neighborhoods.map((n, i) => (
           <NeighborhoodRect key={`nr-${n.id}`} n={n} idx={i} onClick={handleNeighborhoodClick} />

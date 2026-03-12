@@ -101,9 +101,16 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
   const handleSelectMarker = (markerId: string) => {
     setSelectedMarkerId(markerId)
     const marker = mapMarkers.find(m => m.id === markerId)
-    if (marker && marker.latitude && marker.longitude && marker.latitude !== 0 && marker.longitude !== 0) {
-      setMapCenter({ lat: marker.latitude, lng: marker.longitude })
-      setMapZoom(15) // Zoom in to street level
+    console.log("[v0] handleSelectMarker:", markerId, "marker:", marker)
+    if (marker) {
+      console.log("[v0] marker coords:", marker.latitude, marker.longitude)
+      if (marker.latitude && marker.longitude && marker.latitude !== 0 && marker.longitude !== 0) {
+        console.log("[v0] Zooming to:", marker.latitude, marker.longitude)
+        setMapCenter({ lat: marker.latitude, lng: marker.longitude })
+        setMapZoom(15) // Zoom in to street level
+      } else {
+        console.log("[v0] No valid coordinates for marker")
+      }
     }
   }
 
@@ -401,14 +408,25 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
                                     {marker.subtitle}
                                   </p>
                                 )}
+                                {/* View Details button when selected */}
+                                {selectedMarkerId === marker.id && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-2 h-7 text-xs"
+                                    asChild
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Link href={marker.href}>
+                                      View Details
+                                      <ArrowRight className="w-3 h-3 ml-1" />
+                                    </Link>
+                                  </Button>
+                                )}
                               </div>
-                              <Link 
-                                href={marker.href} 
-                                className="text-muted-foreground hover:text-primary transition-opacity shrink-0"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <ArrowRight className="w-4 h-4" />
-                              </Link>
+                              {selectedMarkerId !== marker.id && (
+                                <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                              )}
                             </div>
                           </CardContent>
                         </Card>
