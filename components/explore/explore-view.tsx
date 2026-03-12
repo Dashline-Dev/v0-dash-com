@@ -385,8 +385,8 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
         {/* Default view - Trending & Featured */}
         {viewMode === "list" && !showResults && (
           <div className="space-y-10">
-            {/* Trending Communities */}
-            {trendingCommunities.length > 0 && (
+            {/* Trending Communities - show when filter is 'all' or 'community' */}
+            {(typeFilter === "all" || typeFilter === "community") && trendingCommunities.length > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -409,8 +409,8 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
               </section>
             )}
 
-            {/* Upcoming Events */}
-            {trendingEvents.length > 0 && (
+            {/* Upcoming Events - show when filter is 'all' or 'event' */}
+            {(typeFilter === "all" || typeFilter === "event") && trendingEvents.length > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -431,6 +431,29 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
                   ))}
                 </div>
               </section>
+            )}
+
+            {/* Show message when no content for selected filter */}
+            {typeFilter !== "all" && typeFilter !== "community" && typeFilter !== "event" && (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                  {TYPE_ICONS[typeFilter] && (() => {
+                    const FilterIcon = TYPE_ICONS[typeFilter]
+                    return <FilterIcon className="w-8 h-8 text-muted-foreground/50" />
+                  })()}
+                </div>
+                <h3 className="text-lg font-medium text-foreground mb-1">
+                  Browse {typeFilter === "space" ? "Spaces" : "Areas"}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Search above to find {typeFilter === "space" ? "spaces" : "areas"} or view all
+                </p>
+                <Button variant="outline" asChild>
+                  <Link href={typeFilter === "space" ? "/spaces" : "/areas"}>
+                    View all {typeFilter === "space" ? "spaces" : "areas"}
+                  </Link>
+                </Button>
+              </div>
             )}
 
           </div>
