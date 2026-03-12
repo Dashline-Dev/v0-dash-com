@@ -48,6 +48,7 @@ export function PlacesAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
   const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
+  const justSelectedRef = useRef(false)
 
   // Initialize session token
   useEffect(() => {
@@ -58,6 +59,12 @@ export function PlacesAutocomplete({
 
   const fetchSuggestions = useCallback(
     async (input: string) => {
+      // Skip fetching if we just selected a place
+      if (justSelectedRef.current) {
+        justSelectedRef.current = false
+        return
+      }
+
       if (!input || input.length < 2) {
         setSuggestions([])
         return
@@ -110,6 +117,8 @@ export function PlacesAutocomplete({
 
   const selectPlace = useCallback(
     async (suggestion: Suggestion) => {
+      // Set flag to prevent re-fetching suggestions after selection
+      justSelectedRef.current = true
       onChange(suggestion.description)
       setSuggestions([])
       setIsOpen(false)
