@@ -500,9 +500,9 @@ export async function removeAreaZipCode(areaId: string, zipCode: string): Promis
   await sql(`DELETE FROM area_zip_codes WHERE area_id = $1 AND zip_code = $2`, [areaId, zipCode])
 }
 
-// ── Extract zip code from address string ────────────────────
+// ── Extract zip code from address string (internal helper) ──
 
-export function extractZipCode(address: string | null | undefined): string | null {
+function extractZipCode(address: string | null | undefined): string | null {
   if (!address) return null
   // Match US zip codes: 5 digits or 5+4 format
   const match = address.match(/\b(\d{5})(?:-\d{4})?\b/)
