@@ -83,9 +83,15 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
   const [hasSearched, setHasSearched] = useState(false)
   const [mapMarkers, setMapMarkers] = useState<ExploreMapMarker[]>([])
   const [loadingMarkers, setLoadingMarkers] = useState(false)
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null)
 
   // Show side-by-side view when a specific filter is selected (not "all")
   const showSideBySide = typeFilter !== "all"
+
+  // Reset selection when filter changes
+  useEffect(() => {
+    setSelectedMarkerId(null)
+  }, [typeFilter])
 
   // Load map markers when a filter is selected
   useEffect(() => {
@@ -348,34 +354,50 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
                       </div>
                     ) : (
                       mapMarkers.map((marker) => (
-                        <Link key={marker.id} href={marker.href}>
-                          <Card className="group hover:shadow-md hover:border-primary/30 transition-all">
-                            <CardContent className="p-4">
-                              <div className="flex items-start gap-3">
-                                <div className={cn(
-                                  "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                                  TYPE_COLORS[marker.type]?.bg
-                                )}>
-                                  {TYPE_ICONS[marker.type] && (() => {
-                                    const Icon = TYPE_ICONS[marker.type]
-                                    return <Icon className={cn("w-5 h-5", TYPE_COLORS[marker.type]?.text)} />
-                                  })()}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h3 className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
-                                    {marker.title}
-                                  </h3>
-                                  {marker.subtitle && (
-                                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                      {marker.subtitle}
-                                    </p>
-                                  )}
-                                </div>
-                                <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                        <Card 
+                          key={marker.id} 
+                          className={cn(
+                            "group cursor-pointer transition-all",
+                            selectedMarkerId === marker.id 
+                              ? "shadow-md border-primary bg-primary/5" 
+                              : "hover:shadow-md hover:border-primary/30"
+                          )}
+                          onClick={() => setSelectedMarkerId(marker.id)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-3">
+                              <div className={cn(
+                                "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                                TYPE_COLORS[marker.type]?.bg
+                              )}>
+                                {TYPE_ICONS[marker.type] && (() => {
+                                  const Icon = TYPE_ICONS[marker.type]
+                                  return <Icon className={cn("w-5 h-5", TYPE_COLORS[marker.type]?.text)} />
+                                })()}
                               </div>
-                            </CardContent>
-                          </Card>
-                        </Link>
+                              <div className="flex-1 min-w-0">
+                                <h3 className={cn(
+                                  "font-medium text-sm truncate transition-colors",
+                                  selectedMarkerId === marker.id ? "text-primary" : "text-foreground group-hover:text-primary"
+                                )}>
+                                  {marker.title}
+                                </h3>
+                                {marker.subtitle && (
+                                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                    {marker.subtitle}
+                                  </p>
+                                )}
+                              </div>
+                              <Link 
+                                href={marker.href} 
+                                className="text-muted-foreground hover:text-primary transition-opacity shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ArrowRight className="w-4 h-4" />
+                              </Link>
+                            </div>
+                          </CardContent>
+                        </Card>
                       ))
                     )}
                   </div>
@@ -395,6 +417,8 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
                     height="100%"
                     zoom={4}
                     center={{ lat: 40.0, lng: -95.0 }}
+                    selectedId={selectedMarkerId}
+                    onMarkerClick={(marker) => setSelectedMarkerId(marker.id)}
                   />
                 )}
               </div>
