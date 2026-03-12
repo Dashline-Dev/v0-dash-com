@@ -184,11 +184,16 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
   const isSearching = query.trim().length >= 2
   const showResults = isSearching && (loading || results.length > 0 || hasSearched)
 
-  // Convert markers for AreaMap component
+  // Helper to check for valid coordinates (not null, not 0, within bounds)
+  const hasValidCoords = (lat: number, lng: number) => 
+    lat && lng && Math.abs(lat) > 0.01 && Math.abs(lng) > 0.01 && 
+    Math.abs(lat) <= 90 && Math.abs(lng) <= 180
+
+  // Convert markers for AreaMap component - only include items with valid coordinates
   const communityMarkers: MapCommunity[] = useMemo(
     () =>
       mapMarkers
-        .filter((m) => m.type === "community")
+        .filter((m) => m.type === "community" && hasValidCoords(m.latitude, m.longitude))
         .map((m) => ({
           id: m.id,
           name: m.title,
@@ -203,7 +208,7 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
   const eventMarkers: MapEvent[] = useMemo(
     () =>
       mapMarkers
-        .filter((m) => m.type === "event")
+        .filter((m) => m.type === "event" && hasValidCoords(m.latitude, m.longitude))
         .map((m) => ({
           id: m.id,
           title: m.title,
