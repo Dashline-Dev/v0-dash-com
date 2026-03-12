@@ -92,62 +92,10 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
         </p>
       </div>
 
-      {/* Main layout: Preview on left, controls on right */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Live Preview Panel */}
-        <div className="order-2 lg:order-1">
-          <div className="sticky top-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium flex items-center gap-2">
-                <Eye className="w-4 h-4" />
-                Live Preview
-              </h3>
-              <Select
-                value={cardSize}
-                onValueChange={(v) => updateCardSize(v as CardSize)}
-              >
-                <SelectTrigger className="w-[180px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="whatsapp">WhatsApp (9:16)</SelectItem>
-                  <SelectItem value="instagram_story">Story (9:16)</SelectItem>
-                  <SelectItem value="instagram_square">Square (1:1)</SelectItem>
-                  <SelectItem value="instagram_portrait">Portrait (4:5)</SelectItem>
-                  <SelectItem value="facebook">Facebook (1.91:1)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="bg-muted/30 rounded-xl p-4 border border-border flex items-center justify-center min-h-[400px]">
-              {formData.template_id ? (
-                <div className="w-full max-w-[280px]">
-                  <InvitationCard
-                    event={previewEvent}
-                    templateId={formData.template_id}
-                    size={cardSize}
-                    className="w-full shadow-xl rounded-lg"
-                  />
-                </div>
-              ) : (
-                <div className="text-center text-muted-foreground py-12">
-                  <Palette className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                  <p className="font-medium">No template selected</p>
-                  <p className="text-sm mt-1">Choose a design to see your invitation</p>
-                </div>
-              )}
-            </div>
-
-            {formData.template_id && (
-              <p className="text-xs text-center text-muted-foreground mt-2">
-                {CARD_SIZES[cardSize].width} x {CARD_SIZES[cardSize].height}px
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Controls Panel */}
-        <div className="order-1 lg:order-2 space-y-4">
+      {/* Main layout: Side by side on desktop */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Controls Panel - on left for desktop, top for mobile */}
+        <div className="flex-1 lg:max-w-[50%] space-y-4">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "templates" | "customize")}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="templates" className="gap-2">
@@ -363,6 +311,58 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
               )}
             </TabsContent>
           </Tabs>
+        </div>
+
+        {/* Live Preview Panel - on right for desktop, bottom for mobile */}
+        <div className="flex-1 lg:max-w-[50%]">
+          <div className="lg:sticky lg:top-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium flex items-center gap-2">
+                <Eye className="w-4 h-4" />
+                Live Preview
+              </h3>
+              <Select
+                value={cardSize}
+                onValueChange={(v) => updateCardSize(v as CardSize)}
+              >
+                <SelectTrigger className="w-[160px] h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="whatsapp">WhatsApp (9:16)</SelectItem>
+                  <SelectItem value="instagram_story">Story (9:16)</SelectItem>
+                  <SelectItem value="instagram_square">Square (1:1)</SelectItem>
+                  <SelectItem value="instagram_portrait">Portrait (4:5)</SelectItem>
+                  <SelectItem value="facebook">Facebook (1.91:1)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="bg-muted/30 rounded-xl p-4 border border-border flex items-center justify-center min-h-[450px]">
+              {formData.template_id ? (
+                <div className="w-full max-w-[280px]">
+                  <InvitationCard
+                    event={previewEvent}
+                    templateId={formData.template_id}
+                    size={cardSize}
+                    className="w-full shadow-xl rounded-lg"
+                  />
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground py-12">
+                  <Palette className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">No template selected</p>
+                  <p className="text-sm mt-1">Choose a design to see your invitation</p>
+                </div>
+              )}
+            </div>
+
+            {formData.template_id && (
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                {CARD_SIZES[cardSize].width} x {CARD_SIZES[cardSize].height}px
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
