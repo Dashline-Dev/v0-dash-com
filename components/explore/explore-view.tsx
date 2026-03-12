@@ -101,16 +101,16 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
   const handleSelectMarker = (markerId: string) => {
     setSelectedMarkerId(markerId)
     const marker = mapMarkers.find(m => m.id === markerId)
-    console.log("[v0] handleSelectMarker:", markerId, "marker:", marker)
     if (marker) {
-      console.log("[v0] marker coords:", marker.latitude, marker.longitude)
-      if (marker.latitude && marker.longitude && marker.latitude !== 0 && marker.longitude !== 0) {
-        console.log("[v0] Zooming to:", marker.latitude, marker.longitude)
+      // Check for valid coordinates (not null/0 and within reasonable bounds)
+      const hasValidCoords = marker.latitude && marker.longitude && 
+        Math.abs(marker.latitude) > 0.01 && Math.abs(marker.longitude) > 0.01 &&
+        Math.abs(marker.latitude) <= 90 && Math.abs(marker.longitude) <= 180
+      if (hasValidCoords) {
         setMapCenter({ lat: marker.latitude, lng: marker.longitude })
         setMapZoom(15) // Zoom in to street level
-      } else {
-        console.log("[v0] No valid coordinates for marker")
       }
+      // If no valid coordinates, just select the item without zooming the map
     }
   }
 

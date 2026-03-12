@@ -18,7 +18,6 @@ function MapController({ center, zoom, selectedId }: { center: { lat: number; ln
     
     // Only pan/zoom when selectedId changes (not on initial render or random changes)
     if (selectedId && selectedId !== lastSelectedId.current) {
-      console.log("[v0] MapController: panning to", center, "zoom:", zoom)
       map.panTo(center)
       map.setZoom(zoom)
       lastSelectedId.current = selectedId
