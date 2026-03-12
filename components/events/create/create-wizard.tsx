@@ -119,17 +119,23 @@ export function CreateEventWizard({ communities = [], preSelectedCommunityId }: 
     setError("")
     startTransition(async () => {
       try {
+        // Validate required fields
+        if (!formData.start_date || !formData.start_time) {
+          setError("Start date and time are required")
+          return
+        }
+        
         const startDateTime = `${formData.start_date}T${formData.start_time}:00`
         
         // If no end time specified, default to 1 hour after start time
         let endTime = formData.end_time
-        if (!endTime && formData.start_time) {
+        if (!endTime) {
           const [h, m] = formData.start_time.split(":").map(Number)
           const endH = (h + 1) % 24
           endTime = `${String(endH).padStart(2, "0")}:${String(m).padStart(2, "0")}`
         }
         const endDate = formData.end_date || formData.start_date
-        const endDateTime = `${endDate}T${endTime || formData.start_time}:00`
+        const endDateTime = `${endDate}T${endTime}:00`
 
         const slug = await createEvent({
           title: formData.title,

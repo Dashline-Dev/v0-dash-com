@@ -97,10 +97,9 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
         const markers = await getExploreMapMarkers({
           type: typeFilter === "all" ? "all" : typeFilter,
         })
-        console.log("[v0] Map markers loaded:", markers.length, markers.slice(0, 3))
         setMapMarkers(markers)
       } catch (error) {
-        console.error("[v0] Failed to load map markers:", error)
+        console.error("Failed to load map markers:", error)
         setMapMarkers([])
       } finally {
         setLoadingMarkers(false)

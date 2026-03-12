@@ -500,6 +500,95 @@ export async function removeAreaZipCode(areaId: string, zipCode: string): Promis
   await sql(`DELETE FROM area_zip_codes WHERE area_id = $1 AND zip_code = $2`, [areaId, zipCode])
 }
 
+// ── Extract zip code from address string ────────────────────
+
+export function extractZipCode(address: string | null | undefined): string | null {
+  if (!address) return null
+  // Match US zip codes: 5 digits or 5+4 format
+  const match = address.match(/\b(\d{5})(?:-\d{4})?\b/)
+  return match ? match[1] : null
+}
+
+// ── Find areas that contain a specific zip code ─────────────
+
+export async function findAreasByZipCode(zipCode: string): Promise<{ id: string; name: string; slug: string; type: string }[]> {
+  if (!zipCode) return []
+  
+  const rows = await sql(
+    `SELECT DISTINCT a.id, a.name, a.slug, a.type
+     FROM areas a
+     JOIN area_zip_codes azc ON azc.area_id = a.id
+     WHERE azc.zip_code = $1 AND a.status = 'active'
+     ORDER BY a.type DESC, a.name ASC`,
+    [zipCode]
+  )
+  
+  return rows.map(r => ({
+    id: r.id as string,
+    name: r.name as string,
+    slug: r.slug as string,
+    type: r.type as string,
+  }))
+}
+
+// ── Link a community to areas based on its location zip code ─
+
+export async function linkCommunityToAreasByZipCode(
+  communityId: string,
+  address: string | null | undefined
+): Promise<void> {
+  const zipCode = extractZipCode(address)
+  if (!zipCode) return
+  
+  const areas = await findAreasByZipCode(zipCode)
+  if (areas.length === 0) return
+  
+  // Link community to all matching areas
+  for (const area of areas) {
+    await sql(
+      `INSERT INTO community_areas (community_id, area_id)
+       VALUES ($1, $2)
+       ON CONFLICT DO NOTHING`,
+      [communityId, area.id]
+    )
+  }
+}
+
+// ── Unlink all area associations for a community ────────────
+
+export async function unlinkCommunityFromAllAreas(communityId: string): Promise<void> {
+  await sql(`DELETE FROM community_areas WHERE community_id = $1`, [communityId])
+}
+
+// ── Link a space to areas based on zip code ─────────────────
+
+export async function linkSpaceToAreasByZipCode(
+  spaceId: string,
+  address: string | null | undefined
+): Promise<void> {
+  const zipCode = extractZipCode(address)
+  if (!zipCode) return
+  
+  const areas = await findAreasByZipCode(zipCode)
+  if (areas.length === 0) return
+  
+  // Link space to all matching areas
+  for (const area of areas) {
+    await sql(
+      `INSERT INTO space_areas (space_id, area_id, created_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT DO NOTHING`,
+      [spaceId, area.id]
+    )
+  }
+}
+
+// ── Unlink all area associations for a space ────────────────
+
+export async function unlinkSpaceFromAllAreas(spaceId: string): Promise<void> {
+  await sql(`DELETE FROM space_areas WHERE space_id = $1`, [spaceId])
+}
+
 // ── Get all areas (for dropdowns) ───────────────────────────
 
 export async function getAllAreasForSelect(): Promise<{ id: string; name: string; type: string; parentName: string | null }[]> {

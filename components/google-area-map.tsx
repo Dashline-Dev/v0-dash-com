@@ -134,9 +134,6 @@ export function AreaMap({
 
   const uniqueC = dedupById(communities).filter((c) => toFinite(c.lat) != null && toFinite(c.lng) != null)
   const uniqueE = dedupById(events).filter((e) => toFinite(e.lat) != null && toFinite(e.lng) != null)
-  
-  console.log("[v0] AreaMap - communities:", communities.length, "filtered:", uniqueC.length)
-  console.log("[v0] AreaMap - events:", events.length, "filtered:", uniqueE.length)
 
   const handleNeighborhoodClick = useCallback((n: MapNeighborhood) => {
     setSelectedNeighborhood(n)

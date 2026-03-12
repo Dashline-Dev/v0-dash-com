@@ -354,11 +354,6 @@ export async function getExploreMapMarkers(opts?: {
     : []
 
   if (!typeFilter || typeFilter === "community") {
-    // Debug: Check total communities vs ones with coordinates
-    const countAll = await sql(`SELECT COUNT(*) as cnt FROM communities WHERE visibility = 'public'`)
-    const countWithCoords = await sql(`SELECT COUNT(*) as cnt FROM communities WHERE visibility = 'public' AND latitude IS NOT NULL AND longitude IS NOT NULL`)
-    console.log("[v0] Communities - total:", countAll[0]?.cnt, "with coords:", countWithCoords[0]?.cnt)
-    
     const rows = await sql(
       `SELECT c.id::text, c.name AS title, COALESCE(c.location_name, '') AS subtitle,
               c.slug, c.latitude, c.longitude

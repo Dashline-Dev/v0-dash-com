@@ -11,6 +11,7 @@ import {
   PERMISSIONS,
 } from "@/lib/permissions"
 import { logAuditEvent } from "@/lib/actions/audit-actions"
+import { linkCommunityToAreasByZipCode, unlinkCommunityFromAllAreas } from "@/lib/actions/area-actions"
 import type {
   Community,
   CommunityWithMeta,
@@ -221,19 +222,24 @@ export async function createCommunity(
       }
     }
 
-    // Insert rules
-    if (input.rules && input.rules.length > 0) {
-      for (let i = 0; i < input.rules.length; i++) {
-        await sql(
-          `INSERT INTO community_rules (community_id, title, description, sort_order)
-           VALUES ($1, $2, $3, $4)`,
-          [communityId, input.rules[i].title, input.rules[i].description, i + 1]
-        )
-      }
-    }
-
-    revalidatePath("/")
-    return { success: true, slug: input.slug, id: communityId as string }
+  // Insert rules
+  if (input.rules && input.rules.length > 0) {
+  for (let i = 0; i < input.rules.length; i++) {
+  await sql(
+  `INSERT INTO community_rules (community_id, title, description, sort_order)
+  VALUES ($1, $2, $3, $4)`,
+  [communityId, input.rules[i].title, input.rules[i].description, i + 1]
+  )
+  }
+  }
+  
+  // Link community to areas based on location zip code
+  if (input.location_name) {
+    await linkCommunityToAreasByZipCode(communityId as string, input.location_name)
+  }
+  
+  revalidatePath("/")
+  return { success: true, slug: input.slug, id: communityId as string }
   } catch (error) {
     console.error("Failed to create community:", error)
     return { success: false, error: "Something went wrong. Please try again." }
@@ -272,19 +278,27 @@ export async function updateCommunity(
     setClauses.push(`updated_at = now()`)
     params.push(communityId)
 
-    await sql(
-      `UPDATE communities SET ${setClauses.join(", ")} WHERE id = $${paramIndex}`,
-      params
-    )
-
-    revalidatePath("/")
-    revalidatePath(`/communities/${input.slug || ""}`)
-    return { success: true }
-  } catch (error) {
-    console.error("Failed to update community:", error)
-    return { success: false, error: "Something went wrong. Please try again." }
+  await sql(
+  `UPDATE communities SET ${setClauses.join(", ")} WHERE id = $${paramIndex}`,
+  params
+  )
+  
+  // If location changed, re-link to areas
+  if (input.location_name !== undefined) {
+    await unlinkCommunityFromAllAreas(communityId)
+    if (input.location_name) {
+      await linkCommunityToAreasByZipCode(communityId, input.location_name)
+    }
   }
-}
+  
+  revalidatePath("/")
+  revalidatePath(`/communities/${input.slug || ""}`)
+  return { success: true }
+  } catch (error) {
+  console.error("Failed to update community:", error)
+  return { success: false, error: "Something went wrong. Please try again." }
+  }
+  }
 
 // ── Delete Community ───────────────────────────────────────────────────
 
