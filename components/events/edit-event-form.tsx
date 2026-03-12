@@ -85,6 +85,7 @@ export function EditEventForm({
     description: event.description ?? "",
     cover_image_url: event.cover_image_url,
     event_type: event.event_type as EventType,
+    visibility: event.visibility ?? "public",
     status: event.status,
     start_time: formatDateTimeLocal(event.start_time, event.timezone),
     end_time: formatDateTimeLocal(event.end_time, event.timezone),
@@ -130,6 +131,7 @@ export function EditEventForm({
           description: form.description || null,
           cover_image_url: form.cover_image_url,
           event_type: form.event_type,
+          visibility: form.visibility,
           status: form.status,
           start_time: new Date(form.start_time).toISOString(),
           end_time: new Date(form.end_time).toISOString(),
@@ -255,6 +257,26 @@ export function EditEventForm({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="visibility">Visibility</Label>
+            <Select
+              value={form.visibility}
+              onValueChange={(v) => update("visibility", v)}
+            >
+              <SelectTrigger id="visibility">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">Public - Visible to everyone</SelectItem>
+                <SelectItem value="unlisted">Unlisted - Only accessible via link</SelectItem>
+                <SelectItem value="private">Private - Only community members</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Public events appear in explore and search results
+            </p>
           </div>
         </CardContent>
       </Card>

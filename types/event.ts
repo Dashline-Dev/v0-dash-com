@@ -131,6 +131,7 @@ export interface UpdateEventData {
   description?: string
   cover_image_url?: string
   event_type?: EventType
+  visibility?: string
   status?: EventStatus
   start_time?: string
   end_time?: string
@@ -141,6 +142,7 @@ export interface UpdateEventData {
   longitude?: number
   virtual_link?: string
   max_attendees?: number | null
+  contact_info?: string
 }
 
 // ── Helpers ─────────────────────────────────────────────────

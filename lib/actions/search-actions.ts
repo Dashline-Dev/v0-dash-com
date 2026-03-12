@@ -379,13 +379,15 @@ export async function getExploreMapMarkers(opts?: {
 
   if (!typeFilter || typeFilter === "event") {
     // Get events - include those without coordinates for list view
-    // Include both upcoming and recent past events (within last 30 days)
+    // Events are visible if: event visibility is public AND (no community OR community is public)
     const rows = await sql(
       `SELECT e.id::text, e.title, COALESCE(e.location_name, '') AS subtitle,
               e.slug, e.latitude, e.longitude, e.start_time
        FROM events e
-       JOIN communities c ON c.id = e.community_id
-       WHERE e.status = 'published' AND c.visibility = 'public'
+       LEFT JOIN communities c ON c.id = e.community_id
+       WHERE e.status = 'published' 
+         AND e.visibility = 'public'
+         AND (c.id IS NULL OR c.visibility = 'public')
        ${bounds ? `AND e.latitude IS NOT NULL AND e.longitude IS NOT NULL ${boundsFilter("e.latitude", "e.longitude")}` : ""}
        ORDER BY e.start_time DESC
        LIMIT 100`,

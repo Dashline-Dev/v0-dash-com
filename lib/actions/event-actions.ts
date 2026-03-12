@@ -297,6 +297,10 @@ export async function updateEvent(
     sets.push(`status = $${idx++}`)
     params.push(data.status)
   }
+  if (data.visibility !== undefined) {
+    sets.push(`visibility = $${idx++}`)
+    params.push(data.visibility)
+  }
   if (data.start_time !== undefined) {
     sets.push(`start_time = $${idx++}`)
     params.push(data.start_time)
@@ -332,6 +336,10 @@ export async function updateEvent(
   if (data.max_attendees !== undefined) {
     sets.push(`max_attendees = $${idx++}`)
     params.push(data.max_attendees)
+  }
+  if (data.contact_info !== undefined) {
+    sets.push(`contact_info = $${idx++}`)
+    params.push(data.contact_info)
   }
 
   if (sets.length === 0) return
