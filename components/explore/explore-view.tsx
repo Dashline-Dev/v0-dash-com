@@ -97,9 +97,10 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
         const markers = await getExploreMapMarkers({
           type: typeFilter === "all" ? "all" : typeFilter,
         })
+        console.log("[v0] Map markers loaded:", markers.length, markers.slice(0, 3))
         setMapMarkers(markers)
       } catch (error) {
-        console.error("Failed to load map markers:", error)
+        console.error("[v0] Failed to load map markers:", error)
         setMapMarkers([])
       } finally {
         setLoadingMarkers(false)
@@ -314,21 +315,14 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
                 <div className="h-[500px] rounded-xl border border-border bg-muted/30 flex items-center justify-center">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
-              ) : mapMarkers.length === 0 ? (
-                <div className="h-[500px] rounded-xl border border-border bg-muted/30 flex flex-col items-center justify-center">
-                  <MapPin className="w-12 h-12 text-muted-foreground/30 mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-1">No locations found</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Try a different filter to see locations on the map
-                  </p>
-                </div>
               ) : (
                 <>
                   <AreaMap
                     communities={communityMarkers}
                     events={eventMarkers}
                     height="500px"
-                    zoom={10}
+                    zoom={4}
+                    center={{ lat: 40.0, lng: -95.0 }}
                     className="shadow-lg"
                   />
                   <div className="flex items-center justify-center gap-6 mt-3 text-sm text-muted-foreground">
@@ -345,6 +339,11 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
                       <span>Events ({eventMarkers.length})</span>
                     </div>
                   </div>
+                  {mapMarkers.length === 0 && (
+                    <p className="text-center text-sm text-muted-foreground mt-2">
+                      No communities or events with locations found yet
+                    </p>
+                  )}
                 </>
               )}
             </GoogleMapsProvider>
