@@ -17,14 +17,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,17 +35,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
   getAllSpaces,
   adminDeleteSpace,
-  adminUpdateSpace,
   getAllCommunities,
   type AdminSpace,
 } from "@/lib/actions/admin-actions"
@@ -71,14 +54,6 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
   const [searching, setSearching] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AdminSpace | null>(null)
-  const [editTarget, setEditTarget] = useState<AdminSpace | null>(null)
-  const [editForm, setEditForm] = useState({
-    name: "",
-    slug: "",
-    type: "general",
-    visibility: "public",
-    join_policy: "open",
-  })
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [communities, setCommunities] = useState<{ id: string; name: string; slug: string }[]>([])
   const [offset, setOffset] = useState(0)
@@ -120,39 +95,6 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
     }
     setDeleteTarget(null)
     setActionLoading(null)
-  }
-
-  const openEditDialog = (space: AdminSpace) => {
-    setEditTarget(space)
-    setEditForm({
-      name: space.name,
-      slug: space.slug,
-      type: space.type,
-      visibility: space.visibility,
-    })
-  }
-
-  const handleEditSpace = async () => {
-    if (!editTarget) return
-    setActionLoading(editTarget.id)
-    const result = await adminUpdateSpace(editTarget.id, editForm)
-    if (result.ok) {
-      setSpaces((prev) =>
-        prev.map((s) =>
-          s.id === editTarget.id
-            ? {
-                ...s,
-                name: editForm.name,
-                slug: editForm.slug,
-                type: editForm.type,
-                visibility: editForm.visibility,
-              }
-            : s
-        )
-      )
-    }
-  setEditTarget(null)
-  setActionLoading(null)
   }
 
   const openCreateDialog = async () => {
@@ -269,9 +211,11 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openEditDialog(space)}>
-                  <Pencil className="w-4 h-4 mr-2" />
-                  Edit Space
+                <DropdownMenuItem asChild>
+                  <Link href={`/communities/${space.community_slug}/spaces/${space.slug}/edit`}>
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit Space
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link
@@ -326,104 +270,6 @@ export function AdminSpaces({ initialSpaces, initialTotal }: AdminSpacesProps) {
         communities={communities}
         onSuccess={handleSpaceCreated}
       />
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Space</DialogTitle>
-            <DialogDescription>
-              Update space information for {editTarget?.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Name</Label>
-              <Input
-                id="edit-name"
-                value={editForm.name}
-                onChange={(e) =>
-                  setEditForm((f) => ({ ...f, name: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-slug">Slug</Label>
-              <Input
-                id="edit-slug"
-                value={editForm.slug}
-                onChange={(e) =>
-                  setEditForm((f) => ({ ...f, slug: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <Select
-                value={editForm.type}
-                onValueChange={(v) => setEditForm((f) => ({ ...f, type: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="general">General</SelectItem>
-                  <SelectItem value="discussion">Discussion</SelectItem>
-                  <SelectItem value="events">Events</SelectItem>
-                  <SelectItem value="announcements">Announcements</SelectItem>
-                  <SelectItem value="resources">Resources</SelectItem>
-                  <SelectItem value="projects">Projects</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Visibility</Label>
-                <Select
-                  value={editForm.visibility}
-                  onValueChange={(v) => setEditForm((f) => ({ ...f, visibility: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="unlisted">Unlisted</SelectItem>
-                    <SelectItem value="private">Private</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Join Policy</Label>
-                <Select
-                  value={editForm.join_policy || "open"}
-                  onValueChange={(v) => setEditForm((f) => ({ ...f, join_policy: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="approval">Approval Required</SelectItem>
-                    <SelectItem value="invite_only">Invite Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditTarget(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditSpace} disabled={actionLoading === editTarget?.id}>
-              {actionLoading === editTarget?.id ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : null}
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Dialog */}
       <AlertDialog

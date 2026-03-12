@@ -16,16 +16,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,19 +35,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
   getAllCommunities,
   toggleCommunityVerified,
   adminDeleteCommunity,
-  adminUpdateCommunity,
-  adminCreateCommunity,
   type AdminCommunity,
 } from "@/lib/actions/admin-actions"
 
@@ -75,14 +56,6 @@ export function AdminCommunities({
   const [searching, setSearching] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AdminCommunity | null>(null)
-  const [editTarget, setEditTarget] = useState<AdminCommunity | null>(null)
-  const [editForm, setEditForm] = useState({
-    name: "",
-    slug: "",
-    description: "",
-    visibility: "public",
-    join_policy: "open",
-  })
   const [offset, setOffset] = useState(0)
   const limit = 50
 
@@ -135,39 +108,6 @@ export function AdminCommunities({
     }
     setDeleteTarget(null)
     setActionLoading(null)
-  }
-
-  const openEditDialog = (community: AdminCommunity) => {
-    setEditTarget(community)
-    setEditForm({
-      name: community.name,
-      slug: community.slug,
-      description: community.description || "",
-      visibility: community.visibility,
-    })
-  }
-
-  const handleEditCommunity = async () => {
-    if (!editTarget) return
-    setActionLoading(editTarget.id)
-    const result = await adminUpdateCommunity(editTarget.id, editForm)
-    if (result.ok) {
-      setCommunities((prev) =>
-        prev.map((c) =>
-          c.id === editTarget.id
-            ? {
-                ...c,
-                name: editForm.name,
-                slug: editForm.slug,
-                description: editForm.description,
-                visibility: editForm.visibility,
-              }
-            : c
-        )
-      )
-    }
-  setEditTarget(null)
-  setActionLoading(null)
   }
 
   return (
@@ -257,9 +197,11 @@ export function AdminCommunities({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openEditDialog(community)}>
-                  <Pencil className="w-4 h-4 mr-2" />
-                  Edit Community
+                <DropdownMenuItem asChild>
+                  <Link href={`/communities/${community.slug}/edit`}>
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit Community
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href={`/communities/${community.slug}/admin`}>
@@ -319,96 +261,6 @@ export function AdminCommunities({
           </Button>
         </div>
       )}
-
-{/* Edit Dialog */}
-      <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Community</DialogTitle>
-            <DialogDescription>
-              Update community information for {editTarget?.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Name</Label>
-              <Input
-                id="edit-name"
-                value={editForm.name}
-                onChange={(e) =>
-                  setEditForm((f) => ({ ...f, name: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-slug">Slug</Label>
-              <Input
-                id="edit-slug"
-                value={editForm.slug}
-                onChange={(e) =>
-                  setEditForm((f) => ({ ...f, slug: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={editForm.description}
-                onChange={(e) =>
-                  setEditForm((f) => ({ ...f, description: e.target.value }))
-                }
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Visibility</Label>
-                <Select
-                  value={editForm.visibility}
-                  onValueChange={(v) => setEditForm((f) => ({ ...f, visibility: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="unlisted">Unlisted</SelectItem>
-                    <SelectItem value="private">Private</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Join Policy</Label>
-                <Select
-                  value={editForm.join_policy || "open"}
-                  onValueChange={(v) => setEditForm((f) => ({ ...f, join_policy: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="approval">Approval Required</SelectItem>
-                    <SelectItem value="invite_only">Invite Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditTarget(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditCommunity} disabled={actionLoading === editTarget?.id}>
-              {actionLoading === editTarget?.id ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : null}
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Dialog */}
       <AlertDialog

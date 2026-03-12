@@ -482,6 +482,16 @@ export async function deleteArea(areaId: string): Promise<void> {
   await sql(`UPDATE areas SET status = 'inactive', updated_at = NOW() WHERE id = $1`, [areaId])
 }
 
+// ── Get zip codes for an area ────────────────────────────
+
+export async function getAreaZipCodes(areaId: string): Promise<string[]> {
+  const rows = await sql(
+    `SELECT zip_code FROM area_zip_codes WHERE area_id = $1 ORDER BY zip_code`,
+    [areaId]
+  )
+  return rows.map(r => r.zip_code as string)
+}
+
 // ── Admin: Add zip codes to area ────────────────────────────
 
 export async function addAreaZipCodes(areaId: string, zipCodes: string[]): Promise<void> {
