@@ -17,8 +17,6 @@ import {
   Sparkles,
   ArrowRight,
   Calendar,
-  Map as MapIcon,
-  List,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -83,19 +81,24 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
-  const [viewMode, setViewMode] = useState<"list" | "map">("list")
   const [mapMarkers, setMapMarkers] = useState<ExploreMapMarker[]>([])
   const [loadingMarkers, setLoadingMarkers] = useState(false)
 
-  // Load map markers when view mode changes to map or type filter changes
+  // Show side-by-side view when a specific filter is selected (not "all")
+  const showSideBySide = typeFilter !== "all"
+
+  // Load map markers when a filter is selected
   useEffect(() => {
-    if (viewMode !== "map") return
+    if (!showSideBySide) {
+      setMapMarkers([])
+      return
+    }
 
     const loadMarkers = async () => {
       setLoadingMarkers(true)
       try {
         const markers = await getExploreMapMarkers({
-          type: typeFilter === "all" ? "all" : typeFilter,
+          type: typeFilter,
         })
         setMapMarkers(markers)
       } catch (error) {
@@ -107,7 +110,7 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
     }
 
     loadMarkers()
-  }, [viewMode, typeFilter])
+  }, [showSideBySide, typeFilter])
 
   // Debounced search
   useEffect(() => {
@@ -271,86 +274,189 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
               </div>
             )}
 
-            {/* View toggle */}
-            <div className="flex items-center justify-center gap-1 mt-4">
-              <div className="inline-flex rounded-lg border border-border p-1 bg-muted/30">
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                    viewMode === "list"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <List className="w-4 h-4" />
-                  List
-                </button>
-                <button
-                  onClick={() => setViewMode("map")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                    viewMode === "map"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <MapIcon className="w-4 h-4" />
-                  Map
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
       {/* Content area */}
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
-        {/* Map View */}
-        {viewMode === "map" && (
-          <div className="mb-8">
-            <GoogleMapsProvider>
-              {loadingMarkers ? (
-                <div className="h-[500px] rounded-xl border border-border bg-muted/30 flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      <div className={cn(
+        "px-4 md:px-6 py-6 md:py-8",
+        showSideBySide ? "max-w-full" : "max-w-6xl mx-auto"
+      )}>
+        {/* Side-by-side view when filter is selected */}
+        {showSideBySide && (
+          <GoogleMapsProvider>
+            <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-280px)] min-h-[500px]">
+              {/* List panel */}
+              <div className="flex-1 lg:w-1/2 overflow-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    {TYPE_ICONS[typeFilter] && (() => {
+                      const FilterIcon = TYPE_ICONS[typeFilter]
+                      return <FilterIcon className="w-5 h-5 text-primary" />
+                    })()}
+                    {typeFilter === "community" && "Communities"}
+                    {typeFilter === "event" && "Events"}
+                    {typeFilter === "space" && "Spaces"}
+                    {typeFilter === "area" && "Areas"}
+                    <Badge variant="secondary" className="ml-2">
+                      {loading ? "..." : showResults ? total : mapMarkers.length}
+                    </Badge>
+                  </h2>
                 </div>
-              ) : (
-                <>
+
+                {/* Search results in side panel */}
+                {showResults ? (
+                  loading ? (
+                    <div className="flex items-center justify-center py-16">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    </div>
+                  ) : results.length === 0 ? (
+                    <div className="text-center py-16">
+                      <Search className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                      <h3 className="text-base font-medium text-foreground mb-1">No results</h3>
+                      <p className="text-sm text-muted-foreground">Try different keywords</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {results.map((result) => (
+                        <SearchResultCard key={`${result.type}-${result.id}`} result={result} compact />
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  /* Default list based on filter type */
+                  <div className="space-y-3">
+                    {loadingMarkers ? (
+                      <div className="flex items-center justify-center py-16">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      </div>
+                    ) : mapMarkers.length === 0 ? (
+                      <div className="text-center py-16">
+                        <div className="w-14 h-14 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                          {TYPE_ICONS[typeFilter] && (() => {
+                            const FilterIcon = TYPE_ICONS[typeFilter]
+                            return <FilterIcon className="w-7 h-7 text-muted-foreground/50" />
+                          })()}
+                        </div>
+                        <h3 className="text-base font-medium text-foreground mb-1">
+                          No {typeFilter === "community" ? "communities" : typeFilter === "event" ? "events" : typeFilter === "space" ? "spaces" : "areas"} found
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Try searching or check back later
+                        </p>
+                      </div>
+                    ) : (
+                      mapMarkers.map((marker) => (
+                        <Link key={marker.id} href={marker.href}>
+                          <Card className="group hover:shadow-md hover:border-primary/30 transition-all">
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3">
+                                <div className={cn(
+                                  "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                                  TYPE_COLORS[marker.type]?.bg
+                                )}>
+                                  {TYPE_ICONS[marker.type] && (() => {
+                                    const Icon = TYPE_ICONS[marker.type]
+                                    return <Icon className={cn("w-5 h-5", TYPE_COLORS[marker.type]?.text)} />
+                                  })()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                                    {marker.title}
+                                  </h3>
+                                  {marker.subtitle && (
+                                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                      {marker.subtitle}
+                                    </p>
+                                  )}
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Map panel */}
+              <div className="flex-1 lg:w-1/2 rounded-xl overflow-hidden border border-border bg-muted/30 min-h-[300px] lg:min-h-0">
+                {loadingMarkers ? (
+                  <div className="h-full flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : (
                   <AreaMap
                     communities={communityMarkers}
                     events={eventMarkers}
-                    height="500px"
+                    height="100%"
                     zoom={4}
                     center={{ lat: 40.0, lng: -95.0 }}
-                    className="shadow-lg"
                   />
-                  <div className="flex items-center justify-center gap-6 mt-3 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                        <Users className="w-3 h-3 text-primary-foreground" />
-                      </div>
-                      <span>Communities ({communityMarkers.length})</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
-                        <CalendarDays className="w-3 h-3 text-white" />
-                      </div>
-                      <span>Events ({eventMarkers.length})</span>
-                    </div>
-                  </div>
-                  {mapMarkers.length === 0 && (
-                    <p className="text-center text-sm text-muted-foreground mt-2">
-                      No communities or events with locations found yet
-                    </p>
-                  )}
-                </>
-              )}
-            </GoogleMapsProvider>
+                )}
+              </div>
+            </div>
+          </GoogleMapsProvider>
+        )}
+
+        {/* Default view - Trending & Featured (only when "All" is selected) */}
+        {!showSideBySide && !showResults && (
+          <div className="space-y-10">
+            {/* Trending Communities */}
+            {trendingCommunities.length > 0 && (
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    Trending Communities
+                  </h2>
+                  <Link
+                    href="/communities"
+                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                  >
+                    View all
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {trendingCommunities.map((item) => (
+                    <TrendingCommunityCard key={item.id} item={item} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Upcoming Events */}
+            {trendingEvents.length > 0 && (
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-orange-500" />
+                    Popular Events
+                  </h2>
+                  <Link
+                    href="/events"
+                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                  >
+                    View all
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {trendingEvents.map((item) => (
+                    <TrendingEventCard key={item.id} item={item} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         )}
 
-        {/* Search results */}
-        {viewMode === "list" && showResults && (
+        {/* Search results when "All" filter is selected */}
+        {!showSideBySide && showResults && (
           <div className="mb-8">
             {loading ? (
               <div className="flex items-center justify-center py-16">
@@ -379,83 +485,6 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
                 </div>
               </>
             )}
-          </div>
-        )}
-
-        {/* Default view - Trending & Featured */}
-        {viewMode === "list" && !showResults && (
-          <div className="space-y-10">
-            {/* Trending Communities - show when filter is 'all' or 'community' */}
-            {(typeFilter === "all" || typeFilter === "community") && trendingCommunities.length > 0 && (
-              <section>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                    Trending Communities
-                  </h2>
-                  <Link
-                    href="/communities"
-                    className="text-sm text-primary hover:underline flex items-center gap-1"
-                  >
-                    View all
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {trendingCommunities.map((item) => (
-                    <TrendingCommunityCard key={item.id} item={item} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Upcoming Events - show when filter is 'all' or 'event' */}
-            {(typeFilter === "all" || typeFilter === "event") && trendingEvents.length > 0 && (
-              <section>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-orange-500" />
-                    Popular Events
-                  </h2>
-                  <Link
-                    href="/events"
-                    className="text-sm text-primary hover:underline flex items-center gap-1"
-                  >
-                    View all
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {trendingEvents.map((item) => (
-                    <TrendingEventCard key={item.id} item={item} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Show message when no content for selected filter */}
-            {typeFilter !== "all" && typeFilter !== "community" && typeFilter !== "event" && (
-              <div className="text-center py-16">
-                <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                  {TYPE_ICONS[typeFilter] && (() => {
-                    const FilterIcon = TYPE_ICONS[typeFilter]
-                    return <FilterIcon className="w-8 h-8 text-muted-foreground/50" />
-                  })()}
-                </div>
-                <h3 className="text-lg font-medium text-foreground mb-1">
-                  Browse {typeFilter === "space" ? "Spaces" : "Areas"}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Search above to find {typeFilter === "space" ? "spaces" : "areas"} or view all
-                </p>
-                <Button variant="outline" asChild>
-                  <Link href={typeFilter === "space" ? "/spaces" : "/areas"}>
-                    View all {typeFilter === "space" ? "spaces" : "areas"}
-                  </Link>
-                </Button>
-              </div>
-            )}
-
           </div>
         )}
       </div>
@@ -531,27 +560,31 @@ function TrendingEventCard({ item }: { item: TrendingItem }) {
 
 // ── Search Result Card ───────────────────────────────────────
 
-function SearchResultCard({ result }: { result: SearchResult }) {
+function SearchResultCard({ result, compact }: { result: SearchResult; compact?: boolean }) {
   const Icon = TYPE_ICONS[result.type] || Search
   const colors = TYPE_COLORS[result.type] || TYPE_COLORS.community
 
   return (
     <Link href={result.href}>
       <Card className="group h-full overflow-hidden hover:shadow-md transition-all hover:border-primary/30">
-        <CardContent className="p-4">
+        <CardContent className={compact ? "p-3" : "p-4"}>
           <div className="flex items-start gap-3">
             <div
               className={cn(
-                "flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center border",
+                "flex-shrink-0 rounded-lg flex items-center justify-center border",
+                compact ? "w-9 h-9" : "w-10 h-10",
                 colors.bg,
                 colors.border
               )}
             >
-              <Icon className={cn("w-5 h-5", colors.text)} />
+              <Icon className={cn(compact ? "w-4 h-4" : "w-5 h-5", colors.text)} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+              <div className="flex items-center gap-2">
+                <h3 className={cn(
+                  "font-semibold text-foreground truncate group-hover:text-primary transition-colors",
+                  compact ? "text-sm" : "text-sm mb-1"
+                )}>
                   {result.title}
                 </h3>
               </div>
@@ -560,13 +593,18 @@ function SearchResultCard({ result }: { result: SearchResult }) {
                   {result.subtitle}
                 </p>
               )}
-              <Badge
-                variant="secondary"
-                className={cn("text-[10px] mt-2 capitalize", colors.bg, colors.text)}
-              >
-                {result.type}
-              </Badge>
+              {!compact && (
+                <Badge
+                  variant="secondary"
+                  className={cn("text-[10px] mt-2 capitalize", colors.bg, colors.text)}
+                >
+                  {result.type}
+                </Badge>
+              )}
             </div>
+            {compact && (
+              <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+            )}
           </div>
         </CardContent>
       </Card>
