@@ -84,14 +84,28 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
   const [mapMarkers, setMapMarkers] = useState<ExploreMapMarker[]>([])
   const [loadingMarkers, setLoadingMarkers] = useState(false)
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null)
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 40.0, lng: -95.0 })
+  const [mapZoom, setMapZoom] = useState(4)
 
   // Show side-by-side view when a specific filter is selected (not "all")
   const showSideBySide = typeFilter !== "all"
 
-  // Reset selection when filter changes
+  // Reset selection and map view when filter changes
   useEffect(() => {
     setSelectedMarkerId(null)
+    setMapCenter({ lat: 40.0, lng: -95.0 })
+    setMapZoom(4)
   }, [typeFilter])
+
+  // Handle selecting a marker - zoom to its location
+  const handleSelectMarker = (markerId: string) => {
+    setSelectedMarkerId(markerId)
+    const marker = mapMarkers.find(m => m.id === markerId)
+    if (marker && marker.latitude && marker.longitude && marker.latitude !== 0 && marker.longitude !== 0) {
+      setMapCenter({ lat: marker.latitude, lng: marker.longitude })
+      setMapZoom(15) // Zoom in to street level
+    }
+  }
 
   // Load map markers when a filter is selected
   useEffect(() => {
@@ -362,7 +376,7 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
                               ? "shadow-md border-primary bg-primary/5" 
                               : "hover:shadow-md hover:border-primary/30"
                           )}
-                          onClick={() => setSelectedMarkerId(marker.id)}
+                          onClick={() => handleSelectMarker(marker.id)}
                         >
                           <CardContent className="p-4">
                             <div className="flex items-start gap-3">
@@ -415,10 +429,10 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
                     communities={communityMarkers}
                     events={eventMarkers}
                     height="100%"
-                    zoom={4}
-                    center={{ lat: 40.0, lng: -95.0 }}
+                    zoom={mapZoom}
+                    center={mapCenter}
                     selectedId={selectedMarkerId}
-                    onMarkerClick={(marker) => setSelectedMarkerId(marker.id)}
+                    onMarkerClick={(marker) => handleSelectMarker(marker.id)}
                   />
                 )}
               </div>

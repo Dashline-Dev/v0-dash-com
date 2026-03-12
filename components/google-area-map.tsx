@@ -198,8 +198,8 @@ export function AreaMap({
   return (
     <div className={cn("rounded-xl overflow-hidden border border-border", className)} style={{ height }}>
       <GoogleMapComponent
-        defaultCenter={center}
-        defaultZoom={zoom}
+        center={center}
+        zoom={zoom}
         gestureHandling="cooperative"
         disableDefaultUI
         zoomControl
