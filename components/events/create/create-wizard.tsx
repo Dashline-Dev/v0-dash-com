@@ -50,31 +50,54 @@ const STEPS = ["Basics", "Date & Time", "Location", "Settings", "Design & Previe
 interface CreateEventWizardProps {
   communities?: { id: string; name: string; slug: string }[]
   preSelectedCommunityId?: string
+  preSelectedCommunityName?: string
+  preSelectedCommunityVisibility?: "public" | "unlisted" | "private"
+  preSelectedCommunityTimezone?: string
+  preSelectedSpaceId?: string
 }
 
-export function CreateEventWizard({ communities = [], preSelectedCommunityId }: CreateEventWizardProps) {
+export function CreateEventWizard({
+  communities = [],
+  preSelectedCommunityId,
+  preSelectedCommunityName,
+  preSelectedCommunityVisibility,
+  preSelectedCommunityTimezone,
+  preSelectedSpaceId,
+}: CreateEventWizardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [step, setStep] = useState(0)
   const [error, setError] = useState("")
+
+  // Derive the default visibility from the community's visibility setting:
+  // private community → private events; unlisted → unlisted; public → public
+  const defaultVisibility: "public" | "unlisted" | "private" =
+    preSelectedCommunityVisibility === "private"
+      ? "private"
+      : preSelectedCommunityVisibility === "unlisted"
+        ? "unlisted"
+        : "public"
 
   const [formData, setFormData] = useState<EventFormData>({
     title: "",
     description: "",
     cover_image_url: "",
     event_type: "in_person",
-    visibility: "public",
+    visibility: defaultVisibility,
     start_date: "",
     start_time: "",
     end_date: "",
     end_time: "",
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    timezone:
+      preSelectedCommunityTimezone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone ||
+      "UTC",
     location_name: "",
     location_address: "",
     virtual_link: "",
     max_attendees: "",
     community_id: preSelectedCommunityId || "",
-    space_id: "",
+    space_id: preSelectedSpaceId || "",
     // Template & invitation fields
     template_id: "",
     card_size: "whatsapp",
@@ -181,7 +204,17 @@ export function CreateEventWizard({ communities = [], preSelectedCommunityId }: 
       case 2:
         return <StepLocation formData={formData} updateFormData={updateFormData} />
       case 3:
-        return <StepSettings formData={formData} updateFormData={updateFormData} communities={communities} />
+        return (
+          <StepSettings
+            formData={formData}
+            updateFormData={updateFormData}
+            communities={communities}
+            preSelectedCommunityId={preSelectedCommunityId}
+            preSelectedCommunityName={preSelectedCommunityName}
+            preSelectedCommunityVisibility={preSelectedCommunityVisibility}
+            preSelectedSpaceId={preSelectedSpaceId}
+          />
+        )
       case 4:
         return <StepDesignPreview formData={formData} updateFormData={updateFormData} />
       case 5:

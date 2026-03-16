@@ -2,7 +2,8 @@ import { notFound } from "next/navigation"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getCommunityBySlug } from "@/lib/actions/community-actions"
-import { CreateEventForm } from "@/components/events/create-event-form"
+import { getUserCommunities } from "@/lib/actions/user-actions"
+import { CreateEventWizard } from "@/components/events/create/create-wizard"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
@@ -22,16 +23,32 @@ export async function generateMetadata({
 
 export default async function CommunityCreateEventPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ space?: string }>
 }) {
   const user = await getAuthenticatedUser()
   if (!user) return <AuthRequiredModal />
 
-  const { slug } = await params
+  const [{ slug }, sp] = await Promise.all([params, searchParams])
   const community = await getCommunityBySlug(slug)
-
   if (!community) notFound()
+
+  const preSelectedSpaceId = sp.space ?? undefined
+
+  // Fetch communities for the wizard's Settings step (community switcher)
+  let communities: { id: string; name: string; slug: string }[] = []
+  try {
+    const memberships = await getUserCommunities(user.id)
+    communities = memberships.map((m) => ({
+      id: m.community_id as string,
+      name: m.community_name as string,
+      slug: m.community_slug as string,
+    }))
+  } catch {
+    // Non-fatal — falls back to locked community display
+  }
 
   return (
     <div className="px-4 py-5 md:px-6 lg:px-10 md:py-8">
@@ -50,9 +67,13 @@ export default async function CommunityCreateEventPage({
           </p>
         </div>
 
-        <CreateEventForm
-          communityId={community.id}
-          communitySlug={community.slug}
+        <CreateEventWizard
+          communities={communities}
+          preSelectedCommunityId={community.id}
+          preSelectedCommunityName={community.name}
+          preSelectedCommunityVisibility={community.visibility}
+          preSelectedCommunityTimezone={community.timezone}
+          preSelectedSpaceId={preSelectedSpaceId}
         />
       </div>
     </div>
