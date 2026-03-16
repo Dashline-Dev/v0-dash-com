@@ -12,6 +12,10 @@ import {
   LogIn,
   Loader2,
   Check,
+  Globe,
+  Lock,
+  CalendarDays,
+  LayoutGrid,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -19,13 +23,21 @@ import { joinCommunity, leaveCommunity } from "@/lib/actions/community-actions"
 import type { CommunityWithMeta, MemberRole } from "@/types/community"
 import { MEMBER_ROLE_LABELS } from "@/types/community"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 interface CommunityHeaderProps {
   community: CommunityWithMeta
   isSuperAdmin?: boolean
+  eventCount?: number
+  spaceCount?: number
 }
 
-export function CommunityHeader({ community, isSuperAdmin = false }: CommunityHeaderProps) {
+export function CommunityHeader({
+  community,
+  isSuperAdmin = false,
+  eventCount = 0,
+  spaceCount = 0,
+}: CommunityHeaderProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -67,101 +79,138 @@ export function CommunityHeader({ community, isSuperAdmin = false }: CommunityHe
     }
   }
 
+  const visibilityIcon = community.type === "private" ? Lock : Globe
+  const VisIcon = visibilityIcon
+
   return (
-    <div>
-      {/* Cover image */}
-      <div className="relative w-full h-24 md:h-32 bg-secondary overflow-hidden">
+    <div className="bg-card border-b border-border">
+      {/* Cover image — taller, with gradient overlay */}
+      <div className="relative w-full h-44 md:h-56 lg:h-64 overflow-hidden bg-muted">
         {community.cover_image_url ? (
           <img
             src={community.cover_image_url}
             alt=""
-            className="w-full h-full object-cover opacity-80"
+            className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/15 via-primary/5 to-accent/15" />
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/8 to-accent/20" />
+        )}
+        {/* Bottom gradient overlay for text legibility */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+
+        {/* Admin settings button — top right of cover */}
+        {isAdmin && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-3 right-3 bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm border border-white/20"
+            asChild
+          >
+            <Link href={`/communities/${community.slug}/admin`} aria-label="Admin settings">
+              <Settings className="w-4 h-4" />
+            </Link>
+          </Button>
         )}
       </div>
 
-      {/* Community info */}
-      <div className="px-4 md:px-6 lg:px-10 border-b border-border bg-card">
-        <div className="flex flex-col gap-4 py-4 md:py-5">
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-card overflow-hidden shadow-sm shrink-0 border border-border">
-              {community.avatar_url ? (
-                <img
-                  src={community.avatar_url}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary text-xl md:text-2xl font-bold">
-                  {community.name.charAt(0)}
-                </div>
+      {/* Identity bar */}
+      <div className="px-4 md:px-6 lg:px-10">
+        <div className="flex flex-col md:flex-row md:items-end gap-4 -mt-8 md:-mt-10 pb-4 md:pb-5">
+          {/* Avatar — overlaps cover */}
+          <div
+            className={cn(
+              "w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-4 bg-card shadow-lg shrink-0",
+              "border-card"
+            )}
+          >
+            {community.avatar_url ? (
+              <img
+                src={community.avatar_url}
+                alt={community.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary text-2xl md:text-3xl font-bold">
+                {community.name.charAt(0)}
+              </div>
+            )}
+          </div>
+
+          {/* Name + meta */}
+          <div className="flex-1 min-w-0 md:pb-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl md:text-2xl font-bold text-foreground leading-tight">
+                {community.name}
+              </h1>
+              {community.is_verified && (
+                <BadgeCheck className="w-5 h-5 text-primary shrink-0" />
+              )}
+              {isMember && (
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] font-semibold uppercase tracking-wide h-5 px-2"
+                >
+                  {community.current_user_role === "owner"
+                    ? "Owner"
+                    : MEMBER_ROLE_LABELS[community.current_user_role as MemberRole]}
+                </Badge>
               )}
             </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg md:text-xl font-bold text-foreground truncate">
-                  {community.name}
-                </h1>
-                {community.is_verified && (
-                  <BadgeCheck className="w-4.5 h-4.5 text-primary shrink-0" />
-                )}
-              </div>
-              <div className="flex items-center gap-3 mt-0.5 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5" />
-                  {community.member_count.toLocaleString()} members
+            {/* Meta row */}
+            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+              <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Users className="w-3.5 h-3.5" />
+                <span className="font-medium text-foreground">{community.member_count.toLocaleString()}</span>
+                <span>members</span>
+              </span>
+              {community.location_name && (
+                <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <MapPin className="w-3.5 h-3.5" />
+                  {community.location_name}
                 </span>
-                {community.location_name && (
-                  <span className="items-center gap-1 hidden sm:flex">
-                    <MapPin className="w-3.5 h-3.5" />
-                    {community.location_name}
-                  </span>
-                )}
-              </div>
+              )}
+              {eventCount > 0 && (
+                <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  <span>{eventCount} upcoming</span>
+                </span>
+              )}
+              <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                <VisIcon className="w-3.5 h-3.5" />
+                <span className="capitalize">{community.type}</span>
+              </span>
             </div>
           </div>
 
-          {/* Actions row */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {isMember && community.current_user_role !== "owner" && (
-              <Badge variant="secondary" className="text-xs">
-                {MEMBER_ROLE_LABELS[community.current_user_role as MemberRole]}
-              </Badge>
-            )}
-            {community.current_user_role === "owner" && (
-              <Badge className="text-xs bg-primary/10 text-primary hover:bg-primary/10">
-                Owner
-              </Badge>
-            )}
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 md:pb-1 shrink-0">
             <Button
               variant={isMember ? "outline" : "default"}
               size="sm"
               onClick={handleJoinLeave}
               disabled={loading || community.current_user_role === "owner"}
-              className="gap-1.5"
+              className="gap-1.5 min-w-[90px]"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : isMember ? (
                 <>
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-3.5 h-3.5" />
                   Leave
                 </>
               ) : (
                 <>
-                  <LogIn className="w-4 h-4" />
+                  <LogIn className="w-3.5 h-3.5" />
                   {community.join_policy === "approval" ? "Request to Join" : "Join"}
                 </>
               )}
             </Button>
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
               onClick={handleShare}
-              className="text-muted-foreground"
+              className="shrink-0"
               aria-label="Share"
             >
               {copied ? (
@@ -170,26 +219,28 @@ export function CommunityHeader({ community, isSuperAdmin = false }: CommunityHe
                 <Share2 className="w-4 h-4" />
               )}
             </Button>
-            {isAdmin && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground"
-                asChild
-              >
-                <Link href={`/communities/${community.slug}/admin`} aria-label="Admin settings">
-                  <Settings className="w-4 h-4" />
-                </Link>
-              </Button>
-            )}
-            {community.location_name && (
-              <span className="flex items-center gap-1 text-sm text-muted-foreground sm:hidden ml-auto">
-                <MapPin className="w-3.5 h-3.5" />
-                {community.location_name}
-              </span>
-            )}
           </div>
         </div>
+
+        {/* Description excerpt */}
+        {community.description && (
+          <div className="pb-4 md:pb-5 max-w-2xl">
+            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+              {community.description}
+            </p>
+          </div>
+        )}
+
+        {/* Tags */}
+        {community.tags.length > 0 && (
+          <div className="pb-4 md:pb-5 flex flex-wrap gap-1.5">
+            {community.tags.slice(0, 6).map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-xs font-normal">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

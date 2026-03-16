@@ -6,6 +6,7 @@ import type {
   AreaNeighborhood,
   AreaCommunity,
   AreaEvent,
+  AreaSpace,
 } from "@/types/area"
 
 const sql = neon(process.env.DATABASE_URL!)
@@ -180,7 +181,7 @@ export async function getAreaCommunities(
   })) as AreaCommunity[]
 }
 
-// ── Get events in an area (from public communities and spaces) ─────────
+// ── Get events in an area (from public communities, spaces, or directly linked) ─────────
 
 export async function getAreaEvents(
   areaId: string,
@@ -190,16 +191,21 @@ export async function getAreaEvents(
   const offset = opts?.offset ?? 0
   const upcomingFilter = opts?.upcoming ? `AND e.end_time > NOW()` : ""
 
-  // Include ALL events from communities linked to this area or child neighborhoods
-  // This ensures events posted to any space within a community also appear under the area
+  // Include events from:
+  // 1. Communities linked to this area or child neighborhoods
+  // 2. Events directly linked to this area via event_areas
   const countResult = await sql(
     `SELECT COUNT(DISTINCT e.id) as total
      FROM events e
-     JOIN communities c ON c.id = e.community_id
-     JOIN community_areas ca ON ca.community_id = e.community_id
-     WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+     LEFT JOIN communities c ON c.id = e.community_id
+     LEFT JOIN community_areas ca ON ca.community_id = e.community_id
+     LEFT JOIN event_areas ea ON ea.event_id = e.id
+     WHERE (
+       (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+       OR (ea.area_id = $1 OR ea.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+     )
        AND e.status = 'published'
-       AND c.visibility = 'public'
+       AND (c.id IS NULL OR c.visibility = 'public' OR ea.area_id IS NOT NULL)
        ${upcomingFilter}`,
     [areaId]
   )
@@ -213,12 +219,16 @@ export async function getAreaEvents(
       c.name as community_name, c.slug as community_slug,
       s.name as space_name, s.slug as space_slug
     FROM events e
-    JOIN communities c ON c.id = e.community_id
-    JOIN community_areas ca ON ca.community_id = e.community_id
+    LEFT JOIN communities c ON c.id = e.community_id
+    LEFT JOIN community_areas ca ON ca.community_id = e.community_id
+    LEFT JOIN event_areas ea ON ea.event_id = e.id
     LEFT JOIN spaces s ON s.id = e.space_id
-    WHERE (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+    WHERE (
+      (ca.area_id = $1 OR ca.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+      OR (ea.area_id = $1 OR ea.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+    )
       AND e.status = 'published'
-      AND c.visibility = 'public'
+      AND (c.id IS NULL OR c.visibility = 'public' OR ea.area_id IS NOT NULL)
       ${upcomingFilter}
     ORDER BY e.start_time ASC, e.id
     LIMIT $2 OFFSET $3`,
@@ -332,6 +342,59 @@ export async function unlinkCommunityFromArea(
   )
 }
 
+// ── Link / unlink event to area ─────────────────────────────
+
+export async function linkEventToArea(
+  eventId: string,
+  areaId: string
+): Promise<void> {
+  await sql(
+    `INSERT INTO event_areas (event_id, area_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    [eventId, areaId]
+  )
+}
+
+export async function unlinkEventFromArea(
+  eventId: string,
+  areaId: string
+): Promise<void> {
+  await sql(
+    `DELETE FROM event_areas WHERE event_id = $1 AND area_id = $2`,
+    [eventId, areaId]
+  )
+}
+
+export async function unlinkEventFromAllAreas(eventId: string): Promise<void> {
+  await sql(`DELETE FROM event_areas WHERE event_id = $1`, [eventId])
+}
+
+export async function getEventAreas(eventId: string): Promise<AreaWithMeta[]> {
+  const rows = await sql(
+    `SELECT
+      a.*,
+      p.name as parent_name,
+      p.slug as parent_slug,
+      0 as community_count,
+      0 as event_count,
+      0 as neighborhood_count,
+      '[]'::json as zip_codes
+    FROM areas a
+    JOIN event_areas ea ON ea.area_id = a.id
+    LEFT JOIN areas p ON a.parent_id = p.id
+    WHERE ea.event_id = $1 AND a.status = 'active'
+    ORDER BY a.type ASC, a.name ASC`,
+    [eventId]
+  )
+
+  return rows.map((r) => ({
+    ...r,
+    community_count: 0,
+    event_count: 0,
+    neighborhood_count: 0,
+    zip_codes: [],
+  })) as AreaWithMeta[]
+}
+
 // ── Link / unlink space to area ─────────────────────────────
 
 export async function linkSpaceToArea(
@@ -381,6 +444,33 @@ export async function getSpaceAreas(spaceId: string): Promise<AreaWithMeta[]> {
     neighborhood_count: Number(r.neighborhood_count),
     zip_codes: [],
   })) as AreaWithMeta[]
+}
+
+// ── Get spaces linked to an area ────────────────────────────
+
+export async function getAreaSpaces(
+  areaId: string,
+  opts?: { limit?: number; offset?: number }
+): Promise<{ id: string; name: string; slug: string; description: string | null; community_name: string; community_slug: string }[]> {
+  const limit = opts?.limit ?? 20
+  const offset = opts?.offset ?? 0
+
+  const rows = await sql(
+    `SELECT
+      s.id, s.name, s.slug, s.description,
+      c.name as community_name, c.slug as community_slug
+    FROM spaces s
+    JOIN space_areas sa ON sa.space_id = s.id
+    JOIN communities c ON c.id = s.community_id
+    WHERE (sa.area_id = $1 OR sa.area_id IN (SELECT sub.id FROM areas sub WHERE sub.parent_id = $1))
+      AND s.status = 'active'
+      AND s.visibility = 'public'
+    ORDER BY s.name ASC
+    LIMIT $2 OFFSET $3`,
+    [areaId, limit, offset]
+  )
+
+  return rows as { id: string; name: string; slug: string; description: string | null; community_name: string; community_slug: string }[]
 }
 
 // ── Admin: Create area (superadmin only) ────────────────────
@@ -618,7 +708,7 @@ export async function getAllAreasForSelect(): Promise<{ id: string; name: string
   }))
 }
 
-// ── Get areas for a community ───────────────────────────────
+// ── Get areas linked to a community ─────────────────────────
 
 export async function getCommunityAreas(communityId: string): Promise<AreaWithMeta[]> {
   const rows = await sql(

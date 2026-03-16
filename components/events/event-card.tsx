@@ -5,7 +5,6 @@ import {
   Clock,
   MapPin,
   Video,
-  Users,
   Monitor,
   Calendar,
 } from "lucide-react"
@@ -74,9 +73,7 @@ export function EventCard({ event, basePath }: EventCardProps) {
           {past && (
             <span className="text-[10px] text-muted-foreground shrink-0">Past</span>
           )}
-          {event.current_user_rsvp === "going" && !past && (
-            <span className="text-[10px] text-chart-5 font-medium shrink-0">Going</span>
-          )}
+  
         </div>
         <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
           <span className="flex items-center gap-0.5">
@@ -98,10 +95,6 @@ export function EventCard({ event, basePath }: EventCardProps) {
 
       {/* Right meta */}
       <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-        <span className="flex items-center gap-1">
-          <Users className="w-3 h-3" />
-          {event.rsvp_count}
-        </span>
         <span className="hidden sm:inline text-[11px] truncate max-w-[100px]">
           {event.community_name}
         </span>

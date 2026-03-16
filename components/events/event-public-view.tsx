@@ -5,17 +5,14 @@ import {
   Clock,
   MapPin,
   Video,
-  Users,
   Globe,
   Share2,
   Monitor,
-  LogIn,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Card, CardContent } from "@/components/ui/card"
 import { EventInvitationDisplay } from "./event-invitation-display"
 import type { EventWithMeta } from "@/types/event"
 import {
@@ -23,8 +20,6 @@ import {
   formatEventDate,
   formatEventTime,
   isEventPast,
-  isEventFull,
-  getEventCapacityText,
 } from "@/types/event"
 import { toHebrewDate } from "@/lib/hebrew-date"
 
@@ -40,8 +35,6 @@ const TYPE_ICON: Record<string, React.ElementType> = {
 
 export function EventPublicView({ event }: EventPublicViewProps) {
   const past = isEventPast(event.end_time)
-  const full = isEventFull(event)
-  const capacityText = getEventCapacityText(event)
   const TypeIcon = TYPE_ICON[event.event_type] ?? Calendar
 
   function handleShare() {
@@ -77,9 +70,7 @@ export function EventPublicView({ event }: EventPublicViewProps) {
               {past && (
                 <Badge variant="secondary" className="text-xs">Past event</Badge>
               )}
-              {capacityText && (
-                <Badge variant="outline" className="text-xs">{capacityText}</Badge>
-              )}
+
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground text-balance">
               {event.title}
@@ -97,28 +88,7 @@ export function EventPublicView({ event }: EventPublicViewProps) {
           </Button>
         </div>
 
-        {/* Sign in prompt for RSVP */}
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <p className="font-medium text-foreground">Want to attend?</p>
-              <p className="text-sm text-muted-foreground">
-                Sign in to RSVP and get event updates
-              </p>
-            </div>
-            <Button asChild>
-              <Link href="/sign-in">
-                <LogIn className="w-4 h-4 mr-2" />
-                Sign In to RSVP
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
 
-        <span className="text-sm text-muted-foreground flex items-center gap-1">
-          <Users className="w-3.5 h-3.5" />
-          {event.rsvp_count} going
-        </span>
       </div>
 
       <Separator />

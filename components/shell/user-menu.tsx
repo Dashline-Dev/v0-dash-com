@@ -44,71 +44,73 @@ export function UserMenu({ user }: UserMenuProps) {
     .toUpperCase()
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative rounded-full"
-          aria-label="User menu"
-        >
-          <Avatar className="w-8 h-8">
-            {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
-            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        <div className="px-3 py-2">
-          <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/profile" className="cursor-pointer">
-            <User className="w-4 h-4 mr-2" />
-            Profile
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/communities" className="cursor-pointer">
-            <LayoutDashboard className="w-4 h-4 mr-2" />
-            My Communities
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/settings" className="cursor-pointer">
-            <Settings className="w-4 h-4 mr-2" />
-            Settings
-          </Link>
-        </DropdownMenuItem>
-        {user.isSuperAdmin ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/admin" className="cursor-pointer">
-                <ShieldCheck className="w-4 h-4 mr-2" />
-                Admin Console
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
-        ) : (
+    <div suppressHydrationWarning>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative rounded-full"
+            aria-label="User menu"
+          >
+            <Avatar className="w-8 h-8">
+              {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-52">
+          <div className="px-3 py-2">
+            <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
+          </div>
           <DropdownMenuSeparator />
-        )}
-        <form method="POST" action="/api/auth/signout">
           <DropdownMenuItem asChild>
-            <button
-              type="submit"
-              className="w-full cursor-pointer text-destructive-foreground focus:text-destructive-foreground"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign out
-            </button>
+            <Link href="/profile" className="cursor-pointer">
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </Link>
           </DropdownMenuItem>
-        </form>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <DropdownMenuItem asChild>
+            <Link href="/communities" className="cursor-pointer">
+              <LayoutDashboard className="w-4 h-4 mr-2" />
+              My Communities
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/settings" className="cursor-pointer">
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Link>
+          </DropdownMenuItem>
+          {user.isSuperAdmin ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin" className="cursor-pointer">
+                  <ShieldCheck className="w-4 h-4 mr-2" />
+                  Admin Console
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          ) : (
+            <DropdownMenuSeparator />
+          )}
+          <form method="POST" action="/api/auth/signout">
+            <DropdownMenuItem asChild>
+              <button
+                type="submit"
+                className="w-full cursor-pointer text-destructive-foreground focus:text-destructive-foreground"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign out
+              </button>
+            </DropdownMenuItem>
+          </form>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }

@@ -35,7 +35,7 @@ const CALENDAR_MODES: CalendarMode[] = ["today", "week", "month"]
 
 const EMPTY_MESSAGES: Record<TabKey, { text: string; cta?: { label: string; href: string } }> = {
   following:  { text: "No upcoming events from communities you follow.", cta: { label: "Find communities", href: "/communities" } },
-  attending:  { text: "You haven't RSVPed to any upcoming events yet.",  cta: { label: "Browse events",    href: "/explore" } },
+  attending:  { text: "You have no upcoming events.",  cta: { label: "Browse events",    href: "/explore" } },
   interested: { text: "You haven't marked any events as interested.",    cta: { label: "Browse events",    href: "/explore" } },
   discover:   { text: "No public events to discover right now.",         cta: { label: "Explore",          href: "/communities" } },
 }

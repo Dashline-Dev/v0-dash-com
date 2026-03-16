@@ -22,6 +22,7 @@ interface CommunityTabsProps {
   events: EventWithMeta[]
   announcements: AnnouncementWithMeta[]
   areas?: AreaWithMeta[]
+  canCreateSpace?: boolean
 }
 
 export function CommunityTabs({
@@ -33,46 +34,32 @@ export function CommunityTabs({
   events,
   announcements,
   areas = [],
+  canCreateSpace = false,
 }: CommunityTabsProps) {
   return (
-    <Tabs defaultValue="about" className="w-full">
-      <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none h-auto p-0 gap-0">
-        <TabsTrigger
-          value="about"
-          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
-        >
-          About
-        </TabsTrigger>
-        <TabsTrigger
-          value="members"
-          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
-        >
-          Members
-        </TabsTrigger>
-        <TabsTrigger
-          value="announcements"
-          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
-        >
-          Updates
-        </TabsTrigger>
-        <TabsTrigger
-          value="events"
-          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
-        >
-          Events
-        </TabsTrigger>
-        <TabsTrigger
-          value="spaces"
-          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
-        >
-          Spaces
-        </TabsTrigger>
-        <TabsTrigger
-          value="rules"
-          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
-        >
-          Rules
-        </TabsTrigger>
+    <Tabs defaultValue="events" className="w-full">
+      <TabsList className="w-full justify-start bg-transparent! rounded-none! h-auto p-0! gap-6 border-b border-border overflow-x-auto scrollbar-none">
+        {[
+          { value: "events", label: "Events", count: events.length },
+          { value: "about", label: "About" },
+          { value: "announcements", label: "Updates", count: announcements.length },
+          { value: "spaces", label: "Spaces", count: spaces.length },
+          { value: "members", label: "Members", count: members.length },
+          { value: "rules", label: "Rules" },
+        ].map(({ value, label, count }) => (
+          <TabsTrigger
+            key={value}
+            value={value}
+            className="relative shrink-0 bg-transparent! rounded-none! shadow-none! border-b-2 border-transparent -mb-px data-[state=active]:border-primary px-0 pb-3 pt-0 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground hover:text-foreground transition-colors whitespace-nowrap flex items-center gap-1.5 h-auto"
+          >
+            {label}
+            {count !== undefined && count > 0 && (
+              <span className="text-xs text-muted-foreground/70 font-normal">
+                {count}
+              </span>
+            )}
+          </TabsTrigger>
+        ))}
       </TabsList>
 
       <TabsContent value="about" className="mt-5">
@@ -88,7 +75,7 @@ export function CommunityTabs({
       </TabsContent>
 
       <TabsContent value="spaces" className="mt-5">
-        <CommunitySpaces communitySlug={community.slug} spaces={spaces} />
+        <CommunitySpaces communitySlug={community.slug} spaces={spaces} canCreate={canCreateSpace} />
       </TabsContent>
 
       <TabsContent value="members" className="mt-5">

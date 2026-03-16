@@ -16,7 +16,6 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { RsvpButton } from "./rsvp-button"
 import { EventShareDialog } from "./event-share-dialog"
 import { EventInvitationDisplay } from "./event-invitation-display"
 import type { EventWithMeta } from "@/types/event"
@@ -26,15 +25,13 @@ import {
   formatEventDate,
   formatEventTime,
   isEventPast,
-  isEventFull,
-  getEventCapacityText,
 } from "@/types/event"
 import { toHebrewDate } from "@/lib/hebrew-date"
 
 interface EventDetailProps {
   event: EventWithMeta
-  rsvps?: { id: string; user_id: string; status: string }[]
   communities?: { id: string; name: string; slug: string }[]
+  sharedCommunityIds?: string[]
   canEdit?: boolean
 }
 
@@ -44,10 +41,8 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   hybrid: Video,
 }
 
-export function EventDetail({ event, rsvps, communities = [], canEdit = false }: EventDetailProps) {
+export function EventDetail({ event, communities = [], sharedCommunityIds = [], canEdit = false }: EventDetailProps) {
   const past = isEventPast(event.end_time)
-  const full = isEventFull(event)
-  const capacityText = getEventCapacityText(event)
   const TypeIcon = TYPE_ICON[event.event_type] ?? Calendar
 
 
@@ -107,9 +102,7 @@ export function EventDetail({ event, rsvps, communities = [], canEdit = false }:
               {past && (
                 <Badge variant="secondary" className="text-xs">Past event</Badge>
               )}
-              {capacityText && (
-                <Badge variant="outline" className="text-xs">{capacityText}</Badge>
-              )}
+
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground text-balance">
               {event.title}
@@ -133,7 +126,7 @@ export function EventDetail({ event, rsvps, communities = [], canEdit = false }:
             <EventShareDialog
               eventId={event.id}
               eventSlug={event.slug}
-              currentCommunityId={event.community_id}
+              sharedCommunityIds={sharedCommunityIds}
               communities={communities}
             >
               <Button
@@ -148,19 +141,7 @@ export function EventDetail({ event, rsvps, communities = [], canEdit = false }:
           </div>
         </div>
 
-        {/* RSVP */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <RsvpButton
-            eventId={event.id}
-            currentStatus={event.current_user_rsvp}
-            isFull={full}
-            isPast={past}
-          />
-          <span className="text-sm text-muted-foreground flex items-center gap-1">
-            <Users className="w-3.5 h-3.5" />
-            {event.rsvp_count} going
-          </span>
-        </div>
+
       </div>
 
       <Separator />

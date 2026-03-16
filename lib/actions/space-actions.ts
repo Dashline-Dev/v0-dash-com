@@ -145,8 +145,24 @@ export async function getSpaceMembers(spaceId: string): Promise<SpaceMember[]> {
 
 // ─── Mutations ──────────────────────────────────────────────────────────────
 
-export async function createSpace(data: CreateSpaceData): Promise<{ slug: string; community_slug?: string }> {
+export async function createSpace(data: CreateSpaceData): Promise<{ id: string; slug: string; community_slug?: string }> {
   const user = await getCurrentUser()
+
+  // If creating within a community, verify the user is a member (admin or moderator)
+  if (data.community_id) {
+    const membership = await sql(
+      `SELECT role FROM community_members
+       WHERE community_id = $1 AND user_id = $2 AND status = 'active'`,
+      [data.community_id, user.id]
+    )
+    if (membership.length === 0) {
+      throw new Error("You must be a member of this community to create a space in it.")
+    }
+    const role = membership[0].role as string
+    if (!["admin", "moderator", "owner"].includes(role)) {
+      throw new Error("Only community admins and moderators can create spaces.")
+    }
+  }
 
   const result = await sql(
     `INSERT INTO spaces (community_id, name, slug, description, type, icon, cover_image_url, visibility, join_policy, created_by)
@@ -181,7 +197,7 @@ export async function createSpace(data: CreateSpaceData): Promise<{ slug: string
     if (community[0]) community_slug = community[0].slug
   }
 
-  return { slug: data.slug, community_slug }
+  return { id: spaceId as string, slug: data.slug, community_slug }
 }
 
 export async function updateSpace(

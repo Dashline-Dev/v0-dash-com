@@ -406,6 +406,29 @@ export async function getExploreMapMarkers(opts?: {
     )
   }
 
+  if (!typeFilter || typeFilter === "area") {
+    const rows = await sql(
+      `SELECT a.id::text, a.name AS title, INITCAP(a.type) AS subtitle,
+              a.slug,
+              COALESCE((SELECT COUNT(*) FROM community_areas ca WHERE ca.area_id = a.id), 0) AS community_count
+       FROM areas a
+       WHERE a.status = 'active'
+       LIMIT 100`,
+      []
+    )
+    markers.push(
+      ...rows.map((r) => ({
+        id: r.id,
+        type: "area" as const,
+        title: r.title,
+        subtitle: r.subtitle ? `${r.subtitle} · ${r.community_count} communities` : `${r.community_count} communities`,
+        href: `/areas/${r.slug}`,
+        latitude: 0,
+        longitude: 0,
+      }))
+    )
+  }
+
   return markers
 }
 

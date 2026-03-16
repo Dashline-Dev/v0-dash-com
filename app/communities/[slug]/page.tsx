@@ -8,6 +8,8 @@ import { getEvents } from "@/lib/actions/event-actions"
 import { getAnnouncements } from "@/lib/actions/announcement-actions"
 import { getCommunityAreas } from "@/lib/actions/area-actions"
 import { getSuperAdminSession } from "@/lib/superadmin"
+import { getAuthenticatedUser } from "@/lib/mock-user"
+import { sql } from "@/lib/db"
 import { CommunityHeader } from "@/components/communities/community-header"
 import { CommunityTabs } from "@/components/communities/community-tabs"
 import type { Metadata } from "next"
@@ -38,7 +40,10 @@ export default async function CommunityDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  const superAdmin = await getSuperAdminSession()
+  const [superAdmin, currentUser] = await Promise.all([
+    getSuperAdminSession(),
+    getAuthenticatedUser(),
+  ])
 
   const [membersResult, spaces, eventsResult, announcementsResult, areas] = await Promise.all([
     getCommunityMembers(community.id),
@@ -48,23 +53,38 @@ export default async function CommunityDetailPage({ params }: PageProps) {
     getCommunityAreas(community.id),
   ])
 
-  return (
-    <div>
-      <CommunityHeader community={community} isSuperAdmin={!!superAdmin} />
+  // Check user's membership role in this community
+  let userCommunityRole: string | null = null
+  if (currentUser) {
+    const membership = await sql(
+      `SELECT role FROM community_members WHERE community_id = $1 AND user_id = $2 AND status = 'active'`,
+      [community.id, currentUser.id]
+    )
+    userCommunityRole = membership[0]?.role ?? null
+  }
+  const canCreateSpace = !!superAdmin || ["admin", "moderator", "owner"].includes(userCommunityRole ?? "")
 
-      <div className="px-4 md:px-6 lg:px-10 py-6">
-        <div className="max-w-4xl">
-          <CommunityTabs
-            community={community}
-            members={membersResult.data}
-            membersCursor={membersResult.nextCursor}
-            membersHasMore={membersResult.hasMore}
-            spaces={spaces}
-            events={eventsResult.events}
-            announcements={announcementsResult.announcements}
-            areas={areas}
-          />
-        </div>
+  return (
+    <div className="min-h-screen bg-background">
+      <CommunityHeader
+        community={community}
+        isSuperAdmin={!!superAdmin}
+        eventCount={eventsResult.events.length}
+        spaceCount={spaces.length}
+      />
+
+      <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 pb-24 md:pb-10">
+        <CommunityTabs
+          community={community}
+          members={membersResult.data}
+          membersCursor={membersResult.nextCursor}
+          membersHasMore={membersResult.hasMore}
+          spaces={spaces}
+          events={eventsResult.events}
+          announcements={announcementsResult.announcements}
+          areas={areas}
+          canCreateSpace={canCreateSpace}
+        />
       </div>
     </div>
   )

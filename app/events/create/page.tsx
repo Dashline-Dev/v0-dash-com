@@ -1,6 +1,7 @@
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getUserCommunities } from "@/lib/actions/user-actions"
+import { getAreas } from "@/lib/actions/area-actions"
 import { CreateEventWizard } from "@/components/events/create/create-wizard"
 import { Card } from "@/components/ui/card"
 
@@ -26,6 +27,15 @@ export default async function CreateEventPage() {
     // User may not be in any communities - that's fine
   }
 
+  // Get available areas for linking
+  const { areas } = await getAreas({ limit: 100 })
+  const availableAreas = areas.map((a) => ({
+    id: a.id,
+    name: a.name,
+    type: a.type,
+    parentName: a.parent_name ?? null,
+  }))
+
   return (
     <div className="max-w-2xl mx-auto px-4 md:px-6 py-6 md:py-8">
       <Card className="p-6 mb-6">
@@ -35,7 +45,7 @@ export default async function CreateEventPage() {
         </p>
       </Card>
 
-      <CreateEventWizard communities={communities} />
+      <CreateEventWizard communities={communities} availableAreas={availableAreas} />
     </div>
   )
 }

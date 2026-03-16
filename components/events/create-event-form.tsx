@@ -28,9 +28,36 @@ import {
   Video,
   Globe,
   Info,
+  Plus,
+  X,
+  Clock,
+  Calendar,
 } from "lucide-react"
 import { PlacesAutocomplete, type PlaceResult } from "@/components/ui/places-autocomplete"
 import { GoogleMapsProvider } from "@/components/maps/google-maps-provider"
+
+const COMMON_TIMEZONES = [
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Phoenix", label: "Arizona (MST)" },
+  { value: "America/Anchorage", label: "Alaska Time" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time" },
+  { value: "UTC", label: "UTC" },
+  { value: "Europe/London", label: "London (GMT/BST)" },
+  { value: "Europe/Paris", label: "Paris (CET/CEST)" },
+  { value: "Asia/Jerusalem", label: "Israel (IST)" },
+  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+]
+
+const QUICK_DURATIONS = [
+  { label: "1 hr", hours: 1 },
+  { label: "1.5 hrs", hours: 1.5 },
+  { label: "2 hrs", hours: 2 },
+  { label: "3 hrs", hours: 3 },
+  { label: "4 hrs", hours: 4 },
+]
 
 interface CreateEventFormProps {
   communityId: string
@@ -46,6 +73,12 @@ export function CreateEventForm({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [startDate, setStartDate] = useState("")
+  const [startTime, setStartTimeState] = useState("")
+  const [endDate, setEndDate] = useState("")
+  const [endTimeVal, setEndTimeVal] = useState("")
+  const [showEndTime, setShowEndTime] = useState(false)
+  const [showMultiDay, setShowMultiDay] = useState(false)
 
   const [form, setForm] = useState<CreateEventFormData>({
     community_id: communityId,
@@ -62,6 +95,25 @@ export function CreateEventForm({
     virtual_link: "",
     max_attendees: null,
   })
+
+  function applyDuration(hours: number) {
+    if (!startTime) return
+    const [h, m] = startTime.split(":").map(Number)
+    const endMinutes = h * 60 + m + hours * 60
+    const endH = Math.floor(endMinutes / 60) % 24
+    const endM = endMinutes % 60
+    setEndTimeVal(`${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`)
+  }
+
+  function toggleEndTime() {
+    if (showEndTime) { setEndTimeVal(""); setShowEndTime(false) }
+    else setShowEndTime(true)
+  }
+
+  function toggleMultiDay() {
+    if (showMultiDay) { setEndDate(startDate); setShowMultiDay(false) }
+    else setShowMultiDay(true)
+  }
 
   function update<K extends keyof CreateEventFormData>(
     key: K,
@@ -82,18 +134,29 @@ export function CreateEventForm({
       setError("Event title is required.")
       return
     }
-    if (!form.start_time || !form.end_time) {
-      setError("Start and end times are required.")
+    if (!startDate || !startTime) {
+      setError("Start date and time are required.")
       return
     }
-    if (new Date(form.end_time) <= new Date(form.start_time)) {
+
+    const builtStartTime = `${startDate}T${startTime}:00`
+    let resolvedEndTime = endTimeVal
+    if (!resolvedEndTime) {
+      const [h, m] = startTime.split(":").map(Number)
+      const endH = (h + 1) % 24
+      resolvedEndTime = `${String(endH).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+    }
+    const resolvedEndDate = (showMultiDay && endDate) ? endDate : startDate
+    const builtEndTime = `${resolvedEndDate}T${resolvedEndTime}:00`
+
+    if (new Date(builtEndTime) <= new Date(builtStartTime)) {
       setError("End time must be after start time.")
       return
     }
 
     startTransition(async () => {
       try {
-        const result = await createEvent(form)
+        const result = await createEvent({ ...form, start_time: builtStartTime, end_time: builtEndTime })
         if (result.slug) {
           router.push(`/events/${result.slug}`)
         }
@@ -181,35 +244,128 @@ export function CreateEventForm({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Start date + time */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="start_time">Start</Label>
+              <Label htmlFor="start_date" className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                Date
+              </Label>
               <Input
-                id="start_time"
-                type="datetime-local"
-                value={form.start_time}
-                onChange={(e) => update("start_time", e.target.value)}
+                id="start_date"
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value)
+                  if (!showMultiDay) setEndDate(e.target.value)
+                }}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="end_time">End</Label>
+              <Label htmlFor="start_time_input" className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                Start Time
+              </Label>
               <Input
-                id="end_time"
-                type="datetime-local"
-                value={form.end_time}
-                onChange={(e) => update("end_time", e.target.value)}
+                id="start_time_input"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTimeState(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
+          {/* End time — expandable */}
+          {showEndTime && (
+            <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="end_time_input" className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                  End Time
+                </Label>
+                <Button type="button" variant="ghost" size="sm" onClick={toggleEndTime} className="h-6 px-2 text-muted-foreground hover:text-foreground">
+                  <X className="w-3 h-3 mr-1" />
+                  Remove
+                </Button>
+              </div>
+              <Input
+                id="end_time_input"
+                type="time"
+                value={endTimeVal}
+                onChange={(e) => setEndTimeVal(e.target.value)}
+              />
+              {startTime && (
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-xs text-muted-foreground self-center">Quick:</span>
+                  {QUICK_DURATIONS.map((d) => (
+                    <Button key={d.label} type="button" variant="outline" size="sm" onClick={() => applyDuration(d.hours)} className="h-7 text-xs">
+                      {d.label}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* End date — multi-day expandable */}
+          {showMultiDay && (
+            <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="end_date" className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                  End Date
+                </Label>
+                <Button type="button" variant="ghost" size="sm" onClick={toggleMultiDay} className="h-6 px-2 text-muted-foreground hover:text-foreground">
+                  <X className="w-3 h-3 mr-1" />
+                  Remove
+                </Button>
+              </div>
+              <Input
+                id="end_date"
+                type="date"
+                value={endDate}
+                min={startDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Add optional fields */}
+          {(!showEndTime || !showMultiDay) && (
+            <div className="flex gap-2 pt-1">
+              {!showEndTime && (
+                <Button type="button" variant="outline" size="sm" onClick={toggleEndTime} className="text-muted-foreground">
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add End Time
+                </Button>
+              )}
+              {!showMultiDay && (
+                <Button type="button" variant="outline" size="sm" onClick={toggleMultiDay} className="text-muted-foreground">
+                  <Plus className="w-4 h-4 mr-1" />
+                  Multi-Day Event
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Timezone */}
+          <div className="pt-3 border-t space-y-2">
             <Label htmlFor="timezone">Timezone</Label>
-            <Input
-              id="timezone"
+            <Select
               value={form.timezone}
-              onChange={(e) => update("timezone", e.target.value)}
-              placeholder="e.g. America/New_York"
-            />
+              onValueChange={(v) => update("timezone", v)}
+            >
+              <SelectTrigger id="timezone">
+                <SelectValue placeholder="Select timezone" />
+              </SelectTrigger>
+              <SelectContent>
+                {COMMON_TIMEZONES.map((tz) => (
+                  <SelectItem key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <p className="text-xs text-muted-foreground">
               Auto-detected from your browser. Change if the event is in a different timezone.
             </p>

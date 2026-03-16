@@ -297,16 +297,7 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
                     />
                   </div>
 
-                  {/* RSVP Deadline */}
-                  <div className="space-y-2">
-                    <Label htmlFor="rsvp_deadline">RSVP Deadline</Label>
-                    <Input
-                      id="rsvp_deadline"
-                      type="date"
-                      value={formData.rsvp_deadline}
-                      onChange={(e) => updateFormData({ rsvp_deadline: e.target.value })}
-                    />
-                  </div>
+
                 </div>
               )}
             </TabsContent>

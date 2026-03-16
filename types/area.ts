@@ -54,6 +54,19 @@ export interface AreaCommunity {
   tags: string[]
 }
 
+export interface AreaSpace {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  type: string
+  icon: string | null
+  cover_image_url: string | null
+  member_count: number
+  community_name: string | null
+  community_slug: string | null
+}
+
 export interface AreaEvent {
   id: string
   title: string

@@ -143,6 +143,14 @@ export interface UpdateEventData {
   virtual_link?: string
   max_attendees?: number | null
   contact_info?: string
+  // Invitation / template fields
+  template_id?: string | null
+  invitation_image_url?: string | null
+  invitation_message?: string | null
+  additional_info?: string | null
+  dress_code?: string | null
+  gallery_images?: string[] | null
+  rsvp_deadline?: string | null
 }
 
 // ── Helpers ─────────────────────────────────────────────────

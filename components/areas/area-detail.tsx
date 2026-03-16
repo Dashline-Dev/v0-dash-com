@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Video,
   Monitor,
+  Layers,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -31,6 +32,7 @@ interface AreaDetailProps {
   communities: AreaCommunity[]
   events: AreaEvent[]
   eventsTotal: number
+  spaces?: { id: string; name: string; slug: string; description: string | null; community_name: string; community_slug: string }[]
 }
 
 export function AreaDetail({
@@ -39,6 +41,7 @@ export function AreaDetail({
   communities,
   events,
   eventsTotal,
+  spaces = [],
 }: AreaDetailProps) {
   return (
     <div className="space-y-6">
@@ -122,6 +125,14 @@ export function AreaDetail({
           >
             Communities ({area.community_count})
           </TabsTrigger>
+          {spaces.length > 0 && (
+            <TabsTrigger
+              value="spaces"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
+            >
+              Spaces ({spaces.length})
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Neighborhoods */}
@@ -227,6 +238,36 @@ export function AreaDetail({
             </div>
           )}
         </TabsContent>
+
+        {/* Spaces */}
+        {spaces.length > 0 && (
+          <TabsContent value="spaces" className="mt-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {spaces.map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/communities/${s.community_slug}/spaces/${s.slug}`}
+                  className="group flex gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/20 hover:shadow-sm"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <Layers className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                      {s.name}
+                    </h3>
+                    {s.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{s.description}</p>
+                    )}
+                    <p className="text-[11px] text-muted-foreground mt-1.5">
+                      {s.community_name}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )
@@ -273,10 +314,7 @@ function AreaEventCard({ event }: { event: AreaEvent }) {
               Online
             </span>
           )}
-          <span className="flex items-center gap-1">
-            <Users className="w-3 h-3" />
-            {event.rsvp_count} going
-          </span>
+
         </div>
         <p className="text-[11px] text-muted-foreground mt-1.5">{event.community_name}</p>
       </div>

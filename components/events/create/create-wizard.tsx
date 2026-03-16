@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button"
 import { StepIndicator } from "@/components/ui/step-indicator"
 import { Loader2, ArrowLeft, ArrowRight } from "lucide-react"
 import { createEvent } from "@/lib/actions/event-actions"
+import { linkEventToArea } from "@/lib/actions/area-actions"
 import type { EventType, EventVisibility } from "@/types/event"
+import type { AreaOption } from "@/components/areas/area-selector"
 
 import { StepBasics } from "./step-basics"
 import { StepDateTime } from "./step-date-time"
@@ -42,39 +44,64 @@ export interface EventFormData {
   dress_code: string
   contact_info: string
   gallery_images: string[]
-  rsvp_deadline: string
+  areaIds: string[]
 }
 
 const STEPS = ["Basics", "Date & Time", "Location", "Settings", "Design & Preview", "Review"]
 
 interface CreateEventWizardProps {
   communities?: { id: string; name: string; slug: string }[]
+  availableAreas?: AreaOption[]
   preSelectedCommunityId?: string
+  preSelectedCommunityName?: string
+  preSelectedCommunityVisibility?: "public" | "unlisted" | "private"
+  preSelectedCommunityTimezone?: string
+  preSelectedSpaceId?: string
 }
 
-export function CreateEventWizard({ communities = [], preSelectedCommunityId }: CreateEventWizardProps) {
+export function CreateEventWizard({
+  communities = [],
+  availableAreas = [],
+  preSelectedCommunityId,
+  preSelectedCommunityName,
+  preSelectedCommunityVisibility,
+  preSelectedCommunityTimezone,
+  preSelectedSpaceId,
+}: CreateEventWizardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [step, setStep] = useState(0)
   const [error, setError] = useState("")
+
+  // Derive the default visibility from the community's visibility setting:
+  // private community → private events; unlisted → unlisted; public → public
+  const defaultVisibility: "public" | "unlisted" | "private" =
+    preSelectedCommunityVisibility === "private"
+      ? "private"
+      : preSelectedCommunityVisibility === "unlisted"
+        ? "unlisted"
+        : "public"
 
   const [formData, setFormData] = useState<EventFormData>({
     title: "",
     description: "",
     cover_image_url: "",
     event_type: "in_person",
-    visibility: "public",
+    visibility: defaultVisibility,
     start_date: "",
     start_time: "",
     end_date: "",
     end_time: "",
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    timezone:
+      preSelectedCommunityTimezone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone ||
+      "UTC",
     location_name: "",
     location_address: "",
     virtual_link: "",
     max_attendees: "",
     community_id: preSelectedCommunityId || "",
-    space_id: "",
+    space_id: preSelectedSpaceId || "",
     // Template & invitation fields
     template_id: "",
     card_size: "whatsapp",
@@ -84,7 +111,7 @@ export function CreateEventWizard({ communities = [], preSelectedCommunityId }: 
     dress_code: "",
     contact_info: "",
     gallery_images: [],
-    rsvp_deadline: "",
+    areaIds: [],
   })
 
   const updateFormData = (updates: Partial<EventFormData>) => {
@@ -137,7 +164,7 @@ export function CreateEventWizard({ communities = [], preSelectedCommunityId }: 
         const endDate = formData.end_date || formData.start_date
         const endDateTime = `${endDate}T${endTime}:00`
 
-        const slug = await createEvent({
+        const result = await createEvent({
           title: formData.title,
           description: formData.description || undefined,
           cover_image_url: formData.cover_image_url || undefined,
@@ -160,11 +187,17 @@ export function CreateEventWizard({ communities = [], preSelectedCommunityId }: 
           dress_code: formData.dress_code || undefined,
           contact_info: formData.contact_info || undefined,
           gallery_images: formData.gallery_images.length > 0 ? formData.gallery_images : undefined,
-          rsvp_deadline: formData.rsvp_deadline || undefined,
         })
 
+        // Link event to selected areas
+        if (formData.areaIds.length > 0 && result.id) {
+          await Promise.all(
+            formData.areaIds.map((areaId) => linkEventToArea(result.id!, areaId))
+          )
+        }
+
         // Redirect to the event page
-        router.push(`/events/${slug}`)
+        router.push(`/events/${result.slug}`)
       } catch (e) {
         console.error(e)
         setError("Failed to create event. Please try again.")
@@ -181,11 +214,22 @@ export function CreateEventWizard({ communities = [], preSelectedCommunityId }: 
       case 2:
         return <StepLocation formData={formData} updateFormData={updateFormData} />
       case 3:
-        return <StepSettings formData={formData} updateFormData={updateFormData} communities={communities} />
+        return (
+          <StepSettings
+            formData={formData}
+            updateFormData={updateFormData}
+            communities={communities}
+            availableAreas={availableAreas}
+            preSelectedCommunityId={preSelectedCommunityId}
+            preSelectedCommunityName={preSelectedCommunityName}
+            preSelectedCommunityVisibility={preSelectedCommunityVisibility}
+            preSelectedSpaceId={preSelectedSpaceId}
+          />
+        )
       case 4:
         return <StepDesignPreview formData={formData} updateFormData={updateFormData} />
       case 5:
-        return <StepReview formData={formData} communities={communities} />
+        return <StepReview formData={formData} updateFormData={updateFormData} communities={communities} />
       default:
         return null
     }

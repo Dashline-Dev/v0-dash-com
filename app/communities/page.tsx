@@ -1,5 +1,3 @@
-import { getAuthenticatedUser } from "@/lib/mock-user"
-import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getCommunities } from "@/lib/actions/community-actions"
 import { CommunityList } from "@/components/communities/community-list"
 
@@ -9,12 +7,9 @@ export const metadata = {
 }
 
 export default async function CommunitiesPage() {
-  const [user, result] = await Promise.all([
-    getAuthenticatedUser(),
-    getCommunities({ limit: 12 }),
-  ])
+  const result = await getCommunities({ limit: 12 })
 
-  const content = (
+  return (
     <div className="max-w-4xl mx-auto px-4 py-5 md:px-6 md:py-6 pb-24 md:pb-8">
       <div className="mb-4">
         <h1 className="text-xl font-bold text-foreground">Communities</h1>
@@ -30,10 +25,4 @@ export default async function CommunitiesPage() {
       />
     </div>
   )
-
-  if (!user) {
-    return <AuthRequiredModal>{content}</AuthRequiredModal>
-  }
-
-  return content
 }

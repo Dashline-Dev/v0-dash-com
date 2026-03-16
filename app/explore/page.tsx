@@ -1,6 +1,4 @@
 import { Metadata } from "next"
-import { getAuthenticatedUser } from "@/lib/mock-user"
-import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { ExploreView } from "@/components/explore/explore-view"
 import { getTrending } from "@/lib/actions/search-actions"
 
@@ -11,20 +9,11 @@ export const metadata: Metadata = {
 }
 
 export default async function ExplorePage() {
-  const [user, trending] = await Promise.all([
-    getAuthenticatedUser(),
-    getTrending(),
-  ])
+  const trending = await getTrending()
 
-  const content = (
+  return (
     <ExploreView
       initialTrending={trending}
     />
   )
-
-  if (!user) {
-    return <AuthRequiredModal>{content}</AuthRequiredModal>
-  }
-
-  return content
 }
