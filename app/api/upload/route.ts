@@ -38,8 +38,10 @@ export async function POST(request: NextRequest) {
       access: "private",
     })
 
+    // For private blobs, return the pathname so callers can serve the file
+    // through /api/file?pathname=... rather than exposing a direct blob URL.
     return NextResponse.json({
-      url: blob.downloadUrl,
+      url: `/api/file?pathname=${encodeURIComponent(blob.pathname)}`,
       pathname: blob.pathname,
       filename: file.name,
       size: file.size,
