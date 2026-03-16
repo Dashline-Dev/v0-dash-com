@@ -69,8 +69,7 @@ export async function getEvents(opts?: {
   )
 
   const rows = await sql(
-    `SELECT * FROM (
-      SELECT DISTINCT ON (e.id)
+    `SELECT
         e.*,
         c.name as community_name,
         c.slug as community_slug,
@@ -86,10 +85,8 @@ export async function getEvents(opts?: {
       LEFT JOIN event_rsvps r ON r.event_id = e.id AND r.user_id = $${idx}
       LEFT JOIN auth_users u ON e.created_by = u.id::text
       ${where}
-      ORDER BY e.id
-    ) sub
-    ORDER BY sub.start_time ASC, sub.id
-    LIMIT $${idx + 1} OFFSET $${idx + 2}`,
+      ORDER BY e.start_time ASC, e.id
+      LIMIT $${idx + 1} OFFSET $${idx + 2}`,
     [...params, user.id, limit, offset]
   )
 

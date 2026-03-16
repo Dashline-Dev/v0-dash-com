@@ -332,7 +332,7 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
                     {typeFilter === "space" && "Spaces"}
                     {typeFilter === "area" && "Areas"}
                     <Badge variant="secondary" className="ml-2">
-                      {loading ? "..." : showResults ? total : mapMarkers.length}
+                      {loading ? "..." : showResults ? total : (loadingMarkers ? "..." : mapMarkers.length || "")}
                     </Badge>
                   </h2>
                 </div>

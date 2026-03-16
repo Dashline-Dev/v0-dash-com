@@ -65,23 +65,26 @@ export default async function CommunityDetailPage({ params }: PageProps) {
   const canCreateSpace = !!superAdmin || ["admin", "moderator", "owner"].includes(userCommunityRole ?? "")
 
   return (
-    <div>
-      <CommunityHeader community={community} isSuperAdmin={!!superAdmin} />
+    <div className="min-h-screen bg-background">
+      <CommunityHeader
+        community={community}
+        isSuperAdmin={!!superAdmin}
+        eventCount={eventsResult.events.length}
+        spaceCount={spaces.length}
+      />
 
-      <div className="px-4 md:px-6 lg:px-10 py-6">
-        <div className="max-w-4xl">
-          <CommunityTabs
-            community={community}
-            members={membersResult.data}
-            membersCursor={membersResult.nextCursor}
-            membersHasMore={membersResult.hasMore}
-            spaces={spaces}
-            events={eventsResult.events}
-            announcements={announcementsResult.announcements}
-            areas={areas}
-            canCreateSpace={canCreateSpace}
-          />
-        </div>
+      <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 pb-24 md:pb-10">
+        <CommunityTabs
+          community={community}
+          members={membersResult.data}
+          membersCursor={membersResult.nextCursor}
+          membersHasMore={membersResult.hasMore}
+          spaces={spaces}
+          events={eventsResult.events}
+          announcements={announcementsResult.announcements}
+          areas={areas}
+          canCreateSpace={canCreateSpace}
+        />
       </div>
     </div>
   )

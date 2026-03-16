@@ -65,11 +65,6 @@ export function AreasView({ initialAreas, initialAreaData }: AreasViewProps) {
     [initialAreaData, fetchAreaData]
   )
 
-  // Filter to areas with content
-  const populated = areaData.filter(
-    (d) => d.events.length > 0 || d.communities.length > 0 || d.spaces.length > 0
-  )
-
   return (
     <div>
       {/* Search */}
@@ -108,19 +103,17 @@ export function AreasView({ initialAreas, initialAreaData }: AreasViewProps) {
             </div>
           ))}
         </div>
-      ) : populated.length === 0 ? (
+      ) : areaData.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <MapPin className="w-12 h-12 text-muted-foreground/20 mb-3" />
           <p className="text-lg font-medium text-foreground">No areas found</p>
           <p className="text-sm text-muted-foreground mt-1">
-            {search
-              ? "Try a different search term or zip code."
-              : "Areas will appear here once communities and events are linked."}
+            {search ? "Try a different search term or zip code." : "No areas available yet."}
           </p>
         </div>
       ) : (
         <div className="space-y-12">
-          {populated.map(({ area, events, eventTotal, communities, spaces }) => (
+          {areaData.map(({ area, events, eventTotal, communities, spaces }) => (
             <AreaSection
               key={area.id}
               area={area}
