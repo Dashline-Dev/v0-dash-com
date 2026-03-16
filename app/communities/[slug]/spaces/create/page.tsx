@@ -27,6 +27,27 @@ export default async function CreateCommunitySpacePage({ params }: CreateCommuni
   const community = await sql(`SELECT id, name, slug FROM communities WHERE slug = $1`, [slug])
   if (!community[0]) notFound()
 
+  // Only members with admin/moderator role can create spaces
+  const membership = await sql(
+    `SELECT role FROM community_members
+     WHERE community_id = $1 AND user_id = $2 AND status = 'active'`,
+    [community[0].id, user.id]
+  )
+
+  const role = membership[0]?.role as string | undefined
+  const canCreate = role && ["admin", "moderator", "owner"].includes(role)
+
+  if (!canCreate) {
+    return (
+      <div className="px-4 py-10 md:px-6 lg:px-10 text-center">
+        <h1 className="text-xl font-bold text-foreground mb-2">Access Denied</h1>
+        <p className="text-muted-foreground text-sm">
+          You must be an admin or moderator of &ldquo;{community[0].name}&rdquo; to create a space.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="px-4 py-5 md:px-6 lg:px-10 md:py-8">
       <div className="max-w-lg mx-auto">

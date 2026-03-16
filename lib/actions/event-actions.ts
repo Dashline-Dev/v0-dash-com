@@ -85,7 +85,7 @@ export async function getEvents(opts?: {
     LEFT JOIN event_rsvps r ON r.event_id = e.id AND r.user_id = $${idx}
     LEFT JOIN auth_users u ON e.created_by = u.id::text
     ${where}
-    ORDER BY e.id, e.start_time ASC
+    ORDER BY e.start_time ASC, e.id
     LIMIT $${idx + 1} OFFSET $${idx + 2}`,
     [...params, user.id, limit, offset]
   )
@@ -463,74 +463,123 @@ export async function getEventRsvps(
   return rows as EventRsvp[]
 }
 
-// ── Share event to community ────────────────────────────────
+// ── Share event to multiple communities ─────────────────────
 
-export async function shareEventToCommunity(
+export async function shareEventToCommunities(
   eventId: string,
-  communityId: string
+  communityIds: string[]
 ): Promise<{ ok: boolean; error?: string }> {
   const user = await getCurrentUser()
 
-  // Verify user is a member of the community
-  const membership = await sql(
-    `SELECT id FROM community_members 
-     WHERE community_id = $1 AND user_id = $2 AND status = 'active'`,
-    [communityId, user.id]
-  )
-
-  if (membership.length === 0) {
-    return { ok: false, error: "You must be a member of this community to share events there." }
+  if (communityIds.length === 0) {
+    return { ok: false, error: "Please select at least one community." }
   }
-
-  // Verify user owns the event or is the organizer
-  const event = await sql(
-    `SELECT id, created_by FROM events WHERE id = $1`,
-    [eventId]
-  )
-
-  if (event.length === 0) {
-    return { ok: false, error: "Event not found." }
-  }
-
-  if (event[0].created_by !== user.id) {
-    return { ok: false, error: "You can only share events you created." }
-  }
-
-  // Update the event's community_id
-  await sql(
-    `UPDATE events SET community_id = $1, updated_at = NOW() WHERE id = $2`,
-    [communityId, eventId]
-  )
-
-  return { ok: true }
-}
-
-// ── Unshare event from community ────────────────────────────
-
-export async function unshareEventFromCommunity(
-  eventId: string
-): Promise<{ ok: boolean; error?: string }> {
-  const user = await getCurrentUser()
 
   // Verify user owns the event
   const event = await sql(
     `SELECT id, created_by FROM events WHERE id = $1`,
     [eventId]
   )
-
-  if (event.length === 0) {
-    return { ok: false, error: "Event not found." }
+  if (event.length === 0) return { ok: false, error: "Event not found." }
+  if (event[0].created_by !== user.id) {
+    return { ok: false, error: "You can only share events you created." }
   }
 
+  // Verify user is a member of all selected communities
+  const memberships = await sql(
+    `SELECT community_id FROM community_members 
+     WHERE community_id = ANY($1::uuid[]) AND user_id = $2 AND status = 'active'`,
+    [communityIds, user.id]
+  )
+  const memberCommunityIds = new Set(memberships.map((m: { community_id: string }) => m.community_id))
+  const notMember = communityIds.find((id) => !memberCommunityIds.has(id))
+  if (notMember) {
+    return { ok: false, error: "You must be a member of all selected communities." }
+  }
+
+  // Upsert into junction table for each community
+  for (const communityId of communityIds) {
+    await sql(
+      `INSERT INTO event_community_shares (event_id, community_id, shared_by)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (event_id, community_id) DO NOTHING`,
+      [eventId, communityId, user.id]
+    )
+  }
+
+  // Keep events.community_id pointing at the first (primary) community for backwards compat
+  await sql(
+    `UPDATE events SET community_id = $1, updated_at = NOW() WHERE id = $2`,
+    [communityIds[0], eventId]
+  )
+
+  return { ok: true }
+}
+
+// Keep single-community signature for backward compat
+export async function shareEventToCommunity(
+  eventId: string,
+  communityId: string
+): Promise<{ ok: boolean; error?: string }> {
+  return shareEventToCommunities(eventId, [communityId])
+}
+
+// ── Get communities an event is shared to ────────────────────
+
+export async function getEventSharedCommunities(
+  eventId: string
+): Promise<{ id: string; name: string; slug: string }[]> {
+  const rows = await sql(
+    `SELECT c.id, c.name, c.slug
+     FROM event_community_shares ecs
+     JOIN communities c ON c.id = ecs.community_id
+     WHERE ecs.event_id = $1
+     ORDER BY ecs.shared_at ASC`,
+    [eventId]
+  )
+  return rows as { id: string; name: string; slug: string }[]
+}
+
+// ── Unshare event from a specific community ──────────────────
+
+export async function unshareEventFromCommunity(
+  eventId: string,
+  communityId?: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getCurrentUser()
+
+  const event = await sql(
+    `SELECT id, created_by FROM events WHERE id = $1`,
+    [eventId]
+  )
+  if (event.length === 0) return { ok: false, error: "Event not found." }
   if (event[0].created_by !== user.id) {
     return { ok: false, error: "You can only modify events you created." }
   }
 
-  // Remove community association
-  await sql(
-    `UPDATE events SET community_id = NULL, space_id = NULL, updated_at = NOW() WHERE id = $1`,
-    [eventId]
-  )
+  if (communityId) {
+    // Remove from specific community
+    await sql(
+      `DELETE FROM event_community_shares WHERE event_id = $1 AND community_id = $2`,
+      [eventId, communityId]
+    )
+    // If this was the primary community, update events.community_id to next share or null
+    const remaining = await sql(
+      `SELECT community_id FROM event_community_shares WHERE event_id = $1 ORDER BY shared_at ASC LIMIT 1`,
+      [eventId]
+    )
+    await sql(
+      `UPDATE events SET community_id = $1, updated_at = NOW() WHERE id = $2`,
+      [remaining[0]?.community_id ?? null, eventId]
+    )
+  } else {
+    // Remove from all communities
+    await sql(`DELETE FROM event_community_shares WHERE event_id = $1`, [eventId])
+    await sql(
+      `UPDATE events SET community_id = NULL, space_id = NULL, updated_at = NOW() WHERE id = $1`,
+      [eventId]
+    )
+  }
 
   return { ok: true }
 }

@@ -31,6 +31,7 @@ import { toHebrewDate } from "@/lib/hebrew-date"
 interface EventDetailProps {
   event: EventWithMeta
   communities?: { id: string; name: string; slug: string }[]
+  sharedCommunityIds?: string[]
   canEdit?: boolean
 }
 
@@ -40,7 +41,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   hybrid: Video,
 }
 
-export function EventDetail({ event, communities = [], canEdit = false }: EventDetailProps) {
+export function EventDetail({ event, communities = [], sharedCommunityIds = [], canEdit = false }: EventDetailProps) {
   const past = isEventPast(event.end_time)
   const TypeIcon = TYPE_ICON[event.event_type] ?? Calendar
 
@@ -125,7 +126,7 @@ export function EventDetail({ event, communities = [], canEdit = false }: EventD
             <EventShareDialog
               eventId={event.id}
               eventSlug={event.slug}
-              currentCommunityId={event.community_id}
+              sharedCommunityIds={sharedCommunityIds}
               communities={communities}
             >
               <Button

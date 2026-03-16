@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { getTemplateById } from "@/lib/event-templates"
 import { InvitationCard } from "./invitation-card"
 import type { EventWithMeta } from "@/types/event"
-import { Shirt, Info, Phone, Calendar, Image as ImageIcon, Download } from "lucide-react"
+import { Shirt, Info, Phone, Image as ImageIcon, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface EventInvitationDisplayProps {
@@ -88,7 +88,7 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
       )}
 
       {/* Event details cards */}
-      {(event.dress_code || event.additional_info || event.contact_info || event.rsvp_deadline) && (
+      {(event.dress_code || event.additional_info || event.contact_info) && (
         <div className="grid gap-4 sm:grid-cols-2">
           {event.dress_code && (
             <div className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card">
@@ -101,28 +101,6 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
               <div>
                 <h4 className="font-medium text-sm text-muted-foreground">Dress Code</h4>
                 <p className="text-foreground mt-0.5">{event.dress_code}</p>
-              </div>
-            </div>
-          )}
-
-          {event.rsvp_deadline && (
-            <div className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card">
-              <div
-                className="p-2 rounded-lg"
-                style={{ backgroundColor: accentColor + "15" }}
-              >
-                <Calendar className="w-5 h-5" style={{ color: accentColor }} />
-              </div>
-              <div>
-                <h4 className="font-medium text-sm text-muted-foreground">RSVP By</h4>
-                <p className="text-foreground mt-0.5">
-                  {new Date(event.rsvp_deadline).toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
               </div>
             </div>
           )}

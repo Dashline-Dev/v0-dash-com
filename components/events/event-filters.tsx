@@ -142,7 +142,7 @@ export function EventFilters({ events, filters, onChange }: EventFiltersProps) {
 // ── Pure client-side filter function ──────────────────────────
 
 export function applyEventFilters(events: EventWithMeta[], filters: EventFilterState): EventWithMeta[] {
-  return events.filter((e) => {
+  const filtered = events.filter((e) => {
     if (filters.type && e.event_type !== filters.type) return false
     if (filters.community && e.community_slug !== filters.community) return false
     if (filters.space && e.space_slug !== filters.space) return false
@@ -152,4 +152,8 @@ export function applyEventFilters(events: EventWithMeta[], filters: EventFilterS
     if (filters.capacity === "unlimited" && e.max_attendees != null) return false
     return true
   })
+  // Always sort by start date ascending
+  return filtered.sort(
+    (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+  )
 }

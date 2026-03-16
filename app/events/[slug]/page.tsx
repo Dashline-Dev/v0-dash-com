@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation"
 import { getAuthenticatedUser } from "@/lib/mock-user"
-import { getEventBySlug, getPublicEventBySlug, getEventRsvps } from "@/lib/actions/event-actions"
+import {
+  getEventBySlug,
+  getPublicEventBySlug,
+  getEventSharedCommunities,
+} from "@/lib/actions/event-actions"
 import { getUserCommunities } from "@/lib/actions/user-actions"
 import { EventDetail } from "@/components/events/event-detail"
 import { EventPublicView } from "@/components/events/event-public-view"
@@ -11,9 +15,13 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  // Try public first for SEO
   const event = await getPublicEventBySlug(slug)
   if (!event) return { title: "Event Not Found" }
+
+  // Use invitation image or cover image as OG preview
+  const ogImage =
+    event.invitation_image_url || event.cover_image_url || undefined
+
   return {
     title: `${event.title} | Dash`,
     description: event.description?.slice(0, 160) ?? "",
@@ -21,6 +29,15 @@ export async function generateMetadata({
       title: event.title,
       description: event.description?.slice(0, 160) ?? "",
       type: "website",
+      ...(ogImage && {
+        images: [{ url: ogImage, width: 1200, height: 630, alt: event.title }],
+      }),
+    },
+    twitter: {
+      card: ogImage ? "summary_large_image" : "summary",
+      title: event.title,
+      description: event.description?.slice(0, 160) ?? "",
+      ...(ogImage && { images: [ogImage] }),
     },
   }
 }
@@ -33,37 +50,35 @@ export default async function EventDetailPage({
   const { slug } = await params
   const user = await getAuthenticatedUser()
 
-  // If user is logged in, get full event with their RSVP status
   if (user) {
-    const event = await getEventBySlug(slug)
+    const [event, userCommunities] = await Promise.all([
+      getEventBySlug(slug),
+      getUserCommunities(user.id).catch(() => []),
+    ])
     if (!event) notFound()
 
-    const rsvps = await getEventRsvps(event.id)
+    const sharedCommunities = await getEventSharedCommunities(event.id).catch(() => [])
 
-    // Get user's communities for sharing
-    let communities: { id: string; name: string; slug: string }[] = []
-    try {
-      const memberships = await getUserCommunities(user.id)
-      communities = memberships.map((m) => ({
-        id: m.community_id as string,
-        name: m.community_name as string,
-        slug: m.community_slug as string,
-      }))
-    } catch {
-      // User may not be in any communities
-    }
+    const communities = userCommunities.map((m) => ({
+      id: m.community_id as string,
+      name: m.community_name as string,
+      slug: m.community_slug as string,
+    }))
 
-    // Check if user can edit (creator or admin)
-    const canEdit = event.created_by === user.id || user.role === "admin"
+    const canEdit = event.created_by === user.id || (user as { role?: string }).role === "admin"
 
     return (
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8">
-        <EventDetail event={event} rsvps={rsvps} communities={communities} canEdit={canEdit} />
+        <EventDetail
+          event={event}
+          communities={communities}
+          sharedCommunityIds={sharedCommunities.map((c) => c.id)}
+          canEdit={canEdit}
+        />
       </div>
     )
   }
 
-  // For public/anonymous users, show public view if event allows it
   const event = await getPublicEventBySlug(slug)
   if (!event) notFound()
 
