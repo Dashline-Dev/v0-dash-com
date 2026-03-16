@@ -341,6 +341,34 @@ export async function updateEvent(
     sets.push(`contact_info = $${idx++}`)
     params.push(data.contact_info)
   }
+  if (data.template_id !== undefined) {
+    sets.push(`template_id = $${idx++}`)
+    params.push(data.template_id)
+  }
+  if (data.invitation_image_url !== undefined) {
+    sets.push(`invitation_image_url = $${idx++}`)
+    params.push(data.invitation_image_url)
+  }
+  if (data.invitation_message !== undefined) {
+    sets.push(`invitation_message = $${idx++}`)
+    params.push(data.invitation_message)
+  }
+  if (data.additional_info !== undefined) {
+    sets.push(`additional_info = $${idx++}`)
+    params.push(data.additional_info)
+  }
+  if (data.dress_code !== undefined) {
+    sets.push(`dress_code = $${idx++}`)
+    params.push(data.dress_code)
+  }
+  if (data.gallery_images !== undefined) {
+    sets.push(`gallery_images = $${idx++}`)
+    params.push(data.gallery_images)
+  }
+  if (data.rsvp_deadline !== undefined) {
+    sets.push(`rsvp_deadline = $${idx++}`)
+    params.push(data.rsvp_deadline)
+  }
 
   if (sets.length === 0) return
 
