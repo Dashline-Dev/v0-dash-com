@@ -708,34 +708,6 @@ export async function getAllAreasForSelect(): Promise<{ id: string; name: string
   }))
 }
 
-// ── Get spaces in an area ───────────────────────────────────
-
-export async function getAreaSpaces(
-  areaId: string,
-  opts?: { limit?: number; offset?: number }
-): Promise<AreaSpace[]> {
-  const limit = opts?.limit ?? 20
-  const offset = opts?.offset ?? 0
-
-  const rows = await sql(
-    `SELECT
-      s.id, s.name, s.slug, s.description, s.type, s.icon, s.cover_image_url,
-      COALESCE((SELECT COUNT(*) FROM space_members sm WHERE sm.space_id = s.id), 0) as member_count,
-      c.name as community_name, c.slug as community_slug
-    FROM spaces s
-    JOIN space_areas sa ON sa.space_id = s.id
-    LEFT JOIN communities c ON c.id = s.community_id
-    WHERE sa.area_id = $1
-      AND s.status = 'active'
-      AND s.visibility = 'public'
-    ORDER BY member_count DESC
-    LIMIT $2 OFFSET $3`,
-    [areaId, limit, offset]
-  )
-
-  return rows as AreaSpace[]
-}
-
 // ── Get areas for a community ───────────────────────────────
 
 export async function getCommunityAreas(communityId: string): Promise<AreaWithMeta[]> {
