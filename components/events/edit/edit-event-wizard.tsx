@@ -95,7 +95,7 @@ export function EditEventWizard({
     dress_code: event.dress_code ?? "",
     contact_info: event.contact_info ?? "",
     gallery_images: event.gallery_images ?? [],
-    rsvp_deadline: event.rsvp_deadline ?? "",
+
   })
 
   const updateFormData = (updates: Partial<EventFormData>) => {
@@ -162,7 +162,7 @@ export function EditEventWizard({
           additional_info: formData.additional_info || null,
           dress_code: formData.dress_code || null,
           gallery_images: formData.gallery_images.length > 0 ? formData.gallery_images : null,
-          rsvp_deadline: formData.rsvp_deadline || null,
+
         })
 
         router.push(returnUrl || `/events/${event.slug}`)
@@ -255,7 +255,7 @@ export function EditEventWizard({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete this event?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete &ldquo;{event.title}&rdquo; and all its RSVPs. This
+                    This will permanently delete &ldquo;{event.title}&rdquo; and all its data. This
                     action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>

@@ -273,10 +273,7 @@ function AreaEventCard({ event }: { event: AreaEvent }) {
               Online
             </span>
           )}
-          <span className="flex items-center gap-1">
-            <Users className="w-3 h-3" />
-            {event.rsvp_count} going
-          </span>
+
         </div>
         <p className="text-[11px] text-muted-foreground mt-1.5">{event.community_name}</p>
       </div>

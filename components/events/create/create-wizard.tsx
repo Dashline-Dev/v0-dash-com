@@ -42,7 +42,6 @@ export interface EventFormData {
   dress_code: string
   contact_info: string
   gallery_images: string[]
-  rsvp_deadline: string
 }
 
 const STEPS = ["Basics", "Date & Time", "Location", "Settings", "Design & Preview", "Review"]
@@ -107,7 +106,6 @@ export function CreateEventWizard({
     dress_code: "",
     contact_info: "",
     gallery_images: [],
-    rsvp_deadline: "",
   })
 
   const updateFormData = (updates: Partial<EventFormData>) => {
@@ -183,7 +181,6 @@ export function CreateEventWizard({
           dress_code: formData.dress_code || undefined,
           contact_info: formData.contact_info || undefined,
           gallery_images: formData.gallery_images.length > 0 ? formData.gallery_images : undefined,
-          rsvp_deadline: formData.rsvp_deadline || undefined,
         })
 
         // Redirect to the event page
@@ -218,7 +215,7 @@ export function CreateEventWizard({
       case 4:
         return <StepDesignPreview formData={formData} updateFormData={updateFormData} />
       case 5:
-        return <StepReview formData={formData} communities={communities} />
+        return <StepReview formData={formData} updateFormData={updateFormData} communities={communities} />
       default:
         return null
     }

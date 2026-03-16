@@ -4,7 +4,7 @@ import { useMemo } from "react"
 import { SlidersHorizontal, X } from "lucide-react"
 import { FacetFilter, type FacetOption } from "@/components/ui/facet-filter"
 import type { EventWithMeta } from "@/types/event"
-import { EVENT_TYPE_LABELS, RSVP_STATUS_LABELS } from "@/types/event"
+import { EVENT_TYPE_LABELS } from "@/types/event"
 import { cn } from "@/lib/utils"
 
 export interface EventFilterState {
@@ -13,7 +13,6 @@ export interface EventFilterState {
   space: string | null
   format: string | null      // "has_location" | "virtual_only" | "hybrid"
   capacity: string | null    // "limited" | "unlimited"
-  rsvp: string | null        // "going" | "interested" | "not_going" | "none"
 }
 
 export const EMPTY_EVENT_FILTERS: EventFilterState = {
@@ -22,7 +21,6 @@ export const EMPTY_EVENT_FILTERS: EventFilterState = {
   space: null,
   format: null,
   capacity: null,
-  rsvp: null,
 }
 
 interface EventFiltersProps {
@@ -94,19 +92,7 @@ export function EventFilters({ events, filters, onChange }: EventFiltersProps) {
     ].filter((o) => o.count > 0)
   }, [events])
 
-  const rsvpFacets = useMemo<FacetOption[]>(() => {
-    const counts: Record<string, number> = { going: 0, interested: 0, not_going: 0, none: 0 }
-    for (const e of events) {
-      const k = e.current_user_rsvp ?? "none"
-      counts[k] = (counts[k] || 0) + 1
-    }
-    return [
-      { value: "going",     label: "Going",       count: counts.going },
-      { value: "interested",label: "Interested",  count: counts.interested },
-      { value: "not_going", label: "Not going",   count: counts.not_going },
-      { value: "none",      label: "No RSVP yet", count: counts.none },
-    ].filter((o) => o.count > 0 && o.value !== "none" || (o.value === "none" && o.count > 0 && o.count < events.length))
-  }, [events])
+
 
   const activeCount = Object.values(filters).filter(Boolean).length
 
@@ -137,9 +123,7 @@ export function EventFilters({ events, filters, onChange }: EventFiltersProps) {
       {capacityFacets.length > 1 && (
         <FacetFilter label="Capacity" options={capacityFacets} selected={filters.capacity} onSelect={(v) => onChange({ capacity: v })} />
       )}
-      {rsvpFacets.length > 1 && (
-        <FacetFilter label="RSVP" options={rsvpFacets} selected={filters.rsvp} onSelect={(v) => onChange({ rsvp: v })} />
-      )}
+
 
       {/* Clear all */}
       {activeCount > 0 && (
@@ -166,7 +150,6 @@ export function applyEventFilters(events: EventWithMeta[], filters: EventFilterS
     if (filters.format === "virtual_only" && (e.location_name || !e.virtual_link)) return false
     if (filters.capacity === "limited" && e.max_attendees == null) return false
     if (filters.capacity === "unlimited" && e.max_attendees != null) return false
-    if (filters.rsvp && (e.current_user_rsvp ?? "none") !== filters.rsvp) return false
     return true
   })
 }

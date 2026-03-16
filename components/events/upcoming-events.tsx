@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { CalendarDays, MapPin, Users, Clock, ChevronRight } from "lucide-react"
+import { CalendarDays, MapPin, Clock, ChevronRight } from "lucide-react"
 
 interface UpcomingEvent {
   id: string
@@ -10,7 +10,6 @@ interface UpcomingEvent {
   endTime: string
   timezone: string
   locationName: string | null
-  rsvpCount: number
   maxAttendees: number | null
   communityName: string
   communitySlug: string
@@ -86,12 +85,6 @@ export function UpcomingEventsList({ events }: { events: UpcomingEvent[] }) {
 
               {/* Right meta */}
               <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-                {event.rsvpCount > 0 && (
-                  <span className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    {event.rsvpCount}
-                  </span>
-                )}
                 <span className="hidden sm:inline text-[11px] truncate max-w-[100px]">
                   {event.communityName}
                 </span>

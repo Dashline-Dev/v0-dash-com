@@ -170,7 +170,7 @@ export function ProfileView({ user, profile, communities, stats }: ProfileViewPr
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{stats.eventCount}</p>
-              <p className="text-xs text-muted-foreground">Events RSVPd</p>
+              <p className="text-xs text-muted-foreground">Events Attended</p>
             </div>
           </CardContent>
         </Card>

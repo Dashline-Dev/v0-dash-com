@@ -35,13 +35,11 @@ export async function POST(request: NextRequest) {
     }
 
     const blob = await put(`${folder}/${Date.now()}-${file.name}`, file, {
-      access: "private",
+      access: "public",
     })
 
-    // For private blobs, return the pathname so callers can serve the file
-    // through /api/file?pathname=... rather than exposing a direct blob URL.
     return NextResponse.json({
-      url: `/api/file?pathname=${encodeURIComponent(blob.pathname)}`,
+      url: blob.url,
       pathname: blob.pathname,
       filename: file.name,
       size: file.size,

@@ -173,7 +173,7 @@ export function StepSettings({
             placeholder="Leave empty for unlimited"
           />
           <p className="text-xs text-muted-foreground">
-            Set a limit to control how many people can RSVP
+            Set a limit to control how many people can attend
           </p>
         </div>
 
