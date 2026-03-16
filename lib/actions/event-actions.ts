@@ -198,7 +198,7 @@ export async function getPublicEventBySlug(
 
 // ── Create event ────────────────────────────────────────────
 
-export async function createEvent(data: CreateEventData): Promise<string> {
+export async function createEvent(data: CreateEventData): Promise<{ id: string; slug: string }> {
   const user = await getCurrentUser()
   const slug = slugify(data.title) + "-" + Date.now().toString(36)
 
@@ -219,7 +219,7 @@ export async function createEvent(data: CreateEventData): Promise<string> {
       $16, $17, $18, $18,
       $19, $20, $21,
       $22, $23, $24, $25, $26
-    ) RETURNING slug`,
+    ) RETURNING id, slug`,
     [
       data.community_id || null,
       data.space_id || null,
@@ -264,7 +264,7 @@ export async function createEvent(data: CreateEventData): Promise<string> {
     [rows[0].slug]
   )
 
-  return rows[0].slug as string
+  return { id: rows[0].id as string, slug: rows[0].slug as string }
 }
 
 // ── Update event ────────────────────────────────────────────

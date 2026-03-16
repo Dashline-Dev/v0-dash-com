@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button"
 import { StepIndicator } from "@/components/ui/step-indicator"
 import { Loader2, ArrowLeft, ArrowRight } from "lucide-react"
 import { createEvent } from "@/lib/actions/event-actions"
+import { linkEventToArea } from "@/lib/actions/area-actions"
 import type { EventType, EventVisibility } from "@/types/event"
+import type { AreaOption } from "@/components/areas/area-selector"
 
 import { StepBasics } from "./step-basics"
 import { StepDateTime } from "./step-date-time"
@@ -42,12 +44,14 @@ export interface EventFormData {
   dress_code: string
   contact_info: string
   gallery_images: string[]
+  areaIds: string[]
 }
 
 const STEPS = ["Basics", "Date & Time", "Location", "Settings", "Design & Preview", "Review"]
 
 interface CreateEventWizardProps {
   communities?: { id: string; name: string; slug: string }[]
+  availableAreas?: AreaOption[]
   preSelectedCommunityId?: string
   preSelectedCommunityName?: string
   preSelectedCommunityVisibility?: "public" | "unlisted" | "private"
@@ -57,6 +61,7 @@ interface CreateEventWizardProps {
 
 export function CreateEventWizard({
   communities = [],
+  availableAreas = [],
   preSelectedCommunityId,
   preSelectedCommunityName,
   preSelectedCommunityVisibility,
@@ -106,6 +111,7 @@ export function CreateEventWizard({
     dress_code: "",
     contact_info: "",
     gallery_images: [],
+    areaIds: [],
   })
 
   const updateFormData = (updates: Partial<EventFormData>) => {
@@ -158,7 +164,7 @@ export function CreateEventWizard({
         const endDate = formData.end_date || formData.start_date
         const endDateTime = `${endDate}T${endTime}:00`
 
-        const slug = await createEvent({
+        const result = await createEvent({
           title: formData.title,
           description: formData.description || undefined,
           cover_image_url: formData.cover_image_url || undefined,
@@ -183,8 +189,15 @@ export function CreateEventWizard({
           gallery_images: formData.gallery_images.length > 0 ? formData.gallery_images : undefined,
         })
 
+        // Link event to selected areas
+        if (formData.areaIds.length > 0 && result.id) {
+          await Promise.all(
+            formData.areaIds.map((areaId) => linkEventToArea(result.id!, areaId))
+          )
+        }
+
         // Redirect to the event page
-        router.push(`/events/${slug}`)
+        router.push(`/events/${result.slug}`)
       } catch (e) {
         console.error(e)
         setError("Failed to create event. Please try again.")
@@ -206,6 +219,7 @@ export function CreateEventWizard({
             formData={formData}
             updateFormData={updateFormData}
             communities={communities}
+            availableAreas={availableAreas}
             preSelectedCommunityId={preSelectedCommunityId}
             preSelectedCommunityName={preSelectedCommunityName}
             preSelectedCommunityVisibility={preSelectedCommunityVisibility}

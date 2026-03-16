@@ -21,17 +21,21 @@ import {
   SPACE_VISIBILITY_OPTIONS,
   SPACE_JOIN_POLICY_OPTIONS,
 } from "@/types/space"
+import { AreaSelector, type AreaOption } from "@/components/areas/area-selector"
+import { linkSpaceToArea } from "@/lib/actions/area-actions"
 
 interface SpaceCreateFormProps {
   communityId: string
   communitySlug: string
   communityName: string
+  availableAreas?: AreaOption[]
 }
 
 export function SpaceCreateForm({
   communityId,
   communitySlug,
   communityName,
+  availableAreas = [],
 }: SpaceCreateFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -43,6 +47,7 @@ export function SpaceCreateForm({
     type: "general" as string,
     visibility: "public" as string,
     join_policy: "open" as string,
+    areaIds: [] as string[],
   })
 
   const handleNameChange = (name: string) => {
@@ -78,6 +83,13 @@ export function SpaceCreateForm({
         visibility: form.visibility as "public" | "unlisted" | "private",
         join_policy: form.join_policy as "open" | "approval" | "invite_only",
       })
+
+      // Link space to selected areas
+      if (result.id && form.areaIds.length > 0) {
+        await Promise.all(
+          form.areaIds.map((areaId) => linkSpaceToArea(result.id!, areaId))
+        )
+      }
 
       if (result.slug) {
         router.push(`/communities/${communitySlug}/spaces/${result.slug}`)
@@ -208,6 +220,16 @@ export function SpaceCreateForm({
             </Select>
           </div>
         </div>
+
+        {availableAreas.length > 0 && (
+          <AreaSelector
+            availableAreas={availableAreas}
+            selectedAreaIds={form.areaIds}
+            onChange={(areaIds) => setForm((f) => ({ ...f, areaIds }))}
+            label="Areas (optional)"
+            description="Link this space to geographic areas so local users can discover it."
+          />
+        )}
 
         {error && (
           <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">

@@ -1,7 +1,8 @@
-import { notFound, redirect } from "next/navigation"
+import { notFound } from "next/navigation"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { neon } from "@neondatabase/serverless"
+import { getAreas } from "@/lib/actions/area-actions"
 import { SpaceCreateForm } from "@/components/spaces/space-create-form"
 
 const sql = neon(process.env.DATABASE_URL!)
@@ -48,6 +49,15 @@ export default async function CreateCommunitySpacePage({ params }: CreateCommuni
     )
   }
 
+  // Get available areas for linking
+  const { areas } = await getAreas({ limit: 100 })
+  const availableAreas = areas.map((a) => ({
+    id: a.id,
+    name: a.name,
+    type: a.type,
+    parentName: a.parent_name ?? null,
+  }))
+
   return (
     <div className="px-4 py-5 md:px-6 lg:px-10 md:py-8">
       <div className="max-w-lg mx-auto">
@@ -55,6 +65,7 @@ export default async function CreateCommunitySpacePage({ params }: CreateCommuni
           communityId={community[0].id}
           communitySlug={community[0].slug}
           communityName={community[0].name}
+          availableAreas={availableAreas}
         />
       </div>
     </div>

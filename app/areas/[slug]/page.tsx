@@ -5,6 +5,7 @@ import {
   getAreaNeighborhoods,
   getAreaCommunities,
   getAreaEvents,
+  getAreaSpaces,
 } from "@/lib/actions/area-actions"
 import { AreaDetail } from "@/components/areas/area-detail"
 
@@ -28,10 +29,11 @@ export default async function AreaPage({ params }: AreaPageProps) {
 
   if (!area) notFound()
 
-  const [neighborhoods, communities, eventsResult] = await Promise.all([
+  const [neighborhoods, communities, eventsResult, spaces] = await Promise.all([
     getAreaNeighborhoods(area.id),
     getAreaCommunities(area.id),
     getAreaEvents(area.id, { upcoming: true, limit: 20 }),
+    getAreaSpaces(area.id, { limit: 20 }),
   ])
 
   return (
@@ -42,6 +44,7 @@ export default async function AreaPage({ params }: AreaPageProps) {
         communities={communities}
         events={eventsResult.events}
         eventsTotal={eventsResult.total}
+        spaces={spaces}
       />
     </div>
   )

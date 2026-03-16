@@ -3,6 +3,7 @@ import { getAuthenticatedUser } from "@/lib/mock-user"
 import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getCommunityBySlug } from "@/lib/actions/community-actions"
 import { getUserCommunities } from "@/lib/actions/user-actions"
+import { getAreas } from "@/lib/actions/area-actions"
 import { CreateEventWizard } from "@/components/events/create/create-wizard"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -50,6 +51,15 @@ export default async function CommunityCreateEventPage({
     // Non-fatal — falls back to locked community display
   }
 
+  // Get available areas for linking
+  const { areas } = await getAreas({ limit: 100 })
+  const availableAreas = areas.map((a) => ({
+    id: a.id,
+    name: a.name,
+    type: a.type,
+    parentName: a.parent_name ?? null,
+  }))
+
   return (
     <div className="px-4 py-5 md:px-6 lg:px-10 md:py-8">
       <div className="max-w-2xl mx-auto">
@@ -69,6 +79,7 @@ export default async function CommunityCreateEventPage({
 
         <CreateEventWizard
           communities={communities}
+          availableAreas={availableAreas}
           preSelectedCommunityId={community.id}
           preSelectedCommunityName={community.name}
           preSelectedCommunityVisibility={community.visibility}

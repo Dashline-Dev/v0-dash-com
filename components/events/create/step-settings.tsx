@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Globe, Lock, Link2, Loader2, LayoutGrid, Info, Building2 } from "lucide-react"
+import { AreaSelector, type AreaOption } from "@/components/areas/area-selector"
 import type { EventFormData } from "./create-wizard"
 import type { EventVisibility } from "@/types/event"
 import { getSpacesByCommunity } from "@/lib/actions/space-actions"
@@ -20,6 +21,7 @@ interface StepSettingsProps {
   formData: EventFormData
   updateFormData: (updates: Partial<EventFormData>) => void
   communities?: { id: string; name: string; slug: string }[]
+  availableAreas?: AreaOption[]
   preSelectedCommunityId?: string
   preSelectedCommunityName?: string
   preSelectedCommunityVisibility?: "public" | "unlisted" | "private"
@@ -56,6 +58,7 @@ export function StepSettings({
   formData,
   updateFormData,
   communities = [],
+  availableAreas = [],
   preSelectedCommunityId,
   preSelectedCommunityName,
   preSelectedCommunityVisibility,
@@ -267,6 +270,17 @@ export function StepSettings({
             </div>
           )}
         </div>
+
+        {/* Area selection */}
+        {availableAreas.length > 0 && (
+          <AreaSelector
+            availableAreas={availableAreas}
+            selectedAreaIds={formData.areaIds || []}
+            onChange={(areaIds) => updateFormData({ areaIds })}
+            label="Areas (optional)"
+            description="Link to geographic areas so local users can discover this event."
+          />
+        )}
       </div>
     </div>
   )

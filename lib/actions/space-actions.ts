@@ -145,7 +145,7 @@ export async function getSpaceMembers(spaceId: string): Promise<SpaceMember[]> {
 
 // ─── Mutations ──────────────────────────────────────────────────────────────
 
-export async function createSpace(data: CreateSpaceData): Promise<{ slug: string; community_slug?: string }> {
+export async function createSpace(data: CreateSpaceData): Promise<{ id: string; slug: string; community_slug?: string }> {
   const user = await getCurrentUser()
 
   // If creating within a community, verify the user is a member (admin or moderator)
@@ -197,7 +197,7 @@ export async function createSpace(data: CreateSpaceData): Promise<{ slug: string
     if (community[0]) community_slug = community[0].slug
   }
 
-  return { slug: data.slug, community_slug }
+  return { id: spaceId as string, slug: data.slug, community_slug }
 }
 
 export async function updateSpace(
