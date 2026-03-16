@@ -708,7 +708,7 @@ export async function getAllAreasForSelect(): Promise<{ id: string; name: string
   }))
 }
 
-// ── Get areas for a community ───────────────────────────────
+// ── Get areas linked to a community ─────────────────────────
 
 export async function getCommunityAreas(communityId: string): Promise<AreaWithMeta[]> {
   const rows = await sql(
