@@ -1,30 +1,62 @@
 import type { Metadata } from "next"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
-import { getAreas } from "@/lib/actions/area-actions"
-import { AreaList } from "@/components/areas/area-list"
+import {
+  getAreas,
+  getAreaEvents,
+  getAreaCommunities,
+  getAreaSpaces,
+} from "@/lib/actions/area-actions"
+import { AreasView } from "@/components/areas/areas-view"
+import type { AreaWithMeta, AreaEvent, AreaCommunity, AreaSpace } from "@/types/area"
 
 export const metadata: Metadata = {
   title: "Areas | Dash",
-  description: "Discover communities and events in areas near you.",
+  description: "Discover communities, events, and spaces in areas near you.",
+}
+
+export interface AreaSectionData {
+  area: AreaWithMeta
+  events: AreaEvent[]
+  eventTotal: number
+  communities: AreaCommunity[]
+  spaces: AreaSpace[]
 }
 
 export default async function AreasPage() {
-  const [user, { areas, total }] = await Promise.all([
+  const [user, { areas }] = await Promise.all([
     getAuthenticatedUser(),
     getAreas({ limit: 20 }),
   ])
 
+  // Fetch events, communities, and spaces for each area in parallel
+  const areaData: AreaSectionData[] = await Promise.all(
+    areas.map(async (area) => {
+      const [eventsResult, communities, spaces] = await Promise.all([
+        getAreaEvents(area.id, { upcoming: true, limit: 8 }),
+        getAreaCommunities(area.id, { limit: 8 }),
+        getAreaSpaces(area.id, { limit: 8 }),
+      ])
+      return {
+        area,
+        events: eventsResult.events,
+        eventTotal: eventsResult.total,
+        communities,
+        spaces,
+      }
+    })
+  )
+
   const content = (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-6 pb-24 md:pb-8">
-      <div className="mb-4">
-        <h1 className="text-xl font-bold text-foreground">Areas</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Discover communities and events near you
+    <div className="max-w-5xl mx-auto px-4 md:px-6 py-5 md:py-8 pb-24 md:pb-12">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-foreground">Areas</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Discover communities, events, and spaces near you
         </p>
       </div>
 
-      <AreaList initialAreas={areas} initialTotal={total} />
+      <AreasView initialAreas={areas} initialAreaData={areaData} />
     </div>
   )
 
