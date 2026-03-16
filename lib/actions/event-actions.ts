@@ -69,23 +69,26 @@ export async function getEvents(opts?: {
   )
 
   const rows = await sql(
-    `SELECT DISTINCT ON (e.id)
-      e.*,
-      c.name as community_name,
-      c.slug as community_slug,
-      c.avatar_url as community_avatar,
-      s.name as space_name,
-      s.slug as space_slug,
-      r.status as current_user_rsvp,
-      u.display_name as organizer_name,
-      u.avatar_url as organizer_avatar
-    FROM events e
-    LEFT JOIN communities c ON e.community_id = c.id
-    LEFT JOIN spaces s ON e.space_id = s.id
-    LEFT JOIN event_rsvps r ON r.event_id = e.id AND r.user_id = $${idx}
-    LEFT JOIN auth_users u ON e.created_by = u.id::text
-    ${where}
-    ORDER BY e.start_time ASC, e.id
+    `SELECT * FROM (
+      SELECT DISTINCT ON (e.id)
+        e.*,
+        c.name as community_name,
+        c.slug as community_slug,
+        c.avatar_url as community_avatar,
+        s.name as space_name,
+        s.slug as space_slug,
+        r.status as current_user_rsvp,
+        u.display_name as organizer_name,
+        u.avatar_url as organizer_avatar
+      FROM events e
+      LEFT JOIN communities c ON e.community_id = c.id
+      LEFT JOIN spaces s ON e.space_id = s.id
+      LEFT JOIN event_rsvps r ON r.event_id = e.id AND r.user_id = $${idx}
+      LEFT JOIN auth_users u ON e.created_by = u.id::text
+      ${where}
+      ORDER BY e.id
+    ) sub
+    ORDER BY sub.start_time ASC, sub.id
     LIMIT $${idx + 1} OFFSET $${idx + 2}`,
     [...params, user.id, limit, offset]
   )

@@ -22,6 +22,7 @@ interface CommunityTabsProps {
   events: EventWithMeta[]
   announcements: AnnouncementWithMeta[]
   areas?: AreaWithMeta[]
+  canCreateSpace?: boolean
 }
 
 export function CommunityTabs({
@@ -33,6 +34,7 @@ export function CommunityTabs({
   events,
   announcements,
   areas = [],
+  canCreateSpace = false,
 }: CommunityTabsProps) {
   return (
     <Tabs defaultValue="about" className="w-full">
@@ -88,7 +90,7 @@ export function CommunityTabs({
       </TabsContent>
 
       <TabsContent value="spaces" className="mt-5">
-        <CommunitySpaces communitySlug={community.slug} spaces={spaces} />
+        <CommunitySpaces communitySlug={community.slug} spaces={spaces} canCreate={canCreateSpace} />
       </TabsContent>
 
       <TabsContent value="members" className="mt-5">

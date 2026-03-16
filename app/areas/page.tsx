@@ -1,6 +1,4 @@
 import type { Metadata } from "next"
-import { getAuthenticatedUser } from "@/lib/mock-user"
-import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import {
   getAreas,
   getAreaEvents,
@@ -9,6 +7,7 @@ import {
 } from "@/lib/actions/area-actions"
 import { AreasView } from "@/components/areas/areas-view"
 import type { AreaWithMeta, AreaEvent, AreaCommunity, AreaSpace } from "@/types/area"
+
 
 export const metadata: Metadata = {
   title: "Areas | Dash",
@@ -24,10 +23,7 @@ export interface AreaSectionData {
 }
 
 export default async function AreasPage() {
-  const [user, { areas }] = await Promise.all([
-    getAuthenticatedUser(),
-    getAreas({ limit: 20 }),
-  ])
+  const { areas } = await getAreas({ limit: 20 })
 
   // Fetch events, communities, and spaces for each area in parallel
   const areaData: AreaSectionData[] = await Promise.all(
@@ -47,7 +43,7 @@ export default async function AreasPage() {
     })
   )
 
-  const content = (
+  return (
     <div className="max-w-5xl mx-auto px-4 md:px-6 py-5 md:py-8 pb-24 md:pb-12">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-foreground">Areas</h1>
@@ -59,10 +55,4 @@ export default async function AreasPage() {
       <AreasView initialAreas={areas} initialAreaData={areaData} />
     </div>
   )
-
-  if (!user) {
-    return <AuthRequiredModal>{content}</AuthRequiredModal>
-  }
-
-  return content
 }
