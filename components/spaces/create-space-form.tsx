@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
+import { Loader2, Layers, Settings, Type } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SpaceIcon } from "./space-icon"
 import { createSpace } from "@/lib/actions/space-actions"
 import {
@@ -83,120 +84,156 @@ export function CreateSpaceForm({ communityId, communitySlug }: CreateSpaceFormP
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-lg">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="rounded-lg bg-destructive/10 text-destructive text-sm p-3">
+        <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
-      {/* Name */}
-      <div className="space-y-2">
-        <Label htmlFor="space-name">Name</Label>
-        <Input
-          id="space-name"
-          value={name}
-          onChange={(e) => handleNameChange(e.target.value)}
-          placeholder="e.g. General Discussion"
-          required
-        />
-      </div>
+      {/* Basic Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Type className="w-4 h-4 text-muted-foreground" />
+            Basic Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="space-name">Name</Label>
+            <Input
+              id="space-name"
+              value={name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="e.g. General Discussion"
+              required
+            />
+          </div>
 
-      {/* Slug */}
-      <div className="space-y-2">
-        <Label htmlFor="space-slug">URL Slug</Label>
-        <Input
-          id="space-slug"
-          value={slug}
-          onChange={(e) => setSlug(e.target.value)}
-          placeholder="general-discussion"
-          required
-        />
-        <p className="text-xs text-muted-foreground">
-          {communitySlug
-            ? `/communities/${communitySlug}/spaces/${slug || "..."}`
-            : `/spaces/${slug || "..."}`}
-        </p>
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="space-slug">URL Slug</Label>
+            <Input
+              id="space-slug"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="general-discussion"
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              {communitySlug
+                ? `/communities/${communitySlug}/spaces/${slug || "..."}`
+                : `/spaces/${slug || "..."}`}
+            </p>
+          </div>
 
-      {/* Description */}
-      <div className="space-y-2">
-        <Label htmlFor="space-description">Description</Label>
-        <Textarea
-          id="space-description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="What is this space about?"
-          rows={3}
-        />
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="space-description">Description</Label>
+            <Textarea
+              id="space-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What is this space about?"
+              rows={3}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Type */}
-      <div className="space-y-2">
-        <Label>Type</Label>
-        <Select value={type} onValueChange={(v) => setType(v as SpaceType)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(SPACE_TYPE_LABELS).map(([key, label]) => (
-              <SelectItem key={key} value={key}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Type & Icon */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Layers className="w-4 h-4 text-muted-foreground" />
+            Type & Icon
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Type</Label>
+            <Select value={type} onValueChange={(v) => setType(v as SpaceType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(SPACE_TYPE_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Icon */}
-      <div className="space-y-2">
-        <Label>Icon</Label>
-        <div className="grid grid-cols-10 gap-1.5">
-          {SPACE_ICON_OPTIONS.map((iconName) => (
-            <button
-              key={iconName}
-              type="button"
-              onClick={() => setIcon(iconName)}
-              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-                icon === iconName
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground hover:text-foreground"
-              }`}
-              aria-label={iconName}
-            >
-              <SpaceIcon name={iconName} className="w-4 h-4" />
-            </button>
-          ))}
-        </div>
-      </div>
+          <div className="space-y-2">
+            <Label>Icon</Label>
+            <div className="grid grid-cols-10 gap-1.5">
+              {SPACE_ICON_OPTIONS.map((iconName) => (
+                <button
+                  key={iconName}
+                  type="button"
+                  onClick={() => setIcon(iconName)}
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                    icon === iconName
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground hover:text-foreground"
+                  }`}
+                  aria-label={iconName}
+                >
+                  <SpaceIcon name={iconName} className="w-4 h-4" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Visibility */}
-      <div className="space-y-2">
-        <Label>Visibility</Label>
-        <Select value={visibility} onValueChange={(v) => setVisibility(v as SpaceVisibility)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(SPACE_VISIBILITY_LABELS).map(([key, label]) => (
-              <SelectItem key={key} value={key}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Settings className="w-4 h-4 text-muted-foreground" />
+            Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label>Visibility</Label>
+            <Select value={visibility} onValueChange={(v) => setVisibility(v as SpaceVisibility)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(SPACE_VISIBILITY_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
-      <Button type="submit" disabled={submitting || !name.trim()} className="w-full">
-        {submitting ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            Creating...
-          </>
-        ) : (
-          "Create Space"
-        )}
-      </Button>
+      {/* Submit */}
+      <div className="flex items-center gap-3 justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.back()}
+          disabled={submitting}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || !name.trim()} className="gap-2">
+          {submitting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Layers className="w-4 h-4" />
+          )}
+          Create Space
+        </Button>
+      </div>
     </form>
   )
 }

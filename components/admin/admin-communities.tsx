@@ -10,6 +10,8 @@ import {
   Loader2,
   MoreHorizontal,
   ExternalLink,
+  Pencil,
+  Plus,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -110,20 +112,28 @@ export function AdminCommunities({
 
   return (
     <div className="space-y-4">
-      <form onSubmit={handleSearch} className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or slug..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Button type="submit" variant="secondary" size="sm" disabled={searching}>
-          {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
+      <div className="flex items-center justify-between gap-4">
+        <form onSubmit={handleSearch} className="flex items-center gap-2 flex-1">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or slug..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Button type="submit" variant="secondary" size="sm" disabled={searching}>
+            {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
+          </Button>
+        </form>
+        <Button size="sm" asChild>
+          <Link href="/communities/create">
+            <Plus className="w-4 h-4 mr-1.5" />
+            Add Community
+          </Link>
         </Button>
-      </form>
+      </div>
 
       <p className="text-xs text-muted-foreground">
         {total} communit{total !== 1 ? "ies" : "y"} total
@@ -188,6 +198,12 @@ export function AdminCommunities({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
+                  <Link href={`/communities/${community.slug}/edit`}>
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit Community
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href={`/communities/${community.slug}/admin`}>
                     <ExternalLink className="w-4 h-4 mr-2" />
                     Open Admin Panel
@@ -246,6 +262,7 @@ export function AdminCommunities({
         </div>
       )}
 
+      {/* Delete Dialog */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}

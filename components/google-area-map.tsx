@@ -7,6 +7,29 @@ import { Users, CalendarDays, MapPin } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
+/* ── MapController - handles programmatic panning/zooming ── */
+
+function MapController({ center, zoom, selectedId }: { center: { lat: number; lng: number }; zoom: number; selectedId?: string | null }) {
+  const map = useMap()
+  const lastSelectedId = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!map) return
+    
+    // Only pan/zoom when selectedId changes (not on initial render or random changes)
+    if (selectedId && selectedId !== lastSelectedId.current) {
+      map.panTo(center)
+      map.setZoom(zoom)
+      lastSelectedId.current = selectedId
+    } else if (!selectedId && lastSelectedId.current) {
+      // Selection cleared - zoom back out
+      lastSelectedId.current = null
+    }
+  }, [map, center, zoom, selectedId])
+
+  return null
+}
+
 /* ── Color palette for neighborhood overlays ─────────────── */
 
 const COLORS = [
@@ -39,6 +62,10 @@ export interface AreaMapProps {
   zoom?: number
   height?: string
   className?: string
+  /** External control: ID of item to highlight/center on */
+  selectedId?: string | null
+  /** Callback when a marker is clicked (instead of opening info window) */
+  onMarkerClick?: (marker: { id: string; type: "community" | "event"; lat: number; lng: number }) => void
 }
 
 /* ── Dedup helper (uses Set, NOT native Map, to avoid Turbopack collision) ── */
@@ -121,10 +148,32 @@ export function AreaMap({
   zoom: zoomProp,
   height = "360px",
   className,
+  selectedId,
+  onMarkerClick,
 }: AreaMapProps) {
   const [selectedCommunity, setSelectedCommunity] = useState<MapCommunity | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<MapEvent | null>(null)
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<MapNeighborhood | null>(null)
+
+  // When selectedId changes externally, update internal selection
+  useEffect(() => {
+    if (!selectedId) {
+      return
+    }
+    const community = communities.find(c => c.id === selectedId)
+    if (community) {
+      setSelectedCommunity(community)
+      setSelectedEvent(null)
+      setSelectedNeighborhood(null)
+      return
+    }
+    const event = events.find(e => e.id === selectedId)
+    if (event) {
+      setSelectedEvent(event)
+      setSelectedCommunity(null)
+      setSelectedNeighborhood(null)
+    }
+  }, [selectedId, communities, events])
 
   // Coerce any value (string from DB or number) to finite number or null
   const toFinite = (v: unknown): number | null => {
@@ -180,8 +229,12 @@ export function AreaMap({
         mapTypeControl={false}
         streetViewControl={false}
         fullscreenControl
+        mapId={process.env.NEXT_PUBLIC_GOOGLE_MAP_ID || "DEMO_MAP_ID"}
         style={{ width: "100%", height: "100%" }}
       >
+        {/* Controller for programmatic panning/zooming */}
+        <MapController center={center} zoom={zoom} selectedId={selectedId} />
+
         {/* Neighborhood rectangles */}
         {neighborhoods.map((n, i) => (
           <NeighborhoodRect key={`nr-${n.id}`} n={n} idx={i} onClick={handleNeighborhoodClick} />
@@ -192,9 +245,19 @@ export function AreaMap({
           <AdvancedMarker
             key={`cm-${c.id}`}
             position={{ lat: c.lat, lng: c.lng }}
-            onClick={() => { setSelectedCommunity(c); setSelectedEvent(null); setSelectedNeighborhood(null) }}
+            onClick={() => {
+              if (onMarkerClick) {
+                onMarkerClick({ id: c.id, type: "community", lat: c.lat, lng: c.lng })
+              }
+              setSelectedCommunity(c)
+              setSelectedEvent(null)
+              setSelectedNeighborhood(null)
+            }}
           >
-            <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md border-2 border-background">
+            <div className={cn(
+              "w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md border-2",
+              selectedId === c.id ? "border-primary ring-2 ring-primary ring-offset-2 scale-125" : "border-background"
+            )}>
               <Users className="w-4 h-4" />
             </div>
           </AdvancedMarker>
@@ -205,9 +268,19 @@ export function AreaMap({
           <AdvancedMarker
             key={`em-${e.id}`}
             position={{ lat: e.lat, lng: e.lng }}
-            onClick={() => { setSelectedEvent(e); setSelectedCommunity(null); setSelectedNeighborhood(null) }}
+            onClick={() => {
+              if (onMarkerClick) {
+                onMarkerClick({ id: e.id, type: "event", lat: e.lat, lng: e.lng })
+              }
+              setSelectedEvent(e)
+              setSelectedCommunity(null)
+              setSelectedNeighborhood(null)
+            }}
           >
-            <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-md border-2 border-background">
+            <div className={cn(
+              "w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-md border-2",
+              selectedId === e.id ? "border-amber-500 ring-2 ring-amber-500 ring-offset-2 scale-125" : "border-background"
+            )}>
               <CalendarDays className="w-4 h-4" />
             </div>
           </AdvancedMarker>

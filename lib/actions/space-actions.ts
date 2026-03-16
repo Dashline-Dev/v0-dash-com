@@ -149,8 +149,8 @@ export async function createSpace(data: CreateSpaceData): Promise<{ slug: string
   const user = await getCurrentUser()
 
   const result = await sql(
-    `INSERT INTO spaces (community_id, name, slug, description, type, icon, cover_image_url, visibility, created_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `INSERT INTO spaces (community_id, name, slug, description, type, icon, cover_image_url, visibility, join_policy, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING id, slug`,
     [
       data.community_id || null,
@@ -161,6 +161,7 @@ export async function createSpace(data: CreateSpaceData): Promise<{ slug: string
       data.icon || null,
       data.cover_image_url || null,
       data.visibility,
+      (data as { join_policy?: string }).join_policy || "open",
       user.id,
     ]
   )
@@ -214,6 +215,10 @@ export async function updateSpace(
   if (data.visibility !== undefined) {
     fields.push(`visibility = $${paramIndex++}`)
     values.push(data.visibility)
+  }
+  if (data.join_policy !== undefined) {
+    fields.push(`join_policy = $${paramIndex++}`)
+    values.push(data.join_policy)
   }
   if (data.status !== undefined) {
     fields.push(`status = $${paramIndex++}`)

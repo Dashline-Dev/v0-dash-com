@@ -1,10 +1,8 @@
-import { notFound } from "next/navigation"
-import Link from "next/link"
+import { notFound, redirect } from "next/navigation"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
-import { ArrowLeft } from "lucide-react"
 import { neon } from "@neondatabase/serverless"
-import { CreateSpaceForm } from "@/components/spaces/create-space-form"
+import { SpaceCreateForm } from "@/components/spaces/space-create-form"
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -30,20 +28,14 @@ export default async function CreateCommunitySpacePage({ params }: CreateCommuni
   if (!community[0]) notFound()
 
   return (
-    <div className="px-4 md:px-6 lg:px-10 py-6 pb-24 md:pb-6">
-      <Link
-        href={`/communities/${slug}`}
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to {community[0].name}
-      </Link>
-
-      <h1 className="text-xl md:text-2xl font-bold text-foreground mb-6">
-        Create a Space in {community[0].name}
-      </h1>
-
-      <CreateSpaceForm communityId={community[0].id} communitySlug={community[0].slug} />
+    <div className="px-4 py-5 md:px-6 lg:px-10 md:py-8">
+      <div className="max-w-lg mx-auto">
+        <SpaceCreateForm
+          communityId={community[0].id}
+          communitySlug={community[0].slug}
+          communityName={community[0].name}
+        />
+      </div>
     </div>
   )
 }

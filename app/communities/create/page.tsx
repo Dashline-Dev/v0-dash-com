@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { CreateWizard } from "@/components/communities/create/create-wizard"
+import { getAllAreasForSelect } from "@/lib/actions/area-actions"
 
 export const metadata: Metadata = {
   title: "Create a Community - Community Circle",
@@ -9,8 +10,13 @@ export const metadata: Metadata = {
 }
 
 export default async function CreateCommunityPage() {
-  const user = await getAuthenticatedUser()
+  const [user, availableAreas] = await Promise.all([
+    getAuthenticatedUser(),
+    getAllAreasForSelect(),
+  ])
+
   if (!user) return <AuthRequiredModal />
+
   return (
     <div className="px-4 py-5 md:px-6 lg:px-10 md:py-8">
       <div className="max-w-2xl mx-auto">
@@ -24,7 +30,7 @@ export default async function CreateCommunityPage() {
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5 md:p-6">
-          <CreateWizard />
+          <CreateWizard availableAreas={availableAreas} />
         </div>
       </div>
     </div>

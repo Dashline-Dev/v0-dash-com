@@ -354,12 +354,13 @@ export async function getExploreMapMarkers(opts?: {
     : []
 
   if (!typeFilter || typeFilter === "community") {
+    // Get communities - include those without coordinates for list view
     const rows = await sql(
       `SELECT c.id::text, c.name AS title, COALESCE(c.location_name, '') AS subtitle,
               c.slug, c.latitude, c.longitude
        FROM communities c
-       WHERE c.visibility = 'public' AND c.latitude IS NOT NULL AND c.longitude IS NOT NULL
-       ${boundsFilter("c.latitude", "c.longitude")}
+       WHERE c.visibility = 'public'
+       ${bounds ? `AND c.latitude IS NOT NULL AND c.longitude IS NOT NULL ${boundsFilter("c.latitude", "c.longitude")}` : ""}
        LIMIT 100`,
       boundsParams
     )
@@ -370,23 +371,25 @@ export async function getExploreMapMarkers(opts?: {
         title: r.title,
         subtitle: r.subtitle,
         href: `/communities/${r.slug}`,
-        latitude: parseFloat(r.latitude),
-        longitude: parseFloat(r.longitude),
+        latitude: r.latitude ? parseFloat(r.latitude) : 0,
+        longitude: r.longitude ? parseFloat(r.longitude) : 0,
       }))
     )
   }
 
   if (!typeFilter || typeFilter === "event") {
+    // Get events - include those without coordinates for list view
+    // Events are visible if: event visibility is public AND (no community OR community is public)
     const rows = await sql(
       `SELECT e.id::text, e.title, COALESCE(e.location_name, '') AS subtitle,
-              e.slug, e.latitude, e.longitude
+              e.slug, e.latitude, e.longitude, e.start_time
        FROM events e
-       JOIN communities c ON c.id = e.community_id
-       WHERE e.status = 'published' AND c.visibility = 'public'
-         AND e.latitude IS NOT NULL AND e.longitude IS NOT NULL
-         AND e.start_time > now()
-       ${boundsFilter("e.latitude", "e.longitude")}
-       ORDER BY e.start_time ASC
+       LEFT JOIN communities c ON c.id = e.community_id
+       WHERE e.status = 'published' 
+         AND e.visibility = 'public'
+         AND (c.id IS NULL OR c.visibility = 'public')
+       ${bounds ? `AND e.latitude IS NOT NULL AND e.longitude IS NOT NULL ${boundsFilter("e.latitude", "e.longitude")}` : ""}
+       ORDER BY e.start_time DESC
        LIMIT 100`,
       boundsParams
     )
@@ -397,8 +400,8 @@ export async function getExploreMapMarkers(opts?: {
         title: r.title,
         subtitle: r.subtitle,
         href: `/events/${r.slug}`,
-        latitude: parseFloat(r.latitude),
-        longitude: parseFloat(r.longitude),
+        latitude: r.latitude ? parseFloat(r.latitude) : 0,
+        longitude: r.longitude ? parseFloat(r.longitude) : 0,
       }))
     )
   }

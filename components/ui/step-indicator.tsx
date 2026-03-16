@@ -25,7 +25,7 @@ export function StepIndicator({
         const isCurrent = index === currentStep
 
         return (
-          <div key={step.label} className="flex items-center gap-2 flex-1 last:flex-none">
+          <div key={`step-${index}-${step.label}`} className="flex items-center gap-2 flex-1 last:flex-none">
             <div className="flex items-center gap-2">
               <span
                 className={cn(

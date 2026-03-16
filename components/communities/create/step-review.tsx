@@ -60,10 +60,9 @@ export function StepReview({ data }: StepReviewProps) {
       {/* Details table */}
       <div className="space-y-3 text-sm">
         <DetailRow label="Category" value={categoryLabel} />
-        <DetailRow label="Type" value={data.type} />
         <DetailRow label="Visibility" value={data.visibility} />
-        <DetailRow label="Join policy" value={data.join_policy.replace("_", " ")} />
-        <DetailRow label="Posting policy" value={data.posting_policy.replace("_", " ")} />
+        <DetailRow label="Join Policy" value={data.join_policy.replace("_", " ")} />
+        <DetailRow label="Posting Policy" value={data.posting_policy.replace("_", " ")} />
         {data.location_name && (
           <DetailRow label="Location" value={data.location_name} />
         )}

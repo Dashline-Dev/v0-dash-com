@@ -14,10 +14,9 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AreaMap, MapLegend } from "@/components/google-area-map"
-import { GoogleMapsProvider } from "@/components/maps/google-maps-provider"
+
 import type { AreaWithMeta, AreaNeighborhood, AreaCommunity, AreaEvent } from "@/types/area"
-import { AREA_TYPE_LABELS, areaBoundsToMapBounds } from "@/types/area"
+import { AREA_TYPE_LABELS } from "@/types/area"
 import { cn } from "@/lib/utils"
 
 const TYPE_ICON_MAP: Record<string, React.ElementType> = {
@@ -32,10 +31,6 @@ interface AreaDetailProps {
   communities: AreaCommunity[]
   events: AreaEvent[]
   eventsTotal: number
-  mapMarkers: {
-    communities: { id: string; name: string; slug: string; lat: number; lng: number; member_count: number }[]
-    events: { id: string; title: string; slug: string; lat: number; lng: number; start_time: string; community_name: string }[]
-  }
 }
 
 export function AreaDetail({
@@ -44,10 +39,7 @@ export function AreaDetail({
   communities,
   events,
   eventsTotal,
-  mapMarkers,
 }: AreaDetailProps) {
-  const bounds = areaBoundsToMapBounds(area)
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -105,20 +97,7 @@ export function AreaDetail({
         </div>
       </div>
 
-      {/* Map */}
-      <GoogleMapsProvider>
-        <AreaMap
-          center={{ lat: area.latitude, lng: area.longitude }}
-          zoom={area.type === "city" ? 11 : 13}
-          communities={mapMarkers.communities}
-          events={mapMarkers.events}
-          neighborhoods={area.type === "city" ? neighborhoods : []}
-          areaPlaceId={area.place_id}
-          bounds={bounds}
-          height="360px"
-        />
-        <MapLegend showNeighborhoods={area.type === "city" && neighborhoods.length > 0} />
-      </GoogleMapsProvider>
+
 
       {/* Tabs */}
       <Tabs defaultValue={neighborhoods.length > 0 ? "neighborhoods" : "events"} className="w-full">

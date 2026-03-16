@@ -73,13 +73,17 @@ export async function getEvents(opts?: {
       e.*,
       c.name as community_name,
       c.slug as community_slug,
+      c.avatar_url as community_avatar,
       s.name as space_name,
       s.slug as space_slug,
-      r.status as current_user_rsvp
+      r.status as current_user_rsvp,
+      u.display_name as organizer_name,
+      u.avatar_url as organizer_avatar
     FROM events e
-    JOIN communities c ON e.community_id = c.id
+    LEFT JOIN communities c ON e.community_id = c.id
     LEFT JOIN spaces s ON e.space_id = s.id
     LEFT JOIN event_rsvps r ON r.event_id = e.id AND r.user_id = $${idx}
+    LEFT JOIN auth_users u ON e.created_by = u.id::text
     ${where}
     ORDER BY e.id, e.start_time ASC
     LIMIT $${idx + 1} OFFSET $${idx + 2}`,
@@ -108,13 +112,17 @@ export async function getEventsByCommunity(
       e.*,
       c.name as community_name,
       c.slug as community_slug,
+      c.avatar_url as community_avatar,
       s.name as space_name,
       s.slug as space_slug,
-      r.status as current_user_rsvp
+      r.status as current_user_rsvp,
+      u.display_name as organizer_name,
+      u.avatar_url as organizer_avatar
     FROM events e
     JOIN communities c ON e.community_id = c.id
     LEFT JOIN spaces s ON e.space_id = s.id
     LEFT JOIN event_rsvps r ON r.event_id = e.id AND r.user_id = $1
+    LEFT JOIN auth_users u ON e.created_by = u.id::text
     WHERE c.slug = $2 AND e.status = 'published' ${upcomingFilter}
     ORDER BY e.start_time ASC
     LIMIT $3`,
@@ -141,16 +149,48 @@ export async function getEventBySlug(
       e.*,
       c.name as community_name,
       c.slug as community_slug,
+      c.avatar_url as community_avatar,
       s.name as space_name,
       s.slug as space_slug,
-      r.status as current_user_rsvp
+      r.status as current_user_rsvp,
+      u.display_name as organizer_name,
+      u.avatar_url as organizer_avatar
     FROM events e
-    JOIN communities c ON e.community_id = c.id
+    LEFT JOIN communities c ON e.community_id = c.id
     LEFT JOIN spaces s ON e.space_id = s.id
     LEFT JOIN event_rsvps r ON r.event_id = e.id AND r.user_id = $1
+    LEFT JOIN auth_users u ON e.created_by = u.id::text
     WHERE e.slug = $2 ${communityFilter}
     LIMIT 1`,
     params
+  )
+
+  return (rows[0] as EventWithMeta) ?? null
+}
+
+// ── Get event by slug (public - no auth required) ───────────
+
+export async function getPublicEventBySlug(
+  slug: string
+): Promise<EventWithMeta | null> {
+  const rows = await sql(
+    `SELECT
+      e.*,
+      c.name as community_name,
+      c.slug as community_slug,
+      c.avatar_url as community_avatar,
+      s.name as space_name,
+      s.slug as space_slug,
+      NULL as current_user_rsvp,
+      u.display_name as organizer_name,
+      u.avatar_url as organizer_avatar
+    FROM events e
+    LEFT JOIN communities c ON e.community_id = c.id
+    LEFT JOIN spaces s ON e.space_id = s.id
+    LEFT JOIN auth_users u ON e.created_by = u.id::text
+    WHERE e.slug = $1 AND (e.visibility = 'public' OR e.visibility = 'unlisted')
+    LIMIT 1`,
+    [slug]
   )
 
   return (rows[0] as EventWithMeta) ?? null
@@ -165,25 +205,30 @@ export async function createEvent(data: CreateEventData): Promise<string> {
   const rows = await sql(
     `INSERT INTO events (
       community_id, space_id, title, slug, description,
-      cover_image_url, event_type, status,
+      cover_image_url, event_type, visibility, status,
       start_time, end_time, timezone,
       location_name, location_address, latitude, longitude,
-      virtual_link, max_attendees, created_by
+      virtual_link, max_attendees, created_by, organizer_id,
+      template_id, invitation_image_url, invitation_message,
+      additional_info, dress_code, contact_info, gallery_images, rsvp_deadline
     ) VALUES (
       $1, $2, $3, $4, $5,
-      $6, $7, 'published',
-      $8, $9, $10,
-      $11, $12, $13, $14,
-      $15, $16, $17
+      $6, $7, $8, 'published',
+      $9, $10, $11,
+      $12, $13, $14, $15,
+      $16, $17, $18, $18,
+      $19, $20, $21,
+      $22, $23, $24, $25, $26
     ) RETURNING slug`,
     [
-      data.community_id,
+      data.community_id || null,
       data.space_id || null,
       data.title,
       slug,
       data.description || null,
       data.cover_image_url || null,
       data.event_type,
+      data.visibility || "public",
       data.start_time,
       data.end_time,
       data.timezone || "UTC",
@@ -194,6 +239,15 @@ export async function createEvent(data: CreateEventData): Promise<string> {
       data.virtual_link || null,
       data.max_attendees || null,
       user.id,
+      // Invitation fields
+      data.template_id || null,
+      data.invitation_image_url || null,
+      data.invitation_message || null,
+      data.additional_info || null,
+      data.dress_code || null,
+      data.contact_info || null,
+      data.gallery_images && data.gallery_images.length > 0 ? data.gallery_images : null,
+      data.rsvp_deadline || null,
     ]
   )
 
@@ -243,6 +297,10 @@ export async function updateEvent(
     sets.push(`status = $${idx++}`)
     params.push(data.status)
   }
+  if (data.visibility !== undefined) {
+    sets.push(`visibility = $${idx++}`)
+    params.push(data.visibility)
+  }
   if (data.start_time !== undefined) {
     sets.push(`start_time = $${idx++}`)
     params.push(data.start_time)
@@ -278,6 +336,10 @@ export async function updateEvent(
   if (data.max_attendees !== undefined) {
     sets.push(`max_attendees = $${idx++}`)
     params.push(data.max_attendees)
+  }
+  if (data.contact_info !== undefined) {
+    sets.push(`contact_info = $${idx++}`)
+    params.push(data.contact_info)
   }
 
   if (sets.length === 0) return
@@ -371,6 +433,78 @@ export async function getEventRsvps(
   )
 
   return rows as EventRsvp[]
+}
+
+// ── Share event to community ────────────────────────────────
+
+export async function shareEventToCommunity(
+  eventId: string,
+  communityId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getCurrentUser()
+
+  // Verify user is a member of the community
+  const membership = await sql(
+    `SELECT id FROM community_members 
+     WHERE community_id = $1 AND user_id = $2 AND status = 'active'`,
+    [communityId, user.id]
+  )
+
+  if (membership.length === 0) {
+    return { ok: false, error: "You must be a member of this community to share events there." }
+  }
+
+  // Verify user owns the event or is the organizer
+  const event = await sql(
+    `SELECT id, created_by FROM events WHERE id = $1`,
+    [eventId]
+  )
+
+  if (event.length === 0) {
+    return { ok: false, error: "Event not found." }
+  }
+
+  if (event[0].created_by !== user.id) {
+    return { ok: false, error: "You can only share events you created." }
+  }
+
+  // Update the event's community_id
+  await sql(
+    `UPDATE events SET community_id = $1, updated_at = NOW() WHERE id = $2`,
+    [communityId, eventId]
+  )
+
+  return { ok: true }
+}
+
+// ── Unshare event from community ────────────────────────────
+
+export async function unshareEventFromCommunity(
+  eventId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getCurrentUser()
+
+  // Verify user owns the event
+  const event = await sql(
+    `SELECT id, created_by FROM events WHERE id = $1`,
+    [eventId]
+  )
+
+  if (event.length === 0) {
+    return { ok: false, error: "Event not found." }
+  }
+
+  if (event[0].created_by !== user.id) {
+    return { ok: false, error: "You can only modify events you created." }
+  }
+
+  // Remove community association
+  await sql(
+    `UPDATE events SET community_id = NULL, space_id = NULL, updated_at = NOW() WHERE id = $1`,
+    [eventId]
+  )
+
+  return { ok: true }
 }
 
 // ── Get events for calendar (month view) ─────────────────────

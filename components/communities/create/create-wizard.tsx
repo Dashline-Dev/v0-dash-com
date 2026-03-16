@@ -11,7 +11,12 @@ import { StepLocation } from "./step-location"
 import { StepRulesTags } from "./step-rules-tags"
 import { StepReview } from "./step-review"
 import { createCommunity } from "@/lib/actions/community-actions"
+import { linkCommunityToArea } from "@/lib/actions/area-actions"
 import type { CreateCommunityInput } from "@/types/community"
+
+interface CreateWizardProps {
+  availableAreas?: { id: string; name: string; type: string; parentName: string | null }[]
+}
 
 const STEPS = [
   { label: "Basics" },
@@ -26,10 +31,9 @@ const DEFAULT_DATA: CreateCommunityInput = {
   slug: "",
   description: "",
   category: "general",
-  type: "public",
   visibility: "public",
-  posting_policy: "everyone",
   join_policy: "open",
+  posting_policy: "everyone",
   cover_image_url: null,
   avatar_url: null,
   location_name: null,
@@ -37,9 +41,10 @@ const DEFAULT_DATA: CreateCommunityInput = {
   timezone: "UTC",
   tags: [],
   rules: [],
+  areaIds: [],
 }
 
-export function CreateWizard() {
+export function CreateWizard({ availableAreas = [] }: CreateWizardProps) {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [data, setData] = useState<CreateCommunityInput>(DEFAULT_DATA)
@@ -62,7 +67,13 @@ export function CreateWizard() {
     setError(null)
     try {
       const result = await createCommunity(data)
-      if (result.success && result.slug) {
+      if (result.success && result.slug && result.id) {
+        // Link community to selected areas
+        if (data.areaIds && data.areaIds.length > 0) {
+          await Promise.all(
+            data.areaIds.map((areaId) => linkCommunityToArea(result.id!, areaId))
+          )
+        }
         router.push(`/communities/${result.slug}`)
       } else {
         setError(result.error || "Failed to create community.")
@@ -84,7 +95,7 @@ export function CreateWizard() {
       <div className="min-h-[320px]">
         {step === 0 && <StepBasics data={data} onChange={updateData} />}
         {step === 1 && <StepAppearance data={data} onChange={updateData} />}
-        {step === 2 && <StepLocation data={data} onChange={updateData} />}
+        {step === 2 && <StepLocation data={data} onChange={updateData} availableAreas={availableAreas} />}
         {step === 3 && <StepRulesTags data={data} onChange={updateData} />}
         {step === 4 && <StepReview data={data} />}
       </div>

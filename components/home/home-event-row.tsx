@@ -23,6 +23,7 @@ import {
 import { rsvpToEvent, cancelRsvp } from "@/lib/actions/event-actions"
 import type { EventWithMeta, RsvpStatus } from "@/types/event"
 import { cn } from "@/lib/utils"
+import { hebrewDayStr } from "@/lib/hebrew-date"
 
 interface HomeEventRowProps {
   event: EventWithMeta
@@ -51,6 +52,7 @@ export function HomeEventRow({ event, onRsvpChange }: HomeEventRowProps) {
   const [isPending, startTransition] = useTransition()
   const { day, month, weekday, time } = formatDate(event.start_time)
   const LocationIcon = TYPE_ICON[event.event_type] ?? MapPin
+  const hebrewDay = hebrewDayStr(new Date(event.start_time))
 
   function handleRsvp(newStatus: RsvpStatus) {
     startTransition(async () => {
@@ -80,6 +82,13 @@ export function HomeEventRow({ event, onRsvpChange }: HomeEventRowProps) {
         </span>
         <span className="text-[9px] text-muted-foreground leading-tight">
           {weekday}
+        </span>
+        <span
+          className="text-[8px] text-muted-foreground/70 leading-tight mt-0.5"
+          dir="rtl"
+          lang="he"
+        >
+          {hebrewDay}
         </span>
       </div>
 

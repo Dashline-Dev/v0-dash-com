@@ -16,6 +16,7 @@ import {
   isEventPast,
 } from "@/types/event"
 import { cn } from "@/lib/utils"
+import { hebrewDayStr } from "@/lib/hebrew-date"
 
 interface EventCardProps {
   event: EventWithMeta
@@ -54,6 +55,13 @@ export function EventCard({ event, basePath }: EventCardProps) {
         </span>
         <span className="text-base font-bold text-foreground leading-tight">
           {day}
+        </span>
+        <span
+          className="text-[8px] text-muted-foreground leading-tight mt-0.5"
+          dir="rtl"
+          lang="he"
+        >
+          {hebrewDayStr(startDate)}
         </span>
       </div>
 

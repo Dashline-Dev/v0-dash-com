@@ -1,29 +1,75 @@
 // ─── Space Domain Types ─────────────────────────────────────────────────────
 
-export type SpaceType = "discussion" | "event" | "project" | "resource"
-export type SpaceVisibility = "public" | "members_only" | "private"
+// Type: What kind of space is this?
+export type SpaceType = "general" | "discussion" | "events" | "announcements" | "resources" | "projects"
+
+// Visibility: Who can see this space exists? (matches community model)
+export type SpaceVisibility = "public" | "unlisted" | "private"
+
+// Join Policy: How do members join? (matches community model)
+export type SpaceJoinPolicy = "open" | "approval" | "invite_only"
+
 export type SpaceStatus = "active" | "archived" | "draft"
 export type SpaceMemberRole = "admin" | "moderator" | "member"
 
+// ─── Type Labels and Descriptions ───────────────────────────────────────────
+
+export const SPACE_TYPES: { value: SpaceType; label: string; description: string; icon: string }[] = [
+  { value: "general", label: "General", description: "All-purpose space for community activities", icon: "Layers" },
+  { value: "discussion", label: "Discussion", description: "Conversations and topics", icon: "MessageCircle" },
+  { value: "events", label: "Events", description: "Community events and meetups", icon: "Calendar" },
+  { value: "announcements", label: "Announcements", description: "Important updates and news", icon: "Megaphone" },
+  { value: "resources", label: "Resources", description: "Shared files and links", icon: "BookOpen" },
+  { value: "projects", label: "Projects", description: "Collaborative work and initiatives", icon: "Rocket" },
+]
+
 export const SPACE_TYPE_LABELS: Record<SpaceType, string> = {
+  general: "General",
   discussion: "Discussion",
-  event: "Event",
-  project: "Project",
-  resource: "Resource",
+  events: "Events",
+  announcements: "Announcements",
+  resources: "Resources",
+  projects: "Projects",
 }
 
 export const SPACE_TYPE_ICONS: Record<SpaceType, string> = {
+  general: "Layers",
   discussion: "MessageCircle",
-  event: "Calendar",
-  project: "Rocket",
-  resource: "BookOpen",
+  events: "Calendar",
+  announcements: "Megaphone",
+  resources: "BookOpen",
+  projects: "Rocket",
 }
+
+// ─── Visibility Labels and Descriptions (aligned with community model) ──────
+
+export const SPACE_VISIBILITIES: { value: SpaceVisibility; label: string; description: string }[] = [
+  { value: "public", label: "Public", description: "Anyone can find and view this space" },
+  { value: "unlisted", label: "Unlisted", description: "Only accessible via direct link" },
+  { value: "private", label: "Private", description: "Only members can see this space exists" },
+]
 
 export const SPACE_VISIBILITY_LABELS: Record<SpaceVisibility, string> = {
   public: "Public",
-  members_only: "Members Only",
+  unlisted: "Unlisted",
   private: "Private",
 }
+
+// ─── Join Policy Labels and Descriptions (aligned with community model) ─────
+
+export const SPACE_JOIN_POLICIES: { value: SpaceJoinPolicy; label: string; description: string }[] = [
+  { value: "open", label: "Open", description: "Anyone can join instantly" },
+  { value: "approval", label: "Approval Required", description: "Admins must approve new members" },
+  { value: "invite_only", label: "Invite Only", description: "Members can only join via invitation" },
+]
+
+export const SPACE_JOIN_POLICY_LABELS: Record<SpaceJoinPolicy, string> = {
+  open: "Open",
+  approval: "Approval Required",
+  invite_only: "Invite Only",
+}
+
+// ─── Status Labels ──────────────────────────────────────────────────────────
 
 export const SPACE_STATUS_LABELS: Record<SpaceStatus, string> = {
   active: "Active",
@@ -49,6 +95,7 @@ export interface Space {
   icon: string | null
   cover_image_url: string | null
   visibility: SpaceVisibility
+  join_policy: SpaceJoinPolicy
   status: SpaceStatus
   created_by: string
   created_at: string
@@ -72,7 +119,7 @@ export interface SpaceMember {
 
 // ─── Form Data ──────────────────────────────────────────────────────────────
 
-export interface CreateSpaceData {
+export interface CreateSpaceInput {
   community_id?: string
   name: string
   slug: string
@@ -81,6 +128,7 @@ export interface CreateSpaceData {
   icon?: string
   cover_image_url?: string
   visibility: SpaceVisibility
+  join_policy: SpaceJoinPolicy
 }
 
 export interface UpdateSpaceData {
@@ -90,6 +138,7 @@ export interface UpdateSpaceData {
   icon?: string
   cover_image_url?: string
   visibility?: SpaceVisibility
+  join_policy?: SpaceJoinPolicy
   status?: SpaceStatus
 }
 
@@ -107,20 +156,20 @@ export interface SpaceListParams {
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 export const SPACE_ICON_OPTIONS = [
+  "Layers",
   "MessageCircle",
   "Calendar",
-  "Rocket",
+  "Megaphone",
   "BookOpen",
+  "Rocket",
   "Code",
   "Image",
   "Gamepad2",
   "MapPin",
   "Timer",
   "Lightbulb",
-  "Megaphone",
   "Shield",
   "Flower2",
-  "ArrowLeftRight",
   "Music",
   "Video",
   "Palette",
@@ -128,3 +177,11 @@ export const SPACE_ICON_OPTIONS = [
   "Heart",
   "Star",
 ] as const
+
+// Legacy aliases for backwards compatibility
+export type CreateSpaceData = CreateSpaceInput
+
+// Select option format for forms
+export const SPACE_TYPE_OPTIONS = SPACE_TYPES.map(t => ({ value: t.value, label: t.label }))
+export const SPACE_VISIBILITY_OPTIONS = SPACE_VISIBILITIES.map(v => ({ value: v.value, label: v.label }))
+export const SPACE_JOIN_POLICY_OPTIONS = SPACE_JOIN_POLICIES.map(p => ({ value: p.value, label: p.label }))

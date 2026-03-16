@@ -10,12 +10,15 @@ import {
   ArrowLeft,
   Share2,
   Monitor,
+  Pencil,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { RsvpButton } from "./rsvp-button"
+import { EventShareDialog } from "./event-share-dialog"
+import { EventInvitationDisplay } from "./event-invitation-display"
 import type { EventWithMeta } from "@/types/event"
 import {
   EVENT_TYPE_LABELS,
@@ -26,9 +29,13 @@ import {
   isEventFull,
   getEventCapacityText,
 } from "@/types/event"
+import { toHebrewDate } from "@/lib/hebrew-date"
 
 interface EventDetailProps {
   event: EventWithMeta
+  rsvps?: { id: string; user_id: string; status: string }[]
+  communities?: { id: string; name: string; slug: string }[]
+  canEdit?: boolean
 }
 
 const TYPE_ICON: Record<string, React.ElementType> = {
@@ -37,37 +44,41 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   hybrid: Video,
 }
 
-export function EventDetail({ event }: EventDetailProps) {
+export function EventDetail({ event, rsvps, communities = [], canEdit = false }: EventDetailProps) {
   const past = isEventPast(event.end_time)
   const full = isEventFull(event)
   const capacityText = getEventCapacityText(event)
   const TypeIcon = TYPE_ICON[event.event_type] ?? Calendar
 
-  function handleShare() {
-    try {
-      navigator.clipboard.writeText(window.location.href)
-    } catch {
-      // Clipboard not available
-    }
-  }
+
 
   return (
     <div className="flex flex-col gap-6">
       {/* Back link */}
       <div>
-        <Link
-          href={`/communities/${event.community_slug}`}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          {event.community_name}
-          {event.space_name && (
-            <>
-              <span className="text-border">/</span>
-              {event.space_name}
-            </>
-          )}
-        </Link>
+        {event.community_slug ? (
+          <Link
+            href={`/communities/${event.community_slug}`}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            {event.community_name}
+            {event.space_name && (
+              <>
+                <span className="text-border">/</span>
+                {event.space_name}
+              </>
+            )}
+          </Link>
+        ) : (
+          <Link
+            href="/events"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            All Events
+          </Link>
+        )}
       </div>
 
       {/* Cover image */}
@@ -105,15 +116,36 @@ export function EventDetail({ event }: EventDetailProps) {
             </h1>
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleShare}
-            className="text-muted-foreground shrink-0"
-            aria-label="Share event"
-          >
-            <Share2 className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            {canEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground shrink-0"
+                aria-label="Edit event"
+                asChild
+              >
+                <Link href={`/events/${event.slug}/edit`}>
+                  <Pencil className="w-4 h-4" />
+                </Link>
+              </Button>
+            )}
+            <EventShareDialog
+              eventId={event.id}
+              eventSlug={event.slug}
+              currentCommunityId={event.community_id}
+              communities={communities}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground shrink-0"
+                aria-label="Share event"
+              >
+                <Share2 className="w-4 h-4" />
+              </Button>
+            </EventShareDialog>
+          </div>
         </div>
 
         {/* RSVP */}
@@ -137,6 +169,9 @@ export function EventDetail({ event }: EventDetailProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left: description */}
         <div className="md:col-span-2 flex flex-col gap-5">
+          {/* Invitation content (image, message, details) */}
+          <EventInvitationDisplay event={event} />
+
           {event.description && (
             <div>
               <h2 className="text-sm font-semibold text-foreground mb-2">About this event</h2>
@@ -145,11 +180,6 @@ export function EventDetail({ event }: EventDetailProps) {
               </p>
             </div>
           )}
-
-          {/* Extension point: Announcements */}
-          {/* TODO: Wire in when Announcements module is built
-          <AnnouncementsFeed eventId={event.id} />
-          */}
         </div>
 
         {/* Right: info sidebar */}
@@ -165,7 +195,14 @@ export function EventDetail({ event }: EventDetailProps) {
                 <p className="font-medium">
                   {formatEventDate(event.start_time, event.timezone)}
                 </p>
-                <p className="text-muted-foreground">
+                <p
+                  className="text-xs text-muted-foreground mt-0.5"
+                  dir="rtl"
+                  lang="he"
+                >
+                  {toHebrewDate(new Date(event.start_time)).full}
+                </p>
+                <p className="text-muted-foreground mt-1">
                   {formatEventTime(event.start_time, event.timezone)} - {formatEventTime(event.end_time, event.timezone)}
                 </p>
               </div>
@@ -214,23 +251,52 @@ export function EventDetail({ event }: EventDetailProps) {
             </div>
           )}
 
-          {/* Hosted by */}
-          <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Hosted by
-            </h3>
-            <Link
-              href={`/communities/${event.community_slug}`}
-              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-            >
-              {event.community_name}
-            </Link>
-            {event.space_name && (
-              <p className="text-xs text-muted-foreground">
-                in {event.space_name}
-              </p>
-            )}
-          </div>
+          {/* Organizer */}
+          {event.organizer_name && (
+            <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Organized by
+              </h3>
+              <div className="flex items-center gap-3">
+                {event.organizer_avatar ? (
+                  <img
+                    src={event.organizer_avatar}
+                    alt=""
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-sm font-medium text-primary">
+                      {event.organizer_name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <span className="text-sm font-medium text-foreground">
+                  {event.organizer_name}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Community if attached */}
+          {event.community_name && event.community_slug && (
+            <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Community
+              </h3>
+              <Link
+                href={`/communities/${event.community_slug}`}
+                className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+              >
+                {event.community_name}
+              </Link>
+              {event.space_name && (
+                <p className="text-xs text-muted-foreground">
+                  in {event.space_name}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

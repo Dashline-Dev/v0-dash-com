@@ -31,9 +31,17 @@ export const EVENT_TYPES: { value: EventType; label: string }[] = [
 
 // ── Core interfaces ─────────────────────────────────────────
 
+export type EventVisibility = "public" | "private" | "unlisted"
+
+export const EVENT_VISIBILITY_LABELS: Record<EventVisibility, string> = {
+  public: "Public",
+  private: "Private",
+  unlisted: "Unlisted (link only)",
+}
+
 export interface Event {
   id: string
-  community_id: string
+  community_id: string | null
   space_id: string | null
   title: string
   slug: string
@@ -41,6 +49,7 @@ export interface Event {
   cover_image_url: string | null
   event_type: EventType
   status: EventStatus
+  visibility: EventVisibility
   start_time: string
   end_time: string
   timezone: string
@@ -51,17 +60,31 @@ export interface Event {
   virtual_link: string | null
   max_attendees: number | null
   rsvp_count: number
+  organizer_id: string | null
   created_by: string
   created_at: string
   updated_at: string
+  // Invitation/template fields
+  template_id: string | null
+  invitation_image_url: string | null
+  invitation_message: string | null
+  custom_styles: Record<string, unknown> | null
+  gallery_images: string[] | null
+  additional_info: string | null
+  dress_code: string | null
+  rsvp_deadline: string | null
+  contact_info: string | null
 }
 
 export interface EventWithMeta extends Event {
-  community_name: string
-  community_slug: string
+  community_name: string | null
+  community_slug: string | null
+  community_avatar: string | null
   space_name: string | null
   space_slug: string | null
   current_user_rsvp: RsvpStatus | null
+  organizer_name: string | null
+  organizer_avatar: string | null
 }
 
 export interface EventRsvp {
@@ -75,12 +98,13 @@ export interface EventRsvp {
 // ── Form data ───────────────────────────────────────────────
 
 export interface CreateEventData {
-  community_id: string
-  space_id?: string
+  community_id?: string | null
+  space_id?: string | null
   title: string
   description?: string
   cover_image_url?: string
   event_type: EventType
+  visibility?: EventVisibility
   start_time: string
   end_time: string
   timezone: string
@@ -90,6 +114,16 @@ export interface CreateEventData {
   longitude?: number
   virtual_link?: string
   max_attendees?: number
+  // Invitation/template fields
+  template_id?: string
+  invitation_image_url?: string
+  invitation_message?: string
+  custom_styles?: Record<string, unknown>
+  gallery_images?: string[]
+  additional_info?: string
+  dress_code?: string
+  rsvp_deadline?: string
+  contact_info?: string
 }
 
 export interface UpdateEventData {
@@ -97,6 +131,7 @@ export interface UpdateEventData {
   description?: string
   cover_image_url?: string
   event_type?: EventType
+  visibility?: string
   status?: EventStatus
   start_time?: string
   end_time?: string
@@ -107,6 +142,7 @@ export interface UpdateEventData {
   longitude?: number
   virtual_link?: string
   max_attendees?: number | null
+  contact_info?: string
 }
 
 // ── Helpers ─────────────────────────────────────────────────

@@ -11,6 +11,7 @@ import {
   PERMISSIONS,
 } from "@/lib/permissions"
 import { logAuditEvent } from "@/lib/actions/audit-actions"
+import { linkCommunityToAreasByZipCode, unlinkCommunityFromAllAreas } from "@/lib/actions/area-actions"
 import type {
   Community,
   CommunityWithMeta,
@@ -157,7 +158,7 @@ export async function getCommunityBySlug(
 
 export async function createCommunity(
   input: CreateCommunityInput
-): Promise<{ success: boolean; slug?: string; error?: string }> {
+): Promise<{ success: boolean; slug?: string; id?: string; error?: string }> {
   const user = await getCurrentUser()
 
   try {
@@ -174,11 +175,11 @@ export async function createCommunity(
     const rows = await sql(
       `
       INSERT INTO communities (
-        name, slug, description, category, type, visibility, posting_policy, join_policy,
+        name, slug, description, category, visibility, posting_policy, join_policy,
         cover_image_url, avatar_url, location_name, latitude, longitude,
         contact_email, timezone, created_by, member_count
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 1
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 1
       )
       RETURNING id
       `,
@@ -187,7 +188,6 @@ export async function createCommunity(
         input.slug,
         input.description,
         input.category,
-        input.type,
         input.visibility,
         input.posting_policy,
         input.join_policy,
@@ -222,19 +222,24 @@ export async function createCommunity(
       }
     }
 
-    // Insert rules
-    if (input.rules && input.rules.length > 0) {
-      for (let i = 0; i < input.rules.length; i++) {
-        await sql(
-          `INSERT INTO community_rules (community_id, title, description, sort_order)
-           VALUES ($1, $2, $3, $4)`,
-          [communityId, input.rules[i].title, input.rules[i].description, i + 1]
-        )
-      }
-    }
-
-    revalidatePath("/")
-    return { success: true, slug: input.slug }
+  // Insert rules
+  if (input.rules && input.rules.length > 0) {
+  for (let i = 0; i < input.rules.length; i++) {
+  await sql(
+  `INSERT INTO community_rules (community_id, title, description, sort_order)
+  VALUES ($1, $2, $3, $4)`,
+  [communityId, input.rules[i].title, input.rules[i].description, i + 1]
+  )
+  }
+  }
+  
+  // Link community to areas based on location zip code
+  if (input.location_name) {
+    await linkCommunityToAreasByZipCode(communityId as string, input.location_name)
+  }
+  
+  revalidatePath("/")
+  return { success: true, slug: input.slug, id: communityId as string }
   } catch (error) {
     console.error("Failed to create community:", error)
     return { success: false, error: "Something went wrong. Please try again." }
@@ -273,19 +278,27 @@ export async function updateCommunity(
     setClauses.push(`updated_at = now()`)
     params.push(communityId)
 
-    await sql(
-      `UPDATE communities SET ${setClauses.join(", ")} WHERE id = $${paramIndex}`,
-      params
-    )
-
-    revalidatePath("/")
-    revalidatePath(`/communities/${input.slug || ""}`)
-    return { success: true }
-  } catch (error) {
-    console.error("Failed to update community:", error)
-    return { success: false, error: "Something went wrong. Please try again." }
+  await sql(
+  `UPDATE communities SET ${setClauses.join(", ")} WHERE id = $${paramIndex}`,
+  params
+  )
+  
+  // If location changed, re-link to areas
+  if (input.location_name !== undefined) {
+    await unlinkCommunityFromAllAreas(communityId)
+    if (input.location_name) {
+      await linkCommunityToAreasByZipCode(communityId, input.location_name)
+    }
   }
-}
+  
+  revalidatePath("/")
+  revalidatePath(`/communities/${input.slug || ""}`)
+  return { success: true }
+  } catch (error) {
+  console.error("Failed to update community:", error)
+  return { success: false, error: "Something went wrong. Please try again." }
+  }
+  }
 
 // ── Delete Community ───────────────────────────────────────────────────
 
