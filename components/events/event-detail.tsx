@@ -2,10 +2,8 @@
 
 import {
   Calendar,
-  Clock,
   MapPin,
   Video,
-  Users,
   Globe,
   ArrowLeft,
   Share2,
@@ -18,10 +16,10 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { EventShareDialog } from "./event-share-dialog"
 import { EventInvitationDisplay } from "./event-invitation-display"
+import { AddToCalendarButton } from "./add-to-calendar-button"
 import type { EventWithMeta } from "@/types/event"
 import {
   EVENT_TYPE_LABELS,
-  formatEventDateRange,
   formatEventDate,
   formatEventTime,
   isEventPast,
@@ -48,7 +46,7 @@ export function EventDetail({ event, communities = [], sharedCommunityIds = [], 
 
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-24 md:pb-0">
       {/* Back link */}
       <div>
         {event.community_slug ? (
@@ -88,71 +86,87 @@ export function EventDetail({ event, communities = [], sharedCommunityIds = [], 
       )}
 
       {/* Header */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <Badge
-                variant="secondary"
-                className="text-xs"
-              >
-                <TypeIcon className="w-3 h-3 mr-1" />
-                {EVENT_TYPE_LABELS[event.event_type]}
-              </Badge>
-              {past && (
-                <Badge variant="secondary" className="text-xs">Past event</Badge>
-              )}
-
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground text-balance">
-              {event.title}
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-1">
-            {canEdit && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground shrink-0"
-                aria-label="Edit event"
-                asChild
-              >
-                <Link href={`/events/${event.slug}/edit`}>
-                  <Pencil className="w-4 h-4" />
-                </Link>
-              </Button>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <Badge variant="secondary" className="text-xs">
+              <TypeIcon className="w-3 h-3 mr-1" />
+              {EVENT_TYPE_LABELS[event.event_type]}
+            </Badge>
+            {past && (
+              <Badge variant="secondary" className="text-xs">Past event</Badge>
             )}
-            <EventShareDialog
-              eventId={event.id}
-              eventSlug={event.slug}
-              sharedCommunityIds={sharedCommunityIds}
-              communities={communities}
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground shrink-0"
-                aria-label="Share event"
-              >
-                <Share2 className="w-4 h-4" />
-              </Button>
-            </EventShareDialog>
           </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground text-balance">
+            {event.title}
+          </h1>
         </div>
-
-
+        <div className="flex items-center gap-1 shrink-0">
+          {canEdit && (
+            <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label="Edit event" asChild>
+              <Link href={`/events/${event.slug}/edit`}>
+                <Pencil className="w-4 h-4" />
+              </Link>
+            </Button>
+          )}
+          <EventShareDialog
+            eventId={event.id}
+            eventSlug={event.slug}
+            sharedCommunityIds={sharedCommunityIds}
+            communities={communities}
+          >
+            <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label="Share event">
+              <Share2 className="w-4 h-4" />
+            </Button>
+          </EventShareDialog>
+        </div>
       </div>
 
-      <Separator />
+      {/* Mobile: compact date + actions bar — shown only on mobile, before content */}
+      <div className="md:hidden rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          <Calendar className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+          <div className="text-sm text-foreground">
+            <p className="font-medium">{formatEventDate(event.start_time, event.timezone)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5" dir="rtl" lang="he" suppressHydrationWarning>
+                  {toHebrewDate(new Date(event.start_time)).full}
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  {formatEventTime(event.start_time, event.timezone)} – {formatEventTime(event.end_time, event.timezone)}
+                </p>
+              </div>
+            </div>
+            {event.location_name && (
+          <div className="flex items-start gap-3">
+            <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-foreground">{event.location_name}</p>
+              {event.location_address && (
+                <p className="text-muted-foreground text-xs mt-0.5">{event.location_address}</p>
+              )}
+            </div>
+          </div>
+        )}
+        {!past && (
+          <AddToCalendarButton
+            title={event.title}
+            startTime={event.start_time}
+            endTime={event.end_time}
+            locationName={event.location_name}
+            locationAddress={event.location_address}
+            description={event.description}
+            timezone={event.timezone}
+          />
+        )}
+      </div>
+
+      <Separator className="md:block" />
 
       {/* Details grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left: description */}
+        {/* Left: invitation + description */}
         <div className="md:col-span-2 flex flex-col gap-5">
-          {/* Invitation content (image, message, details) */}
           <EventInvitationDisplay event={event} />
-
           {event.description && (
             <div>
               <h2 className="text-sm font-semibold text-foreground mb-2">About this event</h2>
@@ -163,28 +177,20 @@ export function EventDetail({ event, communities = [], sharedCommunityIds = [], 
           )}
         </div>
 
-        {/* Right: info sidebar */}
-        <div className="flex flex-col gap-4">
+        {/* Right: sidebar — hidden on mobile since we show the card above */}
+        <div className="hidden md:flex flex-col gap-4">
           {/* Date & time */}
           <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Date & Time
-            </h3>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date & Time</h3>
             <div className="flex items-start gap-3">
               <Calendar className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div className="text-sm text-foreground">
-                <p className="font-medium">
-                  {formatEventDate(event.start_time, event.timezone)}
-                </p>
-                <p
-                  className="text-xs text-muted-foreground mt-0.5"
-                  dir="rtl"
-                  lang="he"
-                >
+                <p className="font-medium">{formatEventDate(event.start_time, event.timezone)}</p>
+                <p className="text-xs text-muted-foreground mt-0.5" dir="rtl" lang="he" suppressHydrationWarning>
                   {toHebrewDate(new Date(event.start_time)).full}
                 </p>
                 <p className="text-muted-foreground mt-1">
-                  {formatEventTime(event.start_time, event.timezone)} - {formatEventTime(event.end_time, event.timezone)}
+                  {formatEventTime(event.start_time, event.timezone)} – {formatEventTime(event.end_time, event.timezone)}
                 </p>
               </div>
             </div>
@@ -194,14 +200,23 @@ export function EventDetail({ event, communities = [], sharedCommunityIds = [], 
                 <span className="text-xs text-muted-foreground">{event.timezone}</span>
               </div>
             )}
+            {!past && (
+              <AddToCalendarButton
+                title={event.title}
+                startTime={event.start_time}
+                endTime={event.end_time}
+                locationName={event.location_name}
+                locationAddress={event.location_address}
+                description={event.description}
+                timezone={event.timezone}
+              />
+            )}
           </div>
 
           {/* Location */}
           {(event.location_name || event.virtual_link) && (
             <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Location
-              </h3>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location</h3>
               {event.location_name && (
                 <div className="flex items-start gap-3">
                   <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -218,12 +233,7 @@ export function EventDetail({ event, communities = [], sharedCommunityIds = [], 
                   <Video className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <div className="text-sm">
                     <p className="font-medium text-foreground">Online</p>
-                    <a
-                      href={event.virtual_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary text-xs hover:underline break-all"
-                    >
+                    <a href={event.virtual_link} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline break-all">
                       Join link
                     </a>
                   </div>
@@ -235,51 +245,62 @@ export function EventDetail({ event, communities = [], sharedCommunityIds = [], 
           {/* Organizer */}
           {event.organizer_name && (
             <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Organized by
-              </h3>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Organized by</h3>
               <div className="flex items-center gap-3">
                 {event.organizer_avatar ? (
-                  <img
-                    src={event.organizer_avatar}
-                    alt=""
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
+                  <img src={event.organizer_avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-medium text-primary">
-                      {event.organizer_name.charAt(0).toUpperCase()}
-                    </span>
+                    <span className="text-sm font-medium text-primary">{event.organizer_name.charAt(0).toUpperCase()}</span>
                   </div>
                 )}
-                <span className="text-sm font-medium text-foreground">
-                  {event.organizer_name}
-                </span>
+                <span className="text-sm font-medium text-foreground">{event.organizer_name}</span>
               </div>
             </div>
           )}
 
-          {/* Community if attached */}
+          {/* Community */}
           {event.community_name && event.community_slug && (
             <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Community
-              </h3>
-              <Link
-                href={`/communities/${event.community_slug}`}
-                className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-              >
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Community</h3>
+              <Link href={`/communities/${event.community_slug}`} className="text-sm font-medium text-foreground hover:text-primary transition-colors">
                 {event.community_name}
               </Link>
               {event.space_name && (
-                <p className="text-xs text-muted-foreground">
-                  in {event.space_name}
-                </p>
+                <p className="text-xs text-muted-foreground">in {event.space_name}</p>
               )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Mobile sticky bottom bar — share + add to calendar */}
+      {!past && (
+        <div className="md:hidden fixed bottom-16 left-0 right-0 z-40 bg-background/95 backdrop-blur border-t border-border px-4 py-3 flex gap-3">
+          <EventShareDialog
+            eventId={event.id}
+            eventSlug={event.slug}
+            sharedCommunityIds={sharedCommunityIds}
+            communities={communities}
+          >
+            <Button variant="outline" className="flex-1 gap-2">
+              <Share2 className="w-4 h-4" />
+              Share
+            </Button>
+          </EventShareDialog>
+          <div className="flex-1">
+            <AddToCalendarButton
+              title={event.title}
+              startTime={event.start_time}
+              endTime={event.end_time}
+              locationName={event.location_name}
+              locationAddress={event.location_address}
+              description={event.description}
+              timezone={event.timezone}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

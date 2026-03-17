@@ -128,6 +128,7 @@ export function EventPublicView({ event }: EventPublicViewProps) {
                   className="text-xs text-muted-foreground mt-0.5"
                   dir="rtl"
                   lang="he"
+                  suppressHydrationWarning
                 >
                   {toHebrewDate(new Date(event.start_time)).full}
                 </p>
