@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og"
 import { neon } from "@neondatabase/serverless"
 import { getTemplateById } from "@/lib/event-templates"
 
-export const runtime = "edge"
+export const runtime = "nodejs"
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -46,9 +46,10 @@ export async function GET(
 
   const event = rows[0]
 
-  // If the event has an uploaded invitation image, redirect to it
-  if (event.invitation_image_url) {
-    return Response.redirect(event.invitation_image_url, 302)
+  // If the event has an uploaded invitation or cover image, redirect to it
+  const uploadedImage = event.invitation_image_url || event.cover_image_url
+  if (uploadedImage) {
+    return Response.redirect(uploadedImage, 302)
   }
 
   // Get template colors if a template is selected
