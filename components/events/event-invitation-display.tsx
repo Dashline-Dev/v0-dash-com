@@ -37,7 +37,28 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
             <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
               Invitation
             </h3>
-            <Button variant="ghost" size="sm" className="text-xs gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs gap-1.5"
+              onClick={async () => {
+                // Use the uploaded invitation image if available, otherwise the OG preview
+                const imageUrl = event.invitation_image_url
+                  || `/api/og/event/${event.slug}`
+                try {
+                  const res = await fetch(imageUrl)
+                  const blob = await res.blob()
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement("a")
+                  a.href = url
+                  a.download = `${event.slug}-invitation.jpg`
+                  a.click()
+                  URL.revokeObjectURL(url)
+                } catch {
+                  window.open(imageUrl, "_blank")
+                }
+              }}
+            >
               <Download className="w-3.5 h-3.5" />
               Save Image
             </Button>
