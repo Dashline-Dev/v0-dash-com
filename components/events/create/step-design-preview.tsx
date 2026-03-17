@@ -48,13 +48,43 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
     if (!previewRef.current || !formData.template_id) return
     setIsCapturing(true)
     try {
-      // html-to-image handles modern CSS colors (lab/oklch) unlike html2canvas
       const { toBlob } = await import("html-to-image")
-      const blob = await toBlob(previewRef.current, {
+
+      // Resolve all CSS custom properties that use lab()/oklch() to plain rgb()
+      // by reading computed styles and injecting a <style> override into the node.
+      const el = previewRef.current
+      const computed = window.getComputedStyle(document.documentElement)
+      const overrides: string[] = []
+      for (let i = 0; i < computed.length; i++) {
+        const prop = computed[i]
+        const val = computed.getPropertyValue(prop).trim()
+        if (/\b(ok)?l(ab|ch)\(/.test(val)) {
+          const tmp = document.createElement("div")
+          tmp.style.cssText = `color: var(${prop}); position: absolute; visibility: hidden`
+          document.body.appendChild(tmp)
+          const resolved = window.getComputedStyle(tmp).color
+          document.body.removeChild(tmp)
+          if (resolved && resolved !== "rgba(0, 0, 0, 0)") {
+            overrides.push(`${prop}: ${resolved}`)
+          }
+        }
+      }
+
+      // Inject override style directly into the element before capture
+      const overrideStyle = document.createElement("style")
+      overrideStyle.setAttribute("data-capture-override", "1")
+      overrideStyle.textContent = `:root { ${overrides.join("; ")} }`
+      el.appendChild(overrideStyle)
+
+      const blob = await toBlob(el, {
         quality: 0.95,
         pixelRatio: 2,
         backgroundColor: "#ffffff",
+        skipFonts: false,
       })
+
+      el.removeChild(overrideStyle)
+
       if (!blob) throw new Error("Failed to generate image blob")
       const fd = new FormData()
       fd.append("file", blob, "invitation.jpg")

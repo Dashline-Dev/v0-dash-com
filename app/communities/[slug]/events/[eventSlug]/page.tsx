@@ -2,7 +2,6 @@ import { notFound } from "next/navigation"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getEventBySlug, getEventRsvps } from "@/lib/actions/event-actions"
-// static import — no dynamic() in RSC
 import { EventDetail } from "@/components/events/event-detail"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"

@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+import { redirect } from "next/navigation"
+import { getAuthenticatedUser } from "@/lib/mock-user"
 import {
   getAreas,
   getAreaEvents,
@@ -23,6 +25,9 @@ export interface AreaSectionData {
 }
 
 export default async function AreasPage() {
+  const user = await getAuthenticatedUser()
+  if (!user) redirect("/signin")
+
   const { areas } = await getAreas({ limit: 20 })
 
   // Fetch events, communities, and spaces for each area in parallel

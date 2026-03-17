@@ -6,7 +6,6 @@ import {
   getEventSharedCommunities,
 } from "@/lib/actions/event-actions"
 import { getUserCommunities } from "@/lib/actions/user-actions"
-// static imports — no dynamic() in RSC
 import { EventDetail } from "@/components/events/event-detail"
 import { EventPublicView } from "@/components/events/event-public-view"
 

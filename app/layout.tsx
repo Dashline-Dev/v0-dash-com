@@ -4,7 +4,6 @@ import { Analytics } from "@vercel/analytics/next"
 import { cookies } from "next/headers"
 import { sql } from "@/lib/db"
 import "./globals.css"
-// static imports — no dynamic() allowed in RSC
 import { TopNav } from "@/components/shell/top-nav"
 import { BottomNav } from "@/components/shell/bottom-nav"
 
@@ -43,7 +42,6 @@ export const viewport: Viewport = {
   userScalable: false,
 }
 
-/** Read session from the cookie – uses SameSite=None for iframe compat. */
 async function readUser() {
   try {
     const jar = await cookies()

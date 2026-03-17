@@ -119,37 +119,77 @@ export function EventShareDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-2">
-          {/* Copy link */}
-          <div className="space-y-3">
-            <Label className="flex items-center gap-2">
-              <Link2 className="w-4 h-4" />
-              Event Link
-            </Label>
-            <div className="flex gap-2">
-              <div className="flex-1 rounded-md border bg-muted/50 px-3 py-2 text-sm truncate text-muted-foreground">
-                {eventUrl}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyLink}
-                className="shrink-0"
-              >
+        <div className="space-y-5 py-1">
+
+          {/* Quick share targets */}
+          <div className="grid grid-cols-3 gap-2">
+            {/* Copy link */}
+            <button
+              onClick={handleCopyLink}
+              className="flex flex-col items-center gap-2 rounded-xl border border-border bg-muted/40 hover:bg-muted/80 transition-colors px-3 py-3"
+            >
+              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-background border border-border">
                 {copied ? (
-                  <Check className="w-4 h-4 text-green-500" />
+                  <Check className="w-5 h-5 text-green-600" />
                 ) : (
-                  <Copy className="w-4 h-4" />
+                  <Copy className="w-5 h-5 text-foreground" />
                 )}
-              </Button>
-            </div>
+              </span>
+              <span className="text-xs font-medium text-foreground">
+                {copied ? "Copied!" : "Copy Link"}
+              </span>
+            </button>
+
+            {/* WhatsApp */}
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(eventUrl)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-2 rounded-xl border border-border bg-muted/40 hover:bg-muted/80 transition-colors px-3 py-3"
+            >
+              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-[#25D366]/10 border border-[#25D366]/20">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#25D366">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.115.553 4.103 1.523 5.824L0 24l6.344-1.501A11.936 11.936 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.794 9.794 0 01-5.001-1.37l-.36-.213-3.767.891.946-3.668-.234-.376A9.794 9.794 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
+                </svg>
+              </span>
+              <span className="text-xs font-medium text-foreground">WhatsApp</span>
+            </a>
+
+            {/* Native share / More */}
+            <button
+              onClick={async () => {
+                if (typeof navigator !== "undefined" && "share" in navigator) {
+                  try {
+                    await navigator.share({ url: eventUrl, title: "Check out this event" })
+                  } catch { /* user cancelled */ }
+                } else {
+                  handleCopyLink()
+                }
+              }}
+              className="flex flex-col items-center gap-2 rounded-xl border border-border bg-muted/40 hover:bg-muted/80 transition-colors px-3 py-3"
+            >
+              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-background border border-border">
+                <Share2 className="w-5 h-5 text-foreground" />
+              </span>
+              <span className="text-xs font-medium text-foreground">More</span>
+            </button>
+          </div>
+
+          {/* URL row */}
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+            <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <span className="flex-1 text-xs text-muted-foreground truncate">{eventUrl}</span>
+            <button onClick={handleCopyLink} className="shrink-0 text-xs font-medium text-primary hover:underline">
+              {copied ? "Copied!" : "Copy"}
+            </button>
           </div>
 
           {/* Multi-community selection */}
           {communities.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
+                <Label className="flex items-center gap-2 text-sm">
                   <Users className="w-4 h-4" />
                   Share to Communities
                 </Label>
@@ -165,7 +205,7 @@ export function EventShareDialog({
                 )}
               </div>
 
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+              <div className="space-y-2 max-h-40 overflow-y-auto">
                 {communities.map((community) => {
                   const isChecked = selected.has(community.id)
                   return (
@@ -193,15 +233,7 @@ export function EventShareDialog({
                 })}
               </div>
 
-              {selected.size > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {selected.size} {selected.size === 1 ? "community" : "communities"} selected
-                </p>
-              )}
-
-              {error && (
-                <p className="text-sm text-destructive">{error}</p>
-              )}
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
               <Button
                 onClick={handleSave}
