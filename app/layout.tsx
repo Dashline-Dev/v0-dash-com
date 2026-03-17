@@ -3,9 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { cookies } from "next/headers"
 import { sql } from "@/lib/db"
+import "./globals.css"
 import { TopNavClient } from "@/components/shell/top-nav-client"
 import { BottomNav } from "@/components/shell/bottom-nav"
-import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
