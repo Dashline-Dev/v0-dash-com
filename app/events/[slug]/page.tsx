@@ -6,8 +6,13 @@ import {
   getEventSharedCommunities,
 } from "@/lib/actions/event-actions"
 import { getUserCommunities } from "@/lib/actions/user-actions"
-import { EventDetail } from "@/components/events/event-detail"
+import dynamic from "next/dynamic"
 import { EventPublicView } from "@/components/events/event-public-view"
+
+const EventDetail = dynamic(
+  () => import("@/components/events/event-detail").then((m) => m.EventDetail),
+  { ssr: false }
+)
 
 export async function generateMetadata({
   params,

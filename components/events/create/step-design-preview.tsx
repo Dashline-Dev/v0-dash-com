@@ -50,39 +50,43 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
     try {
       const html2canvas = (await import("html2canvas")).default
 
-      // html2canvas can't parse lab()/oklch() CSS colors — rewrite them in the clone
-      function fixUnsupportedColors(doc: Document) {
-        doc.querySelectorAll<HTMLElement>("*").forEach((el) => {
-          const style = el.getAttribute("style") ?? ""
-          if (/\b(ok)?lab\(|(ok)?lch\(/.test(style)) {
-            el.setAttribute(
-              "style",
-              style
-                .replace(/:\s*(ok)?l(ab|ch)\([^)]*\)/gi, ": inherit")
-            )
+      // html2canvas can't parse lab()/oklch() — inject computed RGB values for all
+      // CSS custom properties on the root element so the clone uses plain colors.
+      function injectComputedColorVars(doc: Document) {
+        const computed = window.getComputedStyle(document.documentElement)
+        const colorVarNames: string[] = []
+        for (let i = 0; i < computed.length; i++) {
+          const prop = computed[i]
+          if (prop.startsWith("--")) {
+            colorVarNames.push(prop)
           }
-        })
-        // Also patch any stylesheet rules injected into the clone
-        Array.from(doc.styleSheets).forEach((sheet) => {
-          try {
-            Array.from(sheet.cssRules ?? []).forEach((rule) => {
-              if (rule instanceof CSSStyleRule) {
-                const text = rule.cssText
-                if (/\b(ok)?lab\(|(ok)?lch\(/.test(text)) {
-                  const props = Array.from(rule.style)
-                  props.forEach((prop) => {
-                    const val = rule.style.getPropertyValue(prop)
-                    if (/\b(ok)?lab\(|(ok)?lch\(/.test(val)) {
-                      rule.style.removeProperty(prop)
-                    }
-                  })
-                }
-              }
-            })
-          } catch {
-            // cross-origin sheets throw on cssRules access — skip
-          }
-        })
+        }
+        // Build override rules resolving every var to its computed value
+        const overrides = colorVarNames
+          .map((v) => {
+            const val = computed.getPropertyValue(v).trim()
+            // Only include vars whose value contains a color function html2canvas can't handle
+            if (/\b(ok)?lab\(|(ok)?lch\(/.test(val)) {
+              // Create a temporary element to resolve the color to rgb()
+              const tmp = document.createElement("div")
+              tmp.style.color = `var(${v})`
+              document.body.appendChild(tmp)
+              const resolved = window.getComputedStyle(tmp).color
+              document.body.removeChild(tmp)
+              return resolved && resolved !== "rgba(0, 0, 0, 0)"
+                ? `${v}: ${resolved};`
+                : null
+            }
+            return null
+          })
+          .filter(Boolean)
+          .join("\n")
+
+        if (overrides) {
+          const style = doc.createElement("style")
+          style.textContent = `:root { ${overrides} }`
+          doc.head.appendChild(style)
+        }
       }
 
       const canvas = await html2canvas(previewRef.current, {
@@ -92,7 +96,7 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
         backgroundColor: "#ffffff",
         logging: false,
         onclone: (clonedDoc) => {
-          fixUnsupportedColors(clonedDoc)
+          injectComputedColorVars(clonedDoc)
         },
       })
       const blob = await new Promise<Blob>((resolve) =>

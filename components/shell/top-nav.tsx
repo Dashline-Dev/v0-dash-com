@@ -2,24 +2,11 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import dynamic from "next/dynamic"
 import { cn } from "@/lib/utils"
 import { GuestNavLink } from "@/components/auth/guest-nav-link"
-
-const CommandPalette = dynamic(
-  () => import("./command-palette").then((m) => m.CommandPalette),
-  { ssr: false }
-)
-
-const UserMenu = dynamic(
-  () => import("./user-menu").then((m) => m.UserMenu),
-  { ssr: false }
-)
-
-const CreateMenu = dynamic(
-  () => import("./create-menu").then((m) => m.CreateMenu),
-  { ssr: false }
-)
+import { CommandPalette } from "./command-palette"
+import { UserMenu } from "./user-menu"
+import { CreateMenu } from "./create-menu"
 
 // Routes that require authentication
 const PROTECTED_HREFS = new Set(["/explore", "/communities", "/events", "/areas"])

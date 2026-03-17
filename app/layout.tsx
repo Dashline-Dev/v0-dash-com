@@ -3,8 +3,13 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { cookies } from "next/headers"
 import { sql } from "@/lib/db"
-import { TopNav } from "@/components/shell/top-nav"
+import dynamic from "next/dynamic"
 import { BottomNav } from "@/components/shell/bottom-nav"
+
+const TopNav = dynamic(
+  () => import("@/components/shell/top-nav").then((m) => m.TopNav),
+  { ssr: false }
+)
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
