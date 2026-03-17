@@ -48,60 +48,14 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
     if (!previewRef.current || !formData.template_id) return
     setIsCapturing(true)
     try {
-      const html2canvas = (await import("html2canvas")).default
-
-      // html2canvas can't parse lab()/oklch() — inject computed RGB values for all
-      // CSS custom properties on the root element so the clone uses plain colors.
-      function injectComputedColorVars(doc: Document) {
-        const computed = window.getComputedStyle(document.documentElement)
-        const colorVarNames: string[] = []
-        for (let i = 0; i < computed.length; i++) {
-          const prop = computed[i]
-          if (prop.startsWith("--")) {
-            colorVarNames.push(prop)
-          }
-        }
-        // Build override rules resolving every var to its computed value
-        const overrides = colorVarNames
-          .map((v) => {
-            const val = computed.getPropertyValue(v).trim()
-            // Only include vars whose value contains a color function html2canvas can't handle
-            if (/\b(ok)?lab\(|(ok)?lch\(/.test(val)) {
-              // Create a temporary element to resolve the color to rgb()
-              const tmp = document.createElement("div")
-              tmp.style.color = `var(${v})`
-              document.body.appendChild(tmp)
-              const resolved = window.getComputedStyle(tmp).color
-              document.body.removeChild(tmp)
-              return resolved && resolved !== "rgba(0, 0, 0, 0)"
-                ? `${v}: ${resolved};`
-                : null
-            }
-            return null
-          })
-          .filter(Boolean)
-          .join("\n")
-
-        if (overrides) {
-          const style = doc.createElement("style")
-          style.textContent = `:root { ${overrides} }`
-          doc.head.appendChild(style)
-        }
-      }
-
-      const canvas = await html2canvas(previewRef.current, {
-        useCORS: true,
-        allowTaint: true,
-        scale: 2,
+      // html-to-image handles modern CSS colors (lab/oklch) unlike html2canvas
+      const { toBlob } = await import("html-to-image")
+      const blob = await toBlob(previewRef.current, {
+        quality: 0.95,
+        pixelRatio: 2,
         backgroundColor: "#ffffff",
-        logging: false,
-        onclone: (clonedDoc) => {
-          injectComputedColorVars(clonedDoc)
-        },
       })
-      const blob = await new Promise<Blob>((resolve) =>
-        canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.95)
-      )
+      if (!blob) throw new Error("Failed to generate image blob")
       const fd = new FormData()
       fd.append("file", blob, "invitation.jpg")
       fd.append("folder", "invitation-images")

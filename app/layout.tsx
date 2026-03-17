@@ -4,7 +4,8 @@ import { Analytics } from "@vercel/analytics/next"
 import { cookies } from "next/headers"
 import { sql } from "@/lib/db"
 import "./globals.css"
-import { TopNavClient } from "@/components/shell/top-nav-client"
+// static imports — no dynamic() allowed in RSC
+import { TopNav } from "@/components/shell/top-nav"
 import { BottomNav } from "@/components/shell/bottom-nav"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -80,7 +81,7 @@ export default async function RootLayout({
     <html lang="en">
       <body className="font-sans antialiased">
         <div className="min-h-dvh flex flex-col">
-          <TopNavClient user={user} />
+          <TopNav user={user} />
           <main className="flex-1 pb-16 md:pb-0">{children}</main>
           <BottomNav user={user} />
         </div>
