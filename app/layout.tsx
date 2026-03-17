@@ -3,8 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { cookies } from "next/headers"
 import { sql } from "@/lib/db"
-import { TopNav } from "@/components/shell/top-nav"
-import { BottomNav } from "@/components/shell/bottom-nav"
+import { NavShell } from "@/components/shell/nav-shell"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -79,9 +78,8 @@ export default async function RootLayout({
     <html lang="en">
       <body className="font-sans antialiased">
         <div className="min-h-dvh flex flex-col">
-          <TopNav user={user} />
+          <NavShell user={user} />
           <main className="flex-1 pb-16 md:pb-0">{children}</main>
-          <BottomNav user={user} />
         </div>
         <Analytics />
       </body>
