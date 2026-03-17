@@ -1,8 +1,6 @@
 "use client"
 
-import { cn } from "@/lib/utils"
 import { getTemplateById } from "@/lib/event-templates"
-import { InvitationCard } from "./invitation-card"
 import type { EventWithMeta } from "@/types/event"
 import { Shirt, Info, Phone, Image as ImageIcon, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -28,10 +26,32 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
 
   const accentColor = template?.style.accentColor || "#2563EB"
 
+  // The OG image route already handles the priority:
+  //   1. uploaded invitation_image_url → redirect to it
+  //   2. template → render branded card
+  // So we just point the <img> and the download at the same route.
+  const ogImageUrl = `/api/og/event/${event.slug}`
+  const showPreviewImage = !!(template || event.invitation_image_url)
+
+  async function handleDownload() {
+    try {
+      const res = await fetch(ogImageUrl)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${event.slug}-invitation.jpg`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      window.open(ogImageUrl, "_blank")
+    }
+  }
+
   return (
     <div className="space-y-6">
-      {/* Visual invitation card (if template is selected) */}
-      {template && (
+      {/* Invitation image — the same image social media sees */}
+      {showPreviewImage && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
@@ -41,62 +61,23 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
               variant="ghost"
               size="sm"
               className="text-xs gap-1.5"
-              onClick={async () => {
-                // Use the uploaded invitation image if available, otherwise the OG preview
-                const imageUrl = event.invitation_image_url
-                  || `/api/og/event/${event.slug}`
-                try {
-                  const res = await fetch(imageUrl)
-                  const blob = await res.blob()
-                  const url = URL.createObjectURL(blob)
-                  const a = document.createElement("a")
-                  a.href = url
-                  a.download = `${event.slug}-invitation.jpg`
-                  a.click()
-                  URL.revokeObjectURL(url)
-                } catch {
-                  window.open(imageUrl, "_blank")
-                }
-              }}
+              onClick={handleDownload}
             >
               <Download className="w-3.5 h-3.5" />
               Save Image
             </Button>
           </div>
-          <div className="flex justify-center">
-            <div className="w-full max-w-md">
-              <InvitationCard
-                event={event}
-                template={template}
-                className="w-full shadow-lg"
-                communityLogo={event.community_avatar}
-                communityName={event.community_name}
-                showBranding={true}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Uploaded invitation image (if user uploaded their own) */}
-      {event.invitation_image_url && (
-        <div className="space-y-3">
-          {!template && (
-            <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
-              Invitation
-            </h3>
-          )}
           <div className="rounded-xl overflow-hidden border border-border shadow-sm">
             <img
-              src={event.invitation_image_url}
+              src={ogImageUrl}
               alt={`${event.title} invitation`}
-              className="w-full object-contain max-h-[600px]"
+              className="w-full object-contain"
             />
           </div>
         </div>
       )}
 
-      {/* Custom invitation message (only shown if no template, since template includes host line) */}
+      {/* Custom invitation message */}
       {!template && event.invitation_message && (
         <div
           className="py-6 px-4 rounded-xl border border-border bg-card text-center"
