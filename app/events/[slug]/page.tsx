@@ -18,26 +18,27 @@ export async function generateMetadata({
   const event = await getPublicEventBySlug(slug)
   if (!event) return { title: "Event Not Found" }
 
-  // Use invitation image or cover image as OG preview
-  const ogImage =
-    event.invitation_image_url || event.cover_image_url || undefined
+  const description = event.description?.slice(0, 160) ?? ""
+
+  // Always use the dynamic OG image route — it redirects to the uploaded
+  // invitation image if one exists, or renders a branded template card.
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://dashline.tech"
+  const ogImageUrl = `${baseUrl}/api/og/event/${slug}`
 
   return {
-    title: `${event.title} | Dash`,
-    description: event.description?.slice(0, 160) ?? "",
+    title: `${event.title} | Community Circle`,
+    description,
     openGraph: {
       title: event.title,
-      description: event.description?.slice(0, 160) ?? "",
+      description,
       type: "website",
-      ...(ogImage && {
-        images: [{ url: ogImage, width: 1200, height: 630, alt: event.title }],
-      }),
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: event.title }],
     },
     twitter: {
-      card: ogImage ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title: event.title,
-      description: event.description?.slice(0, 160) ?? "",
-      ...(ogImage && { images: [ogImage] }),
+      description,
+      images: [ogImageUrl],
     },
   }
 }
