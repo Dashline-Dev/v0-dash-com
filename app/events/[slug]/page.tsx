@@ -77,7 +77,9 @@ export default async function EventDetailPage({
   }
 
   const event = await getPublicEventBySlug(slug)
-  if (!event) notFound()
+  // Unauthenticated users may only view explicitly public events.
+  // Unlisted/private events require sign-in.
+  if (!event || event.visibility !== "public") notFound()
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8">

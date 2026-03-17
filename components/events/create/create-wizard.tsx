@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { StepIndicator } from "@/components/ui/step-indicator"
-import { Loader2, ArrowLeft, ArrowRight } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Loader2, ArrowLeft, ArrowRight, Globe, AlertTriangle } from "lucide-react"
 import { createEvent } from "@/lib/actions/event-actions"
 import { linkEventToArea } from "@/lib/actions/area-actions"
 import type { EventType, EventVisibility } from "@/types/event"
@@ -72,6 +80,7 @@ export function CreateEventWizard({
   const [isPending, startTransition] = useTransition()
   const [step, setStep] = useState(0)
   const [error, setError] = useState("")
+  const [showVisibilityWarning, setShowVisibilityWarning] = useState(false)
 
   // Derive the default visibility from the community's visibility setting:
   // private community → private events; unlisted → unlisted; public → public
@@ -268,7 +277,20 @@ export function CreateEventWizard({
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={isPending}>
+          <Button
+            onClick={() => {
+              // Warn if event is public but the community is private/unlisted
+              const communityIsRestricted =
+                preSelectedCommunityVisibility === "private" ||
+                preSelectedCommunityVisibility === "unlisted"
+              if (formData.visibility === "public" && communityIsRestricted) {
+                setShowVisibilityWarning(true)
+              } else {
+                handleSubmit()
+              }
+            }}
+            disabled={isPending}
+          >
             {isPending ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -280,6 +302,51 @@ export function CreateEventWizard({
           </Button>
         )}
       </div>
+
+      {/* Visibility mismatch warning dialog */}
+      <Dialog open={showVisibilityWarning} onOpenChange={setShowVisibilityWarning}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Public Event Warning
+            </DialogTitle>
+            <DialogDescription className="pt-1">
+              This event is set to <strong>Public</strong> — anyone on the internet can find and view it. However, it belongs to a{" "}
+              <strong>
+                {preSelectedCommunityVisibility === "private" ? "private" : "unlisted"}
+              </strong>{" "}
+              community ({preSelectedCommunityName}), meaning the community itself isn't publicly visible.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-2 px-0">
+            Are you sure you want this event to be publicly discoverable?
+          </p>
+          <DialogFooter className="flex gap-2 sm:flex-row flex-col">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                setShowVisibilityWarning(false)
+                // Jump back to settings step so user can change visibility
+                setStep(3)
+              }}
+            >
+              Change Visibility
+            </Button>
+            <Button
+              className="flex-1 gap-2"
+              onClick={() => {
+                setShowVisibilityWarning(false)
+                handleSubmit()
+              }}
+            >
+              <Globe className="w-4 h-4" />
+              Yes, Make Public
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

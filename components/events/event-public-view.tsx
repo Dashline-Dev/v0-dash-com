@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import {
   Calendar,
   Clock,
@@ -37,6 +38,11 @@ const TYPE_ICON: Record<string, React.ElementType> = {
 export function EventPublicView({ event }: EventPublicViewProps) {
   const past = isEventPast(event.end_time)
   const TypeIcon = TYPE_ICON[event.event_type] ?? Calendar
+
+  const [hebrewDate, setHebrewDate] = useState<string>("")
+  useEffect(() => {
+    setHebrewDate(toHebrewDate(new Date(event.start_time)).full)
+  }, [event.start_time])
 
   function handleShare() {
     try {
@@ -128,9 +134,8 @@ export function EventPublicView({ event }: EventPublicViewProps) {
                   className="text-xs text-muted-foreground mt-0.5"
                   dir="rtl"
                   lang="he"
-                  suppressHydrationWarning
                 >
-                  {toHebrewDate(new Date(event.start_time)).full}
+                  {hebrewDate}
                 </p>
                 <p className="text-muted-foreground mt-1">
                   {formatEventTime(event.start_time, event.timezone)} - {formatEventTime(event.end_time, event.timezone)}
