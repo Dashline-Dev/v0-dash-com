@@ -35,11 +35,12 @@ export async function POST(request: NextRequest) {
     }
 
     const blob = await put(`${folder}/${Date.now()}-${file.name}`, file, {
-      access: "public",
+      access: "private",
     })
 
+    // Return both pathname (for private delivery) and a signed download URL
     return NextResponse.json({
-      url: blob.url,
+      url: `/api/file?pathname=${encodeURIComponent(blob.pathname)}`,
       pathname: blob.pathname,
       filename: file.name,
       size: file.size,

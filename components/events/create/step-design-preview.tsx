@@ -47,45 +47,49 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
   async function captureAndSave() {
     if (!previewRef.current || !formData.template_id) return
     setIsCapturing(true)
-    try {
-      const { toBlob } = await import("html-to-image")
 
-      // Resolve all CSS custom properties that use lab()/oklch() to plain rgb()
-      // by reading computed styles and injecting a <style> override into the node.
-      const el = previewRef.current
+    // html-to-image clones the DOM and inlines stylesheets — it fails on
+    // lab()/oklch() colors. Resolve every CSS custom property that uses them
+    // to plain rgb() and inject an override <style> into document.head so
+    // the clone picks it up, then remove it after capture.
+    const overrideStyle = document.createElement("style")
+    overrideStyle.setAttribute("data-capture-override", "1")
+
+    try {
+      const { toJpeg } = await import("html-to-image")
+
       const computed = window.getComputedStyle(document.documentElement)
       const overrides: string[] = []
       for (let i = 0; i < computed.length; i++) {
         const prop = computed[i]
+        if (!prop.startsWith("--")) continue
         const val = computed.getPropertyValue(prop).trim()
-        if (/\b(ok)?l(ab|ch)\(/.test(val)) {
-          const tmp = document.createElement("div")
-          tmp.style.cssText = `color: var(${prop}); position: absolute; visibility: hidden`
-          document.body.appendChild(tmp)
-          const resolved = window.getComputedStyle(tmp).color
-          document.body.removeChild(tmp)
-          if (resolved && resolved !== "rgba(0, 0, 0, 0)") {
-            overrides.push(`${prop}: ${resolved}`)
-          }
+        if (!/\b(ok)?l(ab|ch)\(/.test(val)) continue
+        // Resolve to rgb() via a temporary element
+        const tmp = document.createElement("div")
+        tmp.style.cssText = `color: var(${prop}); position: absolute; visibility: hidden; pointer-events: none`
+        document.body.appendChild(tmp)
+        const resolved = window.getComputedStyle(tmp).color
+        document.body.removeChild(tmp)
+        if (resolved && resolved !== "rgba(0, 0, 0, 0)") {
+          overrides.push(`${prop}: ${resolved}`)
         }
       }
-
-      // Inject override style directly into the element before capture
-      const overrideStyle = document.createElement("style")
-      overrideStyle.setAttribute("data-capture-override", "1")
       overrideStyle.textContent = `:root { ${overrides.join("; ")} }`
-      el.appendChild(overrideStyle)
+      document.head.appendChild(overrideStyle)
 
-      const blob = await toBlob(el, {
+      const dataUrl = await toJpeg(previewRef.current, {
         quality: 0.95,
         pixelRatio: 2,
         backgroundColor: "#ffffff",
-        skipFonts: false,
       })
 
-      el.removeChild(overrideStyle)
+      document.head.removeChild(overrideStyle)
 
-      if (!blob) throw new Error("Failed to generate image blob")
+      // Convert data URL to blob
+      const res2 = await fetch(dataUrl)
+      const blob = await res2.blob()
+
       const fd = new FormData()
       fd.append("file", blob, "invitation.jpg")
       fd.append("folder", "invitation-images")
@@ -97,6 +101,7 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
       }
     } catch (err) {
       console.error("Failed to capture invitation image", err)
+      if (overrideStyle.parentNode) document.head.removeChild(overrideStyle)
     } finally {
       setIsCapturing(false)
     }

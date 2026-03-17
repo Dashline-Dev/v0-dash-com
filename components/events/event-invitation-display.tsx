@@ -1,6 +1,7 @@
 "use client"
 
 import { getTemplateById } from "@/lib/event-templates"
+import { InvitationCard } from "./invitation-card"
 import type { EventWithMeta } from "@/types/event"
 import { Shirt, Info, Phone, Image as ImageIcon, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -47,8 +48,8 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
 
   return (
     <div className="space-y-6">
-      {/* Invitation image — exactly what the user designed */}
-      {invitationImageUrl && (
+      {/* Invitation visual — captured image if available, otherwise live InvitationCard */}
+      {(invitationImageUrl || template) && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
@@ -64,13 +65,25 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
               Save Image
             </Button>
           </div>
-          <div className="rounded-xl overflow-hidden border border-border shadow-sm">
-            <img
-              src={invitationImageUrl}
-              alt={`${event.title} invitation`}
-              className="w-full object-contain"
-            />
-          </div>
+          {invitationImageUrl ? (
+            <div className="rounded-xl overflow-hidden border border-border shadow-sm">
+              <img
+                src={invitationImageUrl}
+                alt={`${event.title} invitation`}
+                className="w-full object-contain"
+              />
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <div className="w-full max-w-md">
+                <InvitationCard
+                  event={event}
+                  templateId={event.template_id!}
+                  className="w-full shadow-lg"
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
