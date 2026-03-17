@@ -1,16 +1,11 @@
 import { notFound } from "next/navigation"
-import dynamic from "next/dynamic"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
 import { getEventBySlug, getEventRsvps } from "@/lib/actions/event-actions"
+import { EventDetailClient as EventDetail } from "@/components/events/event-detail-client"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
-
-const EventDetail = dynamic(
-  () => import("@/components/events/event-detail").then((m) => m.EventDetail),
-  { ssr: false }
-)
 
 export async function generateMetadata({
   params,
