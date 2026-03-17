@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import {
   Calendar,
   MapPin,
@@ -18,6 +17,7 @@ import { Separator } from "@/components/ui/separator"
 import { EventShareDialog } from "./event-share-dialog"
 import { EventInvitationDisplay } from "./event-invitation-display"
 import { AddToCalendarButton } from "./add-to-calendar-button"
+import { HebrewDate } from "@/components/ui/hebrew-date"
 import type { EventWithMeta } from "@/types/event"
 import {
   EVENT_TYPE_LABELS,
@@ -25,7 +25,6 @@ import {
   formatEventTime,
   isEventPast,
 } from "@/types/event"
-import { toHebrewDate } from "@/lib/hebrew-date"
 
 interface EventDetailProps {
   event: EventWithMeta
@@ -43,12 +42,6 @@ const TYPE_ICON: Record<string, React.ElementType> = {
 export function EventDetail({ event, communities = [], sharedCommunityIds = [], canEdit = false }: EventDetailProps) {
   const past = isEventPast(event.end_time)
   const TypeIcon = TYPE_ICON[event.event_type] ?? Calendar
-
-  // Compute Hebrew date only on the client to avoid SSR/client timezone mismatch
-  const [hebrewDate, setHebrewDate] = useState<string>("")
-  useEffect(() => {
-    setHebrewDate(toHebrewDate(new Date(event.start_time)).full)
-  }, [event.start_time])
 
 
 
@@ -135,9 +128,7 @@ export function EventDetail({ event, communities = [], sharedCommunityIds = [], 
           <Calendar className="w-4 h-4 text-primary mt-0.5 shrink-0" />
           <div className="text-sm text-foreground">
             <p className="font-medium">{formatEventDate(event.start_time, event.timezone)}</p>
-                <p className="text-xs text-muted-foreground mt-0.5" dir="rtl" lang="he">
-                  {hebrewDate}
-                </p>
+                <HebrewDate date={event.start_time} format="full" className="text-xs text-muted-foreground mt-0.5" />
                 <p className="text-muted-foreground mt-1">
                   {formatEventTime(event.start_time, event.timezone)} – {formatEventTime(event.end_time, event.timezone)}
                 </p>
@@ -193,9 +184,7 @@ export function EventDetail({ event, communities = [], sharedCommunityIds = [], 
               <Calendar className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div className="text-sm text-foreground">
                 <p className="font-medium">{formatEventDate(event.start_time, event.timezone)}</p>
-            <p className="text-xs text-muted-foreground mt-0.5" dir="rtl" lang="he">
-                  {hebrewDate}
-                </p>
+                <HebrewDate date={event.start_time} format="full" className="text-xs text-muted-foreground mt-0.5" />
                 <p className="text-muted-foreground mt-1">
                   {formatEventTime(event.start_time, event.timezone)} – {formatEventTime(event.end_time, event.timezone)}
                 </p>

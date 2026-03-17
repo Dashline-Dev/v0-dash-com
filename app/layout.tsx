@@ -14,23 +14,6 @@ export const metadata: Metadata = {
   description:
     "Discover and build communities around the things you care about.",
   generator: "v0.app",
-  icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
-  },
 }
 
 export const viewport: Viewport = {
@@ -76,6 +59,11 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/icon-light-32x32.png" media="(prefers-color-scheme: light)" />
+        <link rel="icon" href="/icon-dark-32x32.png" media="(prefers-color-scheme: dark)" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
+      </head>
       <body className="font-sans antialiased">
         <div className="min-h-dvh flex flex-col">
           <NavShell user={user} />

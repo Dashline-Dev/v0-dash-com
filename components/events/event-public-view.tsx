@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import {
   Calendar,
   Clock,
@@ -16,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { EventInvitationDisplay } from "./event-invitation-display"
 import { AddToCalendarButton } from "./add-to-calendar-button"
+import { HebrewDate } from "@/components/ui/hebrew-date"
 import type { EventWithMeta } from "@/types/event"
 import {
   EVENT_TYPE_LABELS,
@@ -23,7 +23,6 @@ import {
   formatEventTime,
   isEventPast,
 } from "@/types/event"
-import { toHebrewDate } from "@/lib/hebrew-date"
 
 interface EventPublicViewProps {
   event: EventWithMeta
@@ -38,11 +37,6 @@ const TYPE_ICON: Record<string, React.ElementType> = {
 export function EventPublicView({ event }: EventPublicViewProps) {
   const past = isEventPast(event.end_time)
   const TypeIcon = TYPE_ICON[event.event_type] ?? Calendar
-
-  const [hebrewDate, setHebrewDate] = useState<string>("")
-  useEffect(() => {
-    setHebrewDate(toHebrewDate(new Date(event.start_time)).full)
-  }, [event.start_time])
 
   function handleShare() {
     try {
@@ -130,13 +124,7 @@ export function EventPublicView({ event }: EventPublicViewProps) {
                 <p className="font-medium">
                   {formatEventDate(event.start_time, event.timezone)}
                 </p>
-                <p
-                  className="text-xs text-muted-foreground mt-0.5"
-                  dir="rtl"
-                  lang="he"
-                >
-                  {hebrewDate}
-                </p>
+                <HebrewDate date={event.start_time} format="full" className="text-xs text-muted-foreground mt-0.5" />
                 <p className="text-muted-foreground mt-1">
                   {formatEventTime(event.start_time, event.timezone)} - {formatEventTime(event.end_time, event.timezone)}
                 </p>

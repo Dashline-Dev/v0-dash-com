@@ -3,8 +3,13 @@ import { Plus, Search } from "lucide-react"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { getHomeEvents } from "@/lib/actions/home-actions"
 import { getGuestLandingData } from "@/lib/actions/landing-actions"
+import dynamic from "next/dynamic"
 import { HomeSections } from "@/components/home/home-sections"
-import { GuestLanding } from "@/components/home/guest-landing"
+
+const GuestLanding = dynamic(
+  () => import("@/components/home/guest-landing").then((m) => m.GuestLanding),
+  { ssr: false }
+)
 
 function getGreeting(name: string): string {
   const hour = new Date().getHours()
