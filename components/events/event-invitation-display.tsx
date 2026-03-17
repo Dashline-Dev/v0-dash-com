@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef, useState } from "react"
 import { getTemplateById } from "@/lib/event-templates"
 import { InvitationCard } from "./invitation-card"
 import type { EventWithMeta } from "@/types/event"
@@ -11,6 +12,9 @@ interface EventInvitationDisplayProps {
 }
 
 export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [isDownloading, setIsDownloading] = useState(false)
+
   const template = event.template_id ? getTemplateById(event.template_id) : null
   const hasInvitationContent =
     event.template_id ||
@@ -26,23 +30,64 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
   }
 
   const accentColor = template?.style.accentColor || "#2563EB"
-
-  // Show the captured invitation image (set during event creation from the template renderer)
   const invitationImageUrl = event.invitation_image_url || null
 
   async function handleDownload() {
-    const url = invitationImageUrl || `/api/og/event/${event.slug}`
+    setIsDownloading(true)
     try {
-      const res = await fetch(url)
-      const blob = await res.blob()
-      const objectUrl = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = objectUrl
-      a.download = `${event.slug}-invitation.jpg`
-      a.click()
-      URL.revokeObjectURL(objectUrl)
-    } catch {
-      window.open(url, "_blank")
+      if (invitationImageUrl) {
+        // Fetch the stored image and download it directly
+        const res = await fetch(invitationImageUrl)
+        const blob = await res.blob()
+        const objectUrl = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = objectUrl
+        a.download = `${event.slug}-invitation.jpg`
+        a.click()
+        URL.revokeObjectURL(objectUrl)
+      } else if (cardRef.current) {
+        // No stored image — capture the live InvitationCard DOM node
+        const { toJpeg } = await import("html-to-image")
+
+        // Resolve lab()/oklch() CSS vars to rgb() so html-to-image doesn't crash
+        const computed = window.getComputedStyle(document.documentElement)
+        const overrides: string[] = []
+        for (let i = 0; i < computed.length; i++) {
+          const prop = computed[i]
+          if (!prop.startsWith("--")) continue
+          const val = computed.getPropertyValue(prop).trim()
+          if (!/\b(ok)?l(ab|ch)\(/.test(val)) continue
+          const tmp = document.createElement("div")
+          tmp.style.cssText = `color: var(${prop}); position: absolute; visibility: hidden; pointer-events: none`
+          document.body.appendChild(tmp)
+          const resolved = window.getComputedStyle(tmp).color
+          document.body.removeChild(tmp)
+          if (resolved && resolved !== "rgba(0, 0, 0, 0)") {
+            overrides.push(`${prop}: ${resolved}`)
+          }
+        }
+        const overrideStyle = document.createElement("style")
+        overrideStyle.setAttribute("data-capture-override", "1")
+        overrideStyle.textContent = `:root { ${overrides.join("; ")} }`
+        document.head.appendChild(overrideStyle)
+
+        const dataUrl = await toJpeg(cardRef.current, {
+          quality: 0.95,
+          pixelRatio: 2,
+          backgroundColor: "#ffffff",
+        })
+
+        document.head.removeChild(overrideStyle)
+
+        const a = document.createElement("a")
+        a.href = dataUrl
+        a.download = `${event.slug}-invitation.jpg`
+        a.click()
+      }
+    } catch (err) {
+      console.error("Download failed:", err)
+    } finally {
+      setIsDownloading(false)
     }
   }
 
@@ -60,9 +105,10 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
               size="sm"
               className="text-xs gap-1.5"
               onClick={handleDownload}
+              disabled={isDownloading}
             >
               <Download className="w-3.5 h-3.5" />
-              Save Image
+              {isDownloading ? "Saving..." : "Save Image"}
             </Button>
           </div>
           {invitationImageUrl ? (
@@ -74,7 +120,7 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
               />
             </div>
           ) : (
-            <div className="flex justify-center">
+            <div ref={cardRef} className="flex justify-center">
               <div className="w-full max-w-md">
                 <InvitationCard
                   event={event}

@@ -48,43 +48,57 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
     if (!previewRef.current || !formData.template_id) return
     setIsCapturing(true)
 
-    // html-to-image clones the DOM and inlines stylesheets — it fails on
-    // lab()/oklch() colors. Resolve every CSS custom property that uses them
-    // to plain rgb() and inject an override <style> into document.head so
-    // the clone picks it up, then remove it after capture.
-    const overrideStyle = document.createElement("style")
-    overrideStyle.setAttribute("data-capture-override", "1")
-
     try {
       const { toJpeg } = await import("html-to-image")
+      const el = previewRef.current
 
-      const computed = window.getComputedStyle(document.documentElement)
-      const overrides: string[] = []
-      for (let i = 0; i < computed.length; i++) {
-        const prop = computed[i]
-        if (!prop.startsWith("--")) continue
-        const val = computed.getPropertyValue(prop).trim()
-        if (!/\b(ok)?l(ab|ch)\(/.test(val)) continue
-        // Resolve to rgb() via a temporary element
-        const tmp = document.createElement("div")
-        tmp.style.cssText = `color: var(${prop}); position: absolute; visibility: hidden; pointer-events: none`
-        document.body.appendChild(tmp)
-        const resolved = window.getComputedStyle(tmp).color
-        document.body.removeChild(tmp)
-        if (resolved && resolved !== "rgba(0, 0, 0, 0)") {
-          overrides.push(`${prop}: ${resolved}`)
+      // html-to-image serializes CSS by reading computed style values.
+      // Tailwind v4 uses lab()/oklch() in its @theme which html-to-image
+      // can't parse. Fix: walk every element in the capture target, read
+      // its computed color properties via the live DOM (browser resolves
+      // lab()->rgb() natively), then set them as explicit inline styles
+      // so the cloned DOM has plain rgb() values.
+      const colorProps = [
+        "color", "background-color", "border-color",
+        "border-top-color", "border-bottom-color",
+        "border-left-color", "border-right-color",
+        "outline-color", "text-decoration-color",
+      ]
+      const allEls = [el, ...Array.from(el.querySelectorAll<HTMLElement>("*"))]
+      const savedStyles: Array<{ el: HTMLElement; saved: string }> = []
+
+      for (const node of allEls) {
+        if (!(node instanceof HTMLElement)) continue
+        const cs = window.getComputedStyle(node)
+        const patch: Record<string, string> = {}
+        for (const cp of colorProps) {
+          const val = cs.getPropertyValue(cp)
+          if (val && /\b(ok)?l(ab|ch)\(/.test(val)) {
+            patch[cp] = val
+          }
+        }
+        if (Object.keys(patch).length > 0) {
+          savedStyles.push({ el: node, saved: node.getAttribute("style") ?? "" })
+          for (const [cp, val] of Object.entries(patch)) {
+            node.style.setProperty(cp, val)
+          }
         }
       }
-      overrideStyle.textContent = `:root { ${overrides.join("; ")} }`
-      document.head.appendChild(overrideStyle)
 
-      const dataUrl = await toJpeg(previewRef.current, {
+      const dataUrl = await toJpeg(el, {
         quality: 0.95,
         pixelRatio: 2,
         backgroundColor: "#ffffff",
       })
 
-      document.head.removeChild(overrideStyle)
+      // Restore original inline styles
+      for (const { el: node, saved } of savedStyles) {
+        if (saved) {
+          node.setAttribute("style", saved)
+        } else {
+          node.removeAttribute("style")
+        }
+      }
 
       // Convert data URL to blob
       const res2 = await fetch(dataUrl)
@@ -101,7 +115,6 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
       }
     } catch (err) {
       console.error("Failed to capture invitation image", err)
-      if (overrideStyle.parentNode) document.head.removeChild(overrideStyle)
     } finally {
       setIsCapturing(false)
     }
