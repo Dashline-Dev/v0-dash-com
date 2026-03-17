@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -13,7 +13,7 @@ import {
   getTemplatesByCategory,
 } from "@/lib/event-templates"
 import { InvitationCard, CARD_SIZES, type CardSize } from "@/components/events/invitation-card"
-import { Check, ChevronRight, Sparkles, Eye, Palette, Settings2, Smartphone, Square, RectangleHorizontal, FileText } from "lucide-react"
+import { Check, Sparkles, Eye, Palette, Settings2, Loader2, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -40,6 +40,40 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<"templates" | "customize">("templates")
+  const [isCapturing, setIsCapturing] = useState(false)
+  const [captured, setCaptured] = useState(false)
+  const previewRef = useRef<HTMLDivElement>(null)
+
+  async function captureAndSave() {
+    if (!previewRef.current || !formData.template_id) return
+    setIsCapturing(true)
+    try {
+      const html2canvas = (await import("html2canvas")).default
+      const canvas = await html2canvas(previewRef.current, {
+        useCORS: true,
+        allowTaint: true,
+        scale: 2,
+        backgroundColor: null,
+        logging: false,
+      })
+      const blob = await new Promise<Blob>((resolve) =>
+        canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.95)
+      )
+      const fd = new FormData()
+      fd.append("file", blob, "invitation.jpg")
+      fd.append("folder", "invitation-images")
+      const res = await fetch("/api/upload", { method: "POST", body: fd })
+      const json = await res.json()
+      if (json.url) {
+        updateFormData({ invitation_image_url: json.url })
+        setCaptured(true)
+      }
+    } catch (err) {
+      console.error("Failed to capture invitation image", err)
+    } finally {
+      setIsCapturing(false)
+    }
+  }
 
   const subcategories = selectedCategory ? getSubcategories(selectedCategory) : []
   
@@ -74,8 +108,10 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
     if (template) {
       updateFormData({
         template_id: templateId,
+        invitation_image_url: "",
         invitation_message: formData.invitation_message || template.fields.hostLineTemplate,
       })
+      setCaptured(false)
     }
   }
 
@@ -331,7 +367,7 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
             
             <div className="bg-muted/30 rounded-xl p-4 border border-border flex items-center justify-center min-h-[450px]">
               {formData.template_id ? (
-                <div className="w-full max-w-[280px]">
+                <div ref={previewRef} className="w-full max-w-[280px]">
                   <InvitationCard
                     event={previewEvent}
                     templateId={formData.template_id}
@@ -349,9 +385,40 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
             </div>
 
             {formData.template_id && (
-              <p className="text-xs text-center text-muted-foreground mt-2">
-                {CARD_SIZES[cardSize].width} x {CARD_SIZES[cardSize].height}px
-              </p>
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-center text-muted-foreground">
+                  {CARD_SIZES[cardSize].width} x {CARD_SIZES[cardSize].height}px
+                </p>
+                <Button
+                  type="button"
+                  variant={captured ? "outline" : "default"}
+                  className="w-full gap-2"
+                  onClick={captureAndSave}
+                  disabled={isCapturing}
+                >
+                  {isCapturing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving design...
+                    </>
+                  ) : captured ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      Design saved — click to re-capture
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-4 h-4" />
+                      Use this design as invitation image
+                    </>
+                  )}
+                </Button>
+                {captured && (
+                  <p className="text-xs text-center text-muted-foreground">
+                    This image will be shown on the event page and used for sharing previews.
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>

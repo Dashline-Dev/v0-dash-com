@@ -26,32 +26,29 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
 
   const accentColor = template?.style.accentColor || "#2563EB"
 
-  // The OG image route already handles the priority:
-  //   1. uploaded invitation_image_url → redirect to it
-  //   2. template → render branded card
-  // So we just point the <img> and the download at the same route.
-  const ogImageUrl = `/api/og/event/${event.slug}`
-  const showPreviewImage = !!(template || event.invitation_image_url)
+  // Show the captured invitation image (set during event creation from the template renderer)
+  const invitationImageUrl = event.invitation_image_url || null
 
   async function handleDownload() {
+    const url = invitationImageUrl || `/api/og/event/${event.slug}`
     try {
-      const res = await fetch(ogImageUrl)
+      const res = await fetch(url)
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
+      const objectUrl = URL.createObjectURL(blob)
       const a = document.createElement("a")
-      a.href = url
+      a.href = objectUrl
       a.download = `${event.slug}-invitation.jpg`
       a.click()
-      URL.revokeObjectURL(url)
+      URL.revokeObjectURL(objectUrl)
     } catch {
-      window.open(ogImageUrl, "_blank")
+      window.open(url, "_blank")
     }
   }
 
   return (
     <div className="space-y-6">
-      {/* Invitation image — the same image social media sees */}
-      {showPreviewImage && (
+      {/* Invitation image — exactly what the user designed */}
+      {invitationImageUrl && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
@@ -69,7 +66,7 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
           </div>
           <div className="rounded-xl overflow-hidden border border-border shadow-sm">
             <img
-              src={ogImageUrl}
+              src={invitationImageUrl}
               alt={`${event.title} invitation`}
               className="w-full object-contain"
             />

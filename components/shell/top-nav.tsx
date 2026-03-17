@@ -12,13 +12,55 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { UserMenu } from "./user-menu"
+const UserMenu = dynamic(() => import("./user-menu").then((m) => m.UserMenu), { ssr: false })
 import { GuestNavLink } from "@/components/auth/guest-nav-link"
 
 const CommandPalette = dynamic(
   () => import("./command-palette").then((m) => m.CommandPalette),
   { ssr: false }
 )
+
+// Client-only to avoid Radix ID hydration mismatches
+function CreateMenu() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="default" size="sm" className="gap-1.5">
+          <Plus className="w-4 h-4" />
+          <span>Create</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem asChild>
+          <Link href="/events/create" className="flex items-center gap-2 cursor-pointer">
+            <CalendarPlus className="w-4 h-4" />
+            <span>Event</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/communities/create" className="flex items-center gap-2 cursor-pointer">
+            <Users className="w-4 h-4" />
+            <span>Community</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/spaces/create" className="flex items-center gap-2 cursor-pointer">
+            <Layers className="w-4 h-4" />
+            <span>Space</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/areas/create" className="flex items-center gap-2 cursor-pointer">
+            <MapPin className="w-4 h-4" />
+            <span>Area</span>
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+const CreateMenuDynamic = dynamic(() => Promise.resolve(CreateMenu), { ssr: false })
 
 // Routes that require authentication
 const PROTECTED_HREFS = new Set(["/explore", "/communities", "/events", "/areas"])
@@ -91,44 +133,7 @@ export function TopNav({ user }: TopNavProps) {
         {/* Right actions */}
         <div className="flex items-center gap-2">
           <CommandPalette />
-          {user && (
-            <div suppressHydrationWarning>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="default" size="sm" className="gap-1.5">
-                    <Plus className="w-4 h-4" />
-                    <span>Create</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem asChild>
-                    <Link href="/events/create" className="flex items-center gap-2 cursor-pointer">
-                      <CalendarPlus className="w-4 h-4" />
-                      <span>Event</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/communities/create" className="flex items-center gap-2 cursor-pointer">
-                      <Users className="w-4 h-4" />
-                      <span>Community</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/spaces/create" className="flex items-center gap-2 cursor-pointer">
-                      <Layers className="w-4 h-4" />
-                      <span>Space</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/areas/create" className="flex items-center gap-2 cursor-pointer">
-                      <MapPin className="w-4 h-4" />
-                      <span>Area</span>
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
+          {user && <CreateMenuDynamic />}
           <UserMenu user={user} />
         </div>
       </div>
