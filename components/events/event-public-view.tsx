@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { EventInvitationDisplay } from "./event-invitation-display"
+import { AddToCalendarButton } from "./add-to-calendar-button"
 import type { EventWithMeta } from "@/types/event"
 import {
   EVENT_TYPE_LABELS,
@@ -140,6 +141,17 @@ export function EventPublicView({ event }: EventPublicViewProps) {
                 <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="text-xs text-muted-foreground">{event.timezone}</span>
               </div>
+            )}
+            {!past && (
+              <AddToCalendarButton
+                title={event.title}
+                startTime={event.start_time}
+                endTime={event.end_time}
+                locationName={event.location_name}
+                locationAddress={event.location_address}
+                description={event.description}
+                timezone={event.timezone}
+              />
             )}
           </div>
 

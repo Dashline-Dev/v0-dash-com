@@ -2,7 +2,6 @@
 
 import { useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,27 +15,24 @@ import {
 } from "@/components/ui/dialog"
 
 interface AuthRequiredModalProps {
-  /**
-   * When provided the modal renders as an overlay on top of the children
-   * (blurred page preview). Without children it fills the whole slot.
-   */
   children?: ReactNode
 }
 
 export function AuthRequiredModal({ children }: AuthRequiredModalProps = {}) {
   const router = useRouter()
   const [open, setOpen] = useState(true)
+  const [mode, setMode] = useState<"signup" | "signin">("signup")
 
   function handleClose() {
     setOpen(false)
-    // Only navigate back when there is no underlying page to reveal
     if (!children) router.back()
   }
+
+  const isSignIn = mode === "signin"
 
   const modal = (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-md">
-        {/* Close button */}
         <button
           onClick={handleClose}
           aria-label="Close"
@@ -49,24 +45,34 @@ export function AuthRequiredModal({ children }: AuthRequiredModalProps = {}) {
           <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-primary-foreground text-lg font-bold mb-2 select-none">
             CC
           </span>
-          <DialogTitle className="text-xl">Create a free account</DialogTitle>
+          <DialogTitle className="text-xl">
+            {isSignIn ? "Welcome back" : "Create a free account"}
+          </DialogTitle>
           <DialogDescription>
-            Join Community Circle to access this page and everything on the platform.
+            {isSignIn
+              ? "Sign in to your Community Circle account."
+              : "Join Community Circle to access this page and everything on the platform."}
           </DialogDescription>
         </DialogHeader>
 
-        <form method="POST" action="/api/auth/signup" className="space-y-4 mt-2">
-          <div className="space-y-2">
-            <Label htmlFor="modal-name">Full name</Label>
-            <Input
-              id="modal-name"
-              name="name"
-              type="text"
-              placeholder="Jane Smith"
-              required
-              autoComplete="name"
-            />
-          </div>
+        <form
+          method="POST"
+          action={isSignIn ? "/api/auth/signin" : "/api/auth/signup"}
+          className="space-y-4 mt-2"
+        >
+          {!isSignIn && (
+            <div className="space-y-2">
+              <Label htmlFor="modal-name">Full name</Label>
+              <Input
+                id="modal-name"
+                name="name"
+                type="text"
+                placeholder="Jane Smith"
+                required
+                autoComplete="name"
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="modal-email">Email</Label>
@@ -86,29 +92,47 @@ export function AuthRequiredModal({ children }: AuthRequiredModalProps = {}) {
               id="modal-password"
               name="password"
               type="password"
-              placeholder="Create a password"
+              placeholder={isSignIn ? "Your password" : "Create a password"}
               required
-              minLength={8}
-              autoComplete="new-password"
+              minLength={isSignIn ? 1 : 8}
+              autoComplete={isSignIn ? "current-password" : "new-password"}
             />
           </div>
 
           <Button type="submit" className="w-full">
-            Get started — it&apos;s free
+            {isSignIn ? "Sign in" : "Get started — it's free"}
           </Button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/signin" className="text-primary font-medium hover:underline">
-            Sign in
-          </Link>
+          {isSignIn ? (
+            <>
+              Don&apos;t have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setMode("signup")}
+                className="text-primary font-medium hover:underline"
+              >
+                Sign up
+              </button>
+            </>
+          ) : (
+            <>
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setMode("signin")}
+                className="text-primary font-medium hover:underline"
+              >
+                Sign in
+              </button>
+            </>
+          )}
         </p>
       </DialogContent>
     </Dialog>
   )
 
-  // Overlay mode: blur the page preview behind the modal
   if (children) {
     return (
       <div className="relative">
