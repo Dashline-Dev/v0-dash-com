@@ -49,12 +49,51 @@ export function StepDesignPreview({ formData, updateFormData }: StepDesignPrevie
     setIsCapturing(true)
     try {
       const html2canvas = (await import("html2canvas")).default
+
+      // html2canvas can't parse lab()/oklch() CSS colors — rewrite them in the clone
+      function fixUnsupportedColors(doc: Document) {
+        doc.querySelectorAll<HTMLElement>("*").forEach((el) => {
+          const style = el.getAttribute("style") ?? ""
+          if (/\b(ok)?lab\(|(ok)?lch\(/.test(style)) {
+            el.setAttribute(
+              "style",
+              style
+                .replace(/:\s*(ok)?l(ab|ch)\([^)]*\)/gi, ": inherit")
+            )
+          }
+        })
+        // Also patch any stylesheet rules injected into the clone
+        Array.from(doc.styleSheets).forEach((sheet) => {
+          try {
+            Array.from(sheet.cssRules ?? []).forEach((rule) => {
+              if (rule instanceof CSSStyleRule) {
+                const text = rule.cssText
+                if (/\b(ok)?lab\(|(ok)?lch\(/.test(text)) {
+                  const props = Array.from(rule.style)
+                  props.forEach((prop) => {
+                    const val = rule.style.getPropertyValue(prop)
+                    if (/\b(ok)?lab\(|(ok)?lch\(/.test(val)) {
+                      rule.style.removeProperty(prop)
+                    }
+                  })
+                }
+              }
+            })
+          } catch {
+            // cross-origin sheets throw on cssRules access — skip
+          }
+        })
+      }
+
       const canvas = await html2canvas(previewRef.current, {
         useCORS: true,
         allowTaint: true,
         scale: 2,
-        backgroundColor: null,
+        backgroundColor: "#ffffff",
         logging: false,
+        onclone: (clonedDoc) => {
+          fixUnsupportedColors(clonedDoc)
+        },
       })
       const blob = await new Promise<Blob>((resolve) =>
         canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.95)
