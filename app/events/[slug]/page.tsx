@@ -19,9 +19,6 @@ export async function generateMetadata({
   if (!event) return { title: "Event Not Found" }
 
   const description = event.description?.slice(0, 160) ?? ""
-
-  // Always use the dynamic OG image route — it redirects to the uploaded
-  // invitation image if one exists, or renders a branded template card.
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://dashline.tech"
   const ogImageUrl = `${baseUrl}/api/og/event/${slug}`
 

@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation"
+import { getAuthenticatedUser } from "@/lib/mock-user"
 import { getCommunities } from "@/lib/actions/community-actions"
 import { CommunityList } from "@/components/communities/community-list"
 
@@ -7,6 +9,9 @@ export const metadata = {
 }
 
 export default async function CommunitiesPage() {
+  const user = await getAuthenticatedUser()
+  if (!user) redirect("/signin")
+
   const result = await getCommunities({ limit: 12 })
 
   return (

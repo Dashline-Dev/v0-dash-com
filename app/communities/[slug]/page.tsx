@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import {
   getCommunityBySlug,
   getCommunityMembers,
@@ -34,15 +34,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CommunityDetailPage({ params }: PageProps) {
   const { slug } = await params
+
+  // Auth gate — guests cannot view community pages directly
+  const currentUser = await getAuthenticatedUser()
+  if (!currentUser) redirect("/signin")
+
   const community = await getCommunityBySlug(slug)
 
   if (!community) {
     notFound()
   }
 
-  const [superAdmin, currentUser] = await Promise.all([
+  const [superAdmin] = await Promise.all([
     getSuperAdminSession(),
-    getAuthenticatedUser(),
   ])
 
   const [membersResult, spaces, eventsResult, announcementsResult, areas] = await Promise.all([

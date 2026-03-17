@@ -42,7 +42,6 @@ export const viewport: Viewport = {
   userScalable: false,
 }
 
-/** Read session from the cookie – uses SameSite=None for iframe compat. */
 async function readUser() {
   try {
     const jar = await cookies()

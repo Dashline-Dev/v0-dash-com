@@ -16,7 +16,7 @@ export async function generateMetadata({
   const event = await getEventBySlug(eventSlug)
   if (!event) return { title: "Event Not Found" }
   return {
-    title: `${event.title} | Dash`,
+    title: `${event.title} | Community Circle`,
     description: event.description?.slice(0, 160) ?? "",
   }
 }

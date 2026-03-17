@@ -1,6 +1,5 @@
 "use client"
 
-import { cn } from "@/lib/utils"
 import { getTemplateById } from "@/lib/event-templates"
 import { InvitationCard } from "./invitation-card"
 import type { EventWithMeta } from "@/types/event"
@@ -28,54 +27,67 @@ export function EventInvitationDisplay({ event }: EventInvitationDisplayProps) {
 
   const accentColor = template?.style.accentColor || "#2563EB"
 
+  // Show the captured invitation image (set during event creation from the template renderer)
+  const invitationImageUrl = event.invitation_image_url || null
+
+  async function handleDownload() {
+    const url = invitationImageUrl || `/api/og/event/${event.slug}`
+    try {
+      const res = await fetch(url)
+      const blob = await res.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = objectUrl
+      a.download = `${event.slug}-invitation.jpg`
+      a.click()
+      URL.revokeObjectURL(objectUrl)
+    } catch {
+      window.open(url, "_blank")
+    }
+  }
+
   return (
     <div className="space-y-6">
-      {/* Visual invitation card (if template is selected) */}
-      {template && (
+      {/* Invitation visual — captured image if available, otherwise live InvitationCard */}
+      {(invitationImageUrl || template) && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
               Invitation
             </h3>
-            <Button variant="ghost" size="sm" className="text-xs gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs gap-1.5"
+              onClick={handleDownload}
+            >
               <Download className="w-3.5 h-3.5" />
               Save Image
             </Button>
           </div>
-          <div className="flex justify-center">
-            <div className="w-full max-w-md">
-              <InvitationCard
-                event={event}
-                template={template}
-                className="w-full shadow-lg"
-                communityLogo={event.community_avatar}
-                communityName={event.community_name}
-                showBranding={true}
+          {invitationImageUrl ? (
+            <div className="rounded-xl overflow-hidden border border-border shadow-sm">
+              <img
+                src={invitationImageUrl}
+                alt={`${event.title} invitation`}
+                className="w-full object-contain"
               />
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Uploaded invitation image (if user uploaded their own) */}
-      {event.invitation_image_url && (
-        <div className="space-y-3">
-          {!template && (
-            <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
-              Invitation
-            </h3>
+          ) : (
+            <div className="flex justify-center">
+              <div className="w-full max-w-md">
+                <InvitationCard
+                  event={event}
+                  templateId={event.template_id!}
+                  className="w-full shadow-lg"
+                />
+              </div>
+            </div>
           )}
-          <div className="rounded-xl overflow-hidden border border-border shadow-sm">
-            <img
-              src={event.invitation_image_url}
-              alt={`${event.title} invitation`}
-              className="w-full object-contain max-h-[600px]"
-            />
-          </div>
         </div>
       )}
 
-      {/* Custom invitation message (only shown if no template, since template includes host line) */}
+      {/* Custom invitation message */}
       {!template && event.invitation_message && (
         <div
           className="py-6 px-4 rounded-xl border border-border bg-card text-center"
