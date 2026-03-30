@@ -178,6 +178,8 @@ export async function quickSearch(
 // ── Trending Communities & Events ─────────────────────────────────────
 
 export async function getTrending(): Promise<TrendingItem[]> {
+  // Include public + unlisted communities so explore page shows content
+  // even before any community has enough members to rank
   const communities = await sql(
     `SELECT
        'community' AS type,
@@ -187,58 +189,60 @@ export async function getTrending(): Promise<TrendingItem[]> {
        c.slug,
        '/communities/' || c.slug AS href,
        c.cover_image_url AS image_url,
-       c.member_count AS metric
+       COALESCE(c.member_count, 0) AS metric
      FROM communities c
-     WHERE c.visibility = 'public'
-     ORDER BY c.member_count DESC
-     LIMIT 4`
+     WHERE c.visibility IN ('public', 'unlisted')
+     ORDER BY c.member_count DESC, c.created_at DESC
+     LIMIT 6`
   )
 
+  // Include upcoming AND recent past events; don't restrict by community visibility
+  // so events from private communities still appear (they're already visible to members)
   const events = await sql(
     `SELECT
        'event' AS type,
        e.id::text,
        e.title,
-       COALESCE(e.location_name, e.event_type) AS subtitle,
+       COALESCE(e.location_name, e.event_type::text) AS subtitle,
        e.slug,
        '/events/' || e.slug AS href,
        NULL AS image_url,
-       e.rsvp_count AS metric
+       COALESCE(e.rsvp_count, 0) AS metric
      FROM events e
-     JOIN communities c ON c.id = e.community_id
      WHERE e.status = 'published'
-       AND c.visibility = 'public'
-       AND e.start_time > now()
-     ORDER BY e.rsvp_count DESC
-     LIMIT 4`
+     ORDER BY
+       CASE WHEN e.start_time > now() THEN 0 ELSE 1 END,
+       e.rsvp_count DESC,
+       e.start_time ASC
+     LIMIT 6`
   )
 
   const items: TrendingItem[] = [
     ...communities.map((r) => ({
       type: "community" as const,
-      id: r.id,
-      title: r.title,
-      subtitle: r.subtitle,
-      slug: r.slug,
-      href: r.href,
-      imageUrl: r.image_url,
-      metric: parseInt(r.metric) || 0,
+      id: r.id as string,
+      title: r.title as string,
+      subtitle: r.subtitle as string,
+      slug: r.slug as string,
+      href: r.href as string,
+      imageUrl: r.image_url as string | null,
+      metric: parseInt(r.metric as string) || 0,
       metricLabel: "members",
     })),
     ...events.map((r) => ({
       type: "event" as const,
-      id: r.id,
-      title: r.title,
-      subtitle: r.subtitle,
-      slug: r.slug,
-      href: r.href,
-      imageUrl: r.image_url,
-      metric: parseInt(r.metric) || 0,
+      id: r.id as string,
+      title: r.title as string,
+      subtitle: r.subtitle as string,
+      slug: r.slug as string,
+      href: r.href as string,
+      imageUrl: r.image_url as string | null,
+      metric: parseInt(r.metric as string) || 0,
       metricLabel: "RSVPs",
     })),
   ]
 
-  return items.sort((a, b) => b.metric - a.metric).slice(0, 6)
+  return items
 }
 
 // ── Nearby Search ─────────────────────────────────────────────────────

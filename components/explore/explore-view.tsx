@@ -466,52 +466,66 @@ export function ExploreView({ initialTrending }: ExploreViewProps) {
         {/* Default view - Trending & Featured (only when "All" is selected) */}
         {!showSideBySide && !showResults && (
           <div className="space-y-10">
-            {/* Trending Communities */}
-            {trendingCommunities.length > 0 && (
-              <section>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                    Trending Communities
-                  </h2>
-                  <Link
-                    href="/communities"
-                    className="text-sm text-primary hover:underline flex items-center gap-1"
-                  >
-                    View all
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+            {trendingCommunities.length === 0 && trendingEvents.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-7 h-7 text-muted-foreground/50" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {trendingCommunities.map((item) => (
-                    <TrendingCommunityCard key={item.id} item={item} />
-                  ))}
-                </div>
-              </section>
-            )}
+                <h3 className="text-base font-semibold text-foreground mb-1">Nothing to show yet</h3>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                  Try searching above, or browse by selecting a filter like Communities or Events.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Trending Communities */}
+                {trendingCommunities.length > 0 && (
+                  <section>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-primary" />
+                        Trending Communities
+                      </h2>
+                      <Link
+                        href="/communities"
+                        className="text-sm text-primary hover:underline flex items-center gap-1"
+                      >
+                        View all
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {trendingCommunities.map((item) => (
+                        <TrendingCommunityCard key={item.id} item={item} />
+                      ))}
+                    </div>
+                  </section>
+                )}
 
-            {/* Upcoming Events */}
-            {trendingEvents.length > 0 && (
-              <section>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-orange-500" />
-                    Popular Events
-                  </h2>
-                  <Link
-                    href="/events"
-                    className="text-sm text-primary hover:underline flex items-center gap-1"
-                  >
-                    View all
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {trendingEvents.map((item) => (
-                    <TrendingEventCard key={item.id} item={item} />
-                  ))}
-                </div>
-              </section>
+                {/* Events */}
+                {trendingEvents.length > 0 && (
+                  <section>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-orange-500" />
+                        Popular Events
+                      </h2>
+                      <Link
+                        href="/events"
+                        className="text-sm text-primary hover:underline flex items-center gap-1"
+                      >
+                        View all
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {trendingEvents.map((item) => (
+                        <TrendingEventCard key={item.id} item={item} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
             )}
           </div>
         )}
