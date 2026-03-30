@@ -7,7 +7,7 @@ import type { SpaceWithMeta, SpaceMember } from "@/types/space"
 import { SPACE_MEMBER_ROLE_LABELS, type SpaceMemberRole } from "@/types/space"
 import type { EventWithMeta } from "@/types/event"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { EventCard } from "@/components/events/event-card"
 import { AnnouncementCard } from "@/components/announcements/announcement-card"
 import type { AnnouncementWithMeta } from "@/types/announcement"
@@ -176,12 +176,15 @@ function MembersTab({ members }: { members: SpaceMember[] }) {
           className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30"
         >
           <Avatar className="w-8 h-8">
+            {member.user_avatar_url && <AvatarImage src={member.user_avatar_url} alt={member.user_name ?? ""} />}
             <AvatarFallback className="text-xs bg-primary/10 text-primary">
-              {member.user_id.slice(-2).toUpperCase()}
+              {(member.user_name ?? member.user_id).slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{member.user_id}</p>
+            <p className="text-sm font-medium text-foreground truncate">
+              {member.user_name ?? member.user_id}
+            </p>
             <p className="text-xs text-muted-foreground">
               Joined {new Date(member.joined_at).toLocaleDateString()}
             </p>

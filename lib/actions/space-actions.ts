@@ -141,7 +141,16 @@ export async function getSpacesByCommunity(communitySlug: string): Promise<Space
 
 export async function getSpaceMembers(spaceId: string): Promise<SpaceMember[]> {
   const result = await sql(
-    `SELECT * FROM space_members WHERE space_id = $1 ORDER BY role ASC, joined_at ASC`,
+    `SELECT
+       sm.id, sm.space_id, sm.user_id, sm.role, sm.joined_at,
+       u.name AS user_name,
+       u.avatar_url AS user_avatar_url
+     FROM space_members sm
+     LEFT JOIN users u ON u.id = sm.user_id
+     WHERE sm.space_id = $1
+     ORDER BY
+       CASE sm.role WHEN 'admin' THEN 0 WHEN 'moderator' THEN 1 ELSE 2 END,
+       sm.joined_at ASC`,
     [spaceId]
   )
   return result as SpaceMember[]

@@ -115,6 +115,8 @@ export interface SpaceMember {
   user_id: string
   role: SpaceMemberRole
   joined_at: string
+  user_name?: string | null
+  user_avatar_url?: string | null
 }
 
 // ─── Form Data ──────────────────────────────────────────────────────────────
