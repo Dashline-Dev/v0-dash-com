@@ -111,18 +111,18 @@ export function EventShareDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="flex flex-col max-h-[90dvh] overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Share Event</DialogTitle>
           <DialogDescription>
             Copy a link or share to one or more communities you are a member of.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 py-1">
+        <div className="flex flex-col gap-5 py-1 overflow-y-auto min-h-0 flex-1">
 
           {/* Quick share targets */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 shrink-0">
             {/* Copy link */}
             <button
               onClick={handleCopyLink}
@@ -177,7 +177,7 @@ export function EventShareDialog({
           </div>
 
           {/* URL row */}
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 shrink-0">
             <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <span className="flex-1 text-xs text-muted-foreground truncate">{eventUrl}</span>
             <button onClick={handleCopyLink} className="shrink-0 text-xs font-medium text-primary hover:underline">
@@ -187,7 +187,7 @@ export function EventShareDialog({
 
           {/* Multi-community selection */}
           {communities.length > 0 && (
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3 shrink-0">
               <div className="flex items-center justify-between">
                 <Label className="flex items-center gap-2 text-sm">
                   <Users className="w-4 h-4" />
