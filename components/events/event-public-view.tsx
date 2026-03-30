@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { EventInvitationDisplay } from "./event-invitation-display"
 import { AddToCalendarButton } from "./add-to-calendar-button"
+import { HebrewDate } from "@/components/ui/hebrew-date"
 import type { EventWithMeta } from "@/types/event"
 import {
   EVENT_TYPE_LABELS,
@@ -22,7 +23,6 @@ import {
   formatEventTime,
   isEventPast,
 } from "@/types/event"
-import { toHebrewDate } from "@/lib/hebrew-date"
 
 interface EventPublicViewProps {
   event: EventWithMeta
@@ -124,13 +124,7 @@ export function EventPublicView({ event }: EventPublicViewProps) {
                 <p className="font-medium">
                   {formatEventDate(event.start_time, event.timezone)}
                 </p>
-                <p
-                  className="text-xs text-muted-foreground mt-0.5"
-                  dir="rtl"
-                  lang="he"
-                >
-                  {toHebrewDate(new Date(event.start_time)).full}
-                </p>
+                <HebrewDate date={event.start_time} format="full" className="text-xs text-muted-foreground mt-0.5" />
                 <p className="text-muted-foreground mt-1">
                   {formatEventTime(event.start_time, event.timezone)} - {formatEventTime(event.end_time, event.timezone)}
                 </p>

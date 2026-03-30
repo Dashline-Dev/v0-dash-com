@@ -3,8 +3,8 @@ import { Plus, Search } from "lucide-react"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { getHomeEvents } from "@/lib/actions/home-actions"
 import { getGuestLandingData } from "@/lib/actions/landing-actions"
+import { GuestLandingWrapper } from "@/components/home/guest-landing-wrapper"
 import { HomeSections } from "@/components/home/home-sections"
-import { GuestLanding } from "@/components/home/guest-landing"
 
 function getGreeting(name: string): string {
   const hour = new Date().getHours()
@@ -29,7 +29,7 @@ export default async function HomePage() {
   if (isGuest) {
     const landingData = await getGuestLandingData()
     return (
-      <GuestLanding
+      <GuestLandingWrapper
         topEvents={landingData.topEvents}
         topCommunities={landingData.topCommunities}
         totalEvents={landingData.totalEvents}

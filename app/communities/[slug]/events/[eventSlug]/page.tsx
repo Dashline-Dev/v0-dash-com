@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation"
 import { getAuthenticatedUser } from "@/lib/mock-user"
 import { AuthRequiredModal } from "@/components/auth/auth-required-modal"
-import { getEventBySlug, getEventRsvps } from "@/lib/actions/event-actions"
-import { EventDetail } from "@/components/events/event-detail"
+import { getEventBySlug, getEventRsvps, getEventSharedCommunities } from "@/lib/actions/event-actions"
+import { getUserCommunities } from "@/lib/actions/user-actions"
+import { EventDetailWrapper } from "@/components/events/event-detail-wrapper"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
@@ -30,11 +31,22 @@ export default async function CommunityEventDetailPage({
   if (!user) return <AuthRequiredModal />
 
   const { slug, eventSlug } = await params
-  const event = await getEventBySlug(eventSlug)
+  const [event, userCommunities] = await Promise.all([
+    getEventBySlug(eventSlug),
+    getUserCommunities(user.id).catch(() => []),
+  ])
 
   if (!event) notFound()
 
-  const rsvps = await getEventRsvps(event.id)
+  const sharedCommunities = await getEventSharedCommunities(event.id).catch(() => [])
+
+  const communities = userCommunities.map((m) => ({
+    id: m.community_id as string,
+    name: m.community_name as string,
+    slug: m.community_slug as string,
+  }))
+
+  const canEdit = event.created_by === user.id || (user as { role?: string }).role === "admin"
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8">
@@ -44,7 +56,12 @@ export default async function CommunityEventDetailPage({
           Back to community
         </Link>
       </Button>
-      <EventDetail event={event} rsvps={rsvps} />
+      <EventDetailWrapper
+        event={event}
+        communities={communities}
+        sharedCommunityIds={sharedCommunities.map((c) => c.id)}
+        canEdit={canEdit}
+      />
     </div>
   )
 }

@@ -3,8 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { cookies } from "next/headers"
 import { sql } from "@/lib/db"
-import { TopNav } from "@/components/shell/top-nav"
-import { BottomNav } from "@/components/shell/bottom-nav"
+import { NavShell } from "@/components/shell/nav-shell"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -15,23 +14,6 @@ export const metadata: Metadata = {
   description:
     "Discover and build communities around the things you care about.",
   generator: "v0.app",
-  icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
-  },
 }
 
 export const viewport: Viewport = {
@@ -77,11 +59,15 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/icon-light-32x32.png" media="(prefers-color-scheme: light)" />
+        <link rel="icon" href="/icon-dark-32x32.png" media="(prefers-color-scheme: dark)" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
+      </head>
       <body className="font-sans antialiased">
         <div className="min-h-dvh flex flex-col">
-          <TopNav user={user} />
+          <NavShell user={user} />
           <main className="flex-1 pb-16 md:pb-0">{children}</main>
-          <BottomNav user={user} />
         </div>
         <Analytics />
       </body>

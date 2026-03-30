@@ -6,8 +6,7 @@ import {
   getEventSharedCommunities,
 } from "@/lib/actions/event-actions"
 import { getUserCommunities } from "@/lib/actions/user-actions"
-import { EventDetail } from "@/components/events/event-detail"
-import { EventPublicView } from "@/components/events/event-public-view"
+import { EventDetailWrapper } from "@/components/events/event-detail-wrapper"
 
 export async function generateMetadata({
   params,
@@ -67,7 +66,7 @@ export default async function EventDetailPage({
 
     return (
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8">
-        <EventDetail
+        <EventDetailWrapper
           event={event}
           communities={communities}
           sharedCommunityIds={sharedCommunities.map((c) => c.id)}
@@ -78,11 +77,13 @@ export default async function EventDetailPage({
   }
 
   const event = await getPublicEventBySlug(slug)
-  if (!event) notFound()
+  // Unauthenticated users may only view explicitly public events.
+  // Unlisted/private events require sign-in.
+  if (!event || event.visibility !== "public") notFound()
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8">
-      <EventPublicView event={event} />
+      <EventDetailWrapper event={event} variant="public" />
     </div>
   )
 }

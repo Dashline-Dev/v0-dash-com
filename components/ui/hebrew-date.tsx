@@ -1,11 +1,12 @@
+"use client"
+
 /**
- * <HebrewDate> — renders both an English date string and its Hebrew equivalent.
- *
- * Usage:
- *   <HebrewDate date={new Date(event.start_time)} format="short" />
- *   // → "Mar 5  ד׳ אדר ב׳"
+ * <HebrewDate> — renders a Hebrew calendar date string.
+ * Computed entirely on the client via useEffect to prevent
+ * SSR/browser timezone mismatch hydration errors.
  */
 
+import { useState, useEffect } from "react"
 import { toHebrewDate } from "@/lib/hebrew-date"
 
 interface HebrewDateProps {
@@ -20,20 +21,26 @@ interface HebrewDateProps {
 }
 
 export function HebrewDate({ date, format = "short", className }: HebrewDateProps) {
-  const d = typeof date === "string" ? new Date(date) : date
-  const h = toHebrewDate(d)
+  const [text, setText] = useState<string>("")
 
-  const text =
-    format === "full"  ? h.full  :
-    format === "day"   ? h.dayStr :
-    h.short
+  useEffect(() => {
+    const d = typeof date === "string" ? new Date(date) : date
+    const h = toHebrewDate(d)
+    setText(
+      format === "full" ? h.full :
+      format === "day"  ? h.dayStr :
+      h.short
+    )
+  }, [date, format])
 
+  // Server renders empty string; client populates after mount.
+  // suppressHydrationWarning handles the "" → Hebrew text swap.
   return (
     <span
       dir="rtl"
       lang="he"
       className={className}
-      title={h.full}
+      suppressHydrationWarning
     >
       {text}
     </span>
