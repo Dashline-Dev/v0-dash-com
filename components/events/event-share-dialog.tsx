@@ -23,6 +23,8 @@ interface EventShareDialogProps {
   eventSlug: string
   /** Full event object for rich preview and share text */
   event?: EventWithMeta
+  /** Name of the person sharing — prepended to share text */
+  sharerName?: string
   /** IDs of communities this event is already shared to */
   sharedCommunityIds?: string[]
   /** All communities the current user is a member of */
@@ -34,6 +36,7 @@ export function EventShareDialog({
   eventId,
   eventSlug,
   event,
+  sharerName,
   sharedCommunityIds = [],
   communities,
   children,
@@ -61,7 +64,9 @@ export function EventShareDialog({
   const shareText = (() => {
     if (!event) return eventUrl
     const lines: string[] = []
-    lines.push(event.title)
+    // Invitation opener
+    if (sharerName) lines.push(`${sharerName} is inviting you to ${event.title}`)
+    else lines.push(event.title)
     const host = event.community_name || event.space_name || event.organizer_name
     if (host) lines.push(`Hosted by ${host}`)
     if (event.start_time) {
@@ -148,6 +153,11 @@ export function EventShareDialog({
           {/* Event preview card */}
           {event && (
             <div className="shrink-0 rounded-xl border border-border bg-muted/30 px-4 py-3 flex flex-col gap-1.5">
+              {sharerName && (
+                <p className="text-xs text-muted-foreground">
+                  {sharerName} is inviting you to
+                </p>
+              )}
               <p className="text-sm font-semibold text-foreground leading-snug line-clamp-2">{event.title}</p>
               {(event.community_name || event.space_name || event.organizer_name) && (
                 <p className="text-xs text-muted-foreground">

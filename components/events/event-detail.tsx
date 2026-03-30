@@ -31,6 +31,8 @@ interface EventDetailProps {
   communities?: { id: string; name: string; slug: string }[]
   sharedCommunityIds?: string[]
   canEdit?: boolean
+  rsvps?: Array<{ user_id: string; status: string }>
+  sharerName?: string
 }
 
 const TYPE_ICON: Record<string, React.ElementType> = {
@@ -39,7 +41,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   hybrid: Video,
 }
 
-export function EventDetail({ event, communities = [], sharedCommunityIds = [], canEdit = false }: EventDetailProps) {
+export function EventDetail({ event, communities = [], sharedCommunityIds = [], canEdit = false, sharerName }: EventDetailProps) {
   const past = isEventPast(event.end_time)
   const TypeIcon = TYPE_ICON[event.event_type] ?? Calendar
 
@@ -113,6 +115,7 @@ export function EventDetail({ event, communities = [], sharedCommunityIds = [], 
             eventId={event.id}
             eventSlug={event.slug}
             event={event}
+            sharerName={sharerName}
             sharedCommunityIds={sharedCommunityIds}
             communities={communities}
           >
@@ -278,6 +281,7 @@ export function EventDetail({ event, communities = [], sharedCommunityIds = [], 
             eventId={event.id}
             eventSlug={event.slug}
             event={event}
+            sharerName={sharerName}
             sharedCommunityIds={sharedCommunityIds}
             communities={communities}
           >

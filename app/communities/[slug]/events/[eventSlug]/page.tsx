@@ -61,6 +61,7 @@ export default async function CommunityEventDetailPage({
         communities={communities}
         sharedCommunityIds={sharedCommunities.map((c) => c.id)}
         canEdit={canEdit}
+        sharerName={user.name}
       />
     </div>
   )

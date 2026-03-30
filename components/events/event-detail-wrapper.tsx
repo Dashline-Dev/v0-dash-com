@@ -20,6 +20,7 @@ interface EventDetailWrapperProps {
   canEdit?: boolean
   rsvps?: Array<{ user_id: string; status: string }>
   variant?: "authenticated" | "public" | "community"
+  sharerName?: string
 }
 
 export function EventDetailWrapper({
@@ -29,6 +30,7 @@ export function EventDetailWrapper({
   canEdit,
   rsvps,
   variant = "authenticated",
+  sharerName,
 }: EventDetailWrapperProps) {
   if (variant === "public") {
     return <EventPublicView event={event} />
@@ -41,6 +43,7 @@ export function EventDetailWrapper({
       sharedCommunityIds={sharedCommunityIds ?? []}
       canEdit={canEdit ?? false}
       rsvps={rsvps}
+      sharerName={sharerName}
     />
   )
 }
