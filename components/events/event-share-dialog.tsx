@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
-import { Share2, Copy, Check, Users, Link2, X } from "lucide-react"
+import { Share2, Copy, Check, Users, Link2, X, Calendar, MapPin, Clock } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -15,10 +15,14 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { shareEventToCommunities, unshareEventFromCommunity } from "@/lib/actions/event-actions"
+import { formatEventDate, formatEventTime } from "@/types/event"
+import type { EventWithMeta } from "@/types/event"
 
 interface EventShareDialogProps {
   eventId: string
   eventSlug: string
+  /** Full event object for rich preview and share text */
+  event?: EventWithMeta
   /** IDs of communities this event is already shared to */
   sharedCommunityIds?: string[]
   /** All communities the current user is a member of */
@@ -29,6 +33,7 @@ interface EventShareDialogProps {
 export function EventShareDialog({
   eventId,
   eventSlug,
+  event,
   sharedCommunityIds = [],
   communities,
   children,
@@ -52,9 +57,28 @@ export function EventShareDialog({
       ? `${window.location.origin}/events/${eventSlug}`
       : `/events/${eventSlug}`
 
+  // Build rich share text with event details
+  const shareText = (() => {
+    if (!event) return eventUrl
+    const lines: string[] = []
+    lines.push(event.title)
+    const host = event.community_name || event.space_name || event.organizer_name
+    if (host) lines.push(`Hosted by ${host}`)
+    if (event.start_time) {
+      const dateStr = formatEventDate(event.start_time, event.timezone)
+      const timeStr = formatEventTime(event.start_time, event.timezone)
+      const endStr = event.end_time ? ` – ${formatEventTime(event.end_time, event.timezone)}` : ""
+      lines.push(`${dateStr} at ${timeStr}${endStr}`)
+    }
+    if (event.location_name) lines.push(event.location_name)
+    lines.push("")
+    lines.push(eventUrl)
+    return lines.join("\n")
+  })()
+
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(eventUrl)
+      await navigator.clipboard.writeText(shareText)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -121,6 +145,39 @@ export function EventShareDialog({
 
         <div className="flex flex-col gap-5 py-1 overflow-y-auto min-h-0 flex-1">
 
+          {/* Event preview card */}
+          {event && (
+            <div className="shrink-0 rounded-xl border border-border bg-muted/30 px-4 py-3 flex flex-col gap-1.5">
+              <p className="text-sm font-semibold text-foreground leading-snug line-clamp-2">{event.title}</p>
+              {(event.community_name || event.space_name || event.organizer_name) && (
+                <p className="text-xs text-muted-foreground">
+                  Hosted by {event.community_name || event.space_name || event.organizer_name}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-0.5">
+                {event.start_time && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Calendar className="w-3 h-3" />
+                    {formatEventDate(event.start_time, event.timezone)}
+                  </span>
+                )}
+                {event.start_time && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    {formatEventTime(event.start_time, event.timezone)}
+                    {event.end_time && ` – ${formatEventTime(event.end_time, event.timezone)}`}
+                  </span>
+                )}
+                {event.location_name && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <MapPin className="w-3 h-3" />
+                    {event.location_name}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Quick share targets */}
           <div className="grid grid-cols-3 gap-2 shrink-0">
             {/* Copy link */}
@@ -136,13 +193,13 @@ export function EventShareDialog({
                 )}
               </span>
               <span className="text-xs font-medium text-foreground">
-                {copied ? "Copied!" : "Copy Link"}
+                {copied ? "Copied!" : "Copy"}
               </span>
             </button>
 
             {/* WhatsApp */}
             <a
-              href={`https://wa.me/?text=${encodeURIComponent(eventUrl)}`}
+              href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-col items-center gap-2 rounded-xl border border-border bg-muted/40 hover:bg-muted/80 transition-colors px-3 py-3"
@@ -161,7 +218,11 @@ export function EventShareDialog({
               onClick={async () => {
                 if (typeof navigator !== "undefined" && "share" in navigator) {
                   try {
-                    await navigator.share({ url: eventUrl, title: "Check out this event" })
+                    await navigator.share({
+                      title: event?.title ?? "Check out this event",
+                      text: shareText,
+                      url: eventUrl,
+                    })
                   } catch { /* user cancelled */ }
                 } else {
                   handleCopyLink()
@@ -181,7 +242,7 @@ export function EventShareDialog({
             <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <span className="flex-1 text-xs text-muted-foreground truncate">{eventUrl}</span>
             <button onClick={handleCopyLink} className="shrink-0 text-xs font-medium text-primary hover:underline">
-              {copied ? "Copied!" : "Copy"}
+              {copied ? "Copied!" : "Copy with details"}
             </button>
           </div>
 

@@ -112,6 +112,7 @@ export function EventDetail({ event, communities = [], sharedCommunityIds = [], 
           <EventShareDialog
             eventId={event.id}
             eventSlug={event.slug}
+            event={event}
             sharedCommunityIds={sharedCommunityIds}
             communities={communities}
           >
@@ -276,6 +277,7 @@ export function EventDetail({ event, communities = [], sharedCommunityIds = [], 
           <EventShareDialog
             eventId={event.id}
             eventSlug={event.slug}
+            event={event}
             sharedCommunityIds={sharedCommunityIds}
             communities={communities}
           >
