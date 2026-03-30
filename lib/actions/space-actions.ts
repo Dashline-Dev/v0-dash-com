@@ -9,6 +9,10 @@ import type {
   SpaceListParams,
 } from "@/types/space"
 import { getCurrentUser } from "@/lib/mock-user"
+import {
+  linkSpaceToAreasByZipCode,
+  inheritAreasFromCommunity,
+} from "@/lib/actions/area-actions"
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -190,14 +194,26 @@ export async function createSpace(data: CreateSpaceData): Promise<{ id: string; 
     [spaceId, user.id]
   )
 
-  // If community-bound, get community slug for redirect
-  let community_slug: string | undefined
+  // Link space to areas: inherit from parent community first, then also
+  // try name-based matching from the community's location_name
   if (data.community_id) {
-    const community = await sql(`SELECT slug FROM communities WHERE id = $1`, [data.community_id])
-    if (community[0]) community_slug = community[0].slug
+    const community = await sql(
+      `SELECT slug, location_name FROM communities WHERE id = $1`,
+      [data.community_id]
+    )
+    if (community[0]) {
+      // Inherit areas already linked to the parent community
+      await inheritAreasFromCommunity(spaceId as string, data.community_id)
+      // Also attempt name/zip based linking from the community's location
+      if (community[0].location_name) {
+        await linkSpaceToAreasByZipCode(spaceId as string, community[0].location_name as string)
+      }
+    }
+    const community_slug = community[0]?.slug as string | undefined
+    return { id: spaceId as string, slug: data.slug, community_slug }
   }
 
-  return { id: spaceId as string, slug: data.slug, community_slug }
+  return { id: spaceId as string, slug: data.slug }
 }
 
 export async function updateSpace(
