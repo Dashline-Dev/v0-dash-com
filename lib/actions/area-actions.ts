@@ -609,6 +609,45 @@ function extractZipCode(address: string | null | undefined): string | null {
   return match ? match[1] : null
 }
 
+// ── Find areas by name (fuzzy match on city/neighborhood) ───
+
+export async function findAreasByName(
+  locationName: string | null | undefined
+): Promise<{ id: string; name: string; slug: string; type: string }[]> {
+  if (!locationName) return []
+
+  // Extract words 3+ chars, skip common noise words
+  const stopWords = new Set(["the", "and", "for", "new", "usa", "u.s.", "united", "states"])
+  const words = locationName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 3 && !stopWords.has(w))
+
+  if (words.length === 0) return []
+
+  // Build conditions: area name ILIKE any of the location words
+  const conditions = words.map((_, i) => `a.name ILIKE $${i + 1}`)
+  const params = words.map((w) => `%${w}%`)
+
+  const rows = await sql(
+    `SELECT DISTINCT a.id, a.name, a.slug, a.type
+     FROM areas a
+     WHERE a.status = 'active'
+       AND (${conditions.join(" OR ")})
+     ORDER BY a.type DESC, a.name ASC
+     LIMIT 10`,
+    params
+  )
+
+  return rows.map((r) => ({
+    id: r.id as string,
+    name: r.name as string,
+    slug: r.slug as string,
+    type: r.type as string,
+  }))
+}
+
 // ── Find areas that contain a specific zip code ─────────────
 
 export async function findAreasByZipCode(zipCode: string): Promise<{ id: string; name: string; slug: string; type: string }[]> {
@@ -637,13 +676,16 @@ export async function linkCommunityToAreasByZipCode(
   communityId: string,
   address: string | null | undefined
 ): Promise<void> {
+  if (!address) return
+
+  // Try zip code first, fall back to name-based matching
   const zipCode = extractZipCode(address)
-  if (!zipCode) return
-  
-  const areas = await findAreasByZipCode(zipCode)
+  const areas = zipCode
+    ? await findAreasByZipCode(zipCode)
+    : await findAreasByName(address)
+
   if (areas.length === 0) return
-  
-  // Link community to all matching areas
+
   for (const area of areas) {
     await sql(
       `INSERT INTO community_areas (community_id, area_id)
@@ -666,13 +708,15 @@ export async function linkSpaceToAreasByZipCode(
   spaceId: string,
   address: string | null | undefined
 ): Promise<void> {
+  if (!address) return
+
   const zipCode = extractZipCode(address)
-  if (!zipCode) return
-  
-  const areas = await findAreasByZipCode(zipCode)
+  const areas = zipCode
+    ? await findAreasByZipCode(zipCode)
+    : await findAreasByName(address)
+
   if (areas.length === 0) return
-  
-  // Link space to all matching areas
+
   for (const area of areas) {
     await sql(
       `INSERT INTO space_areas (space_id, area_id, created_at)
@@ -681,6 +725,22 @@ export async function linkSpaceToAreasByZipCode(
       [spaceId, area.id]
     )
   }
+}
+
+// ── Inherit area links from parent community ─────────────────
+
+export async function inheritAreasFromCommunity(
+  spaceId: string,
+  communityId: string
+): Promise<void> {
+  await sql(
+    `INSERT INTO space_areas (space_id, area_id, created_at)
+     SELECT $1, ca.area_id, NOW()
+     FROM community_areas ca
+     WHERE ca.community_id = $2
+     ON CONFLICT DO NOTHING`,
+    [spaceId, communityId]
+  )
 }
 
 // ── Unlink all area associations for a space ────────────────

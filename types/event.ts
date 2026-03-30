@@ -155,23 +155,65 @@ export interface UpdateEventData {
 
 // ── Helpers ─────────────────────────────────────────────────
 
-export function formatEventDate(dateStr: string, timezone?: string) {
+/** Returns the display timezone for an event. Falls back to the browser/system local zone. */
+export function getDisplayTimezone(timezone?: string | null): string {
+  if (timezone) return timezone
+  // In a browser, use the user's local timezone. In Node (SSR), fall back to UTC.
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone
+  } catch {
+    return "UTC"
+  }
+}
+
+export function formatEventDate(dateStr: string, timezone?: string | null) {
   const date = new Date(dateStr)
   return date.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
-    timeZone: timezone || "UTC",
+    timeZone: getDisplayTimezone(timezone),
   })
 }
 
-export function formatEventTime(dateStr: string, timezone?: string) {
+export function formatEventTime(dateStr: string, timezone?: string | null) {
   const date = new Date(dateStr)
   return date.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
-    timeZone: timezone || "UTC",
+    timeZone: getDisplayTimezone(timezone),
   })
+}
+
+/**
+ * Returns a YYYY-M-D date key for an event, computed in its display timezone.
+ * Use this everywhere dates need to match `formatEventDate` output.
+ */
+export function getEventDateKey(dateStr: string, timezone?: string | null): string {
+  const tz = getDisplayTimezone(timezone)
+  const parts = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    timeZone: tz,
+  }).formatToParts(new Date(dateStr))
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "0"
+  return `${get("year")}-${get("month")}-${get("day")}`
+}
+
+/**
+ * Returns the hour (0-23) for an event in its display timezone.
+ * Matches the hour shown by formatEventTime.
+ */
+export function getEventHour(dateStr: string, timezone?: string | null): number {
+  const tz = getDisplayTimezone(timezone)
+  const parts = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    hour12: false,
+    timeZone: tz,
+  }).formatToParts(new Date(dateStr))
+  const h = parts.find((p) => p.type === "hour")?.value ?? "0"
+  return parseInt(h, 10) % 24
 }
 
 export function formatEventDateRange(

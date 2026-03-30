@@ -21,7 +21,7 @@ import { CommunitySearch } from "@/components/communities/community-search"
 import { EventCard } from "./event-card"
 import { getEvents, getEventsForMonth } from "@/lib/actions/event-actions"
 import type { EventWithMeta } from "@/types/event"
-import { formatEventTime, isEventPast } from "@/types/event"
+import { formatEventTime, isEventPast, getEventDateKey, getEventHour } from "@/types/event"
 import { cn } from "@/lib/utils"
 import { EventFilters, applyEventFilters, EMPTY_EVENT_FILTERS, type EventFilterState } from "./event-filters"
 import { AreaMap, type MapEvent } from "@/components/google-area-map"
@@ -264,11 +264,11 @@ function CalendarView({ initialEvents, mode, communityId, basePath }: {
     })
   }
 
-  // Map events to date keys
+  // Map events to date keys using the event's timezone (or browser local)
+  // so grouping matches the displayed time
   const eventsByDate: Record<string, EventWithMeta[]> = {}
   for (const event of events) {
-    const date = new Date(event.start_time)
-    const key = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+    const key = getEventDateKey(event.start_time, event.timezone)
     if (!eventsByDate[key]) eventsByDate[key] = []
     eventsByDate[key].push(event)
   }
@@ -279,14 +279,20 @@ function CalendarView({ initialEvents, mode, communityId, basePath }: {
 
   // ── Today View ──
   if (mode === "today") {
-    const todayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`
+    // Build todayKey in the browser's local timezone to match getEventDateKey
+    const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const todayParts = new Intl.DateTimeFormat("en-US", {
+      year: "numeric", month: "numeric", day: "numeric", timeZone: localTz,
+    }).formatToParts(now)
+    const get = (type: string) => todayParts.find((p) => p.type === type)?.value ?? "0"
+    const todayKey = `${get("year")}-${get("month")}-${get("day")}`
     const todayEvents = eventsByDate[todayKey] || []
     const todayHebrew = toHebrewDate(now)
 
-    // Group by hour
+    // Group by display hour (matches formatEventTime output)
     const hourGroups: Record<number, EventWithMeta[]> = {}
     for (const e of todayEvents) {
-      const h = new Date(e.start_time).getHours()
+      const h = getEventHour(e.start_time, e.timezone)
       if (!hourGroups[h]) hourGroups[h] = []
       hourGroups[h].push(e)
     }
@@ -400,7 +406,7 @@ function CalendarView({ initialEvents, mode, communityId, basePath }: {
         {/* Week grid */}
         <div className="grid grid-cols-7 divide-x divide-border">
           {weekDays.map((day, i) => {
-            const key = `${day.getFullYear()}-${day.getMonth() + 1}-${day.getDate()}`
+            const key = getEventDateKey(day.toISOString(), undefined)
             const dayEvents = eventsByDate[key] || []
             const isToday = day.toDateString() === now.toDateString()
             const hebrew = toHebrewDate(day)
@@ -462,7 +468,7 @@ function CalendarView({ initialEvents, mode, communityId, basePath }: {
         {/* Date detail dialog */}
         <DateDetailDialog
           date={selectedDate}
-          events={selectedDate ? eventsByDate[`${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`] || [] : []}
+          events={selectedDate ? eventsByDate[getEventDateKey(selectedDate.toISOString(), undefined)] || [] : []}
           onClose={() => setSelectedDate(null)}
           basePath={basePath}
         />
