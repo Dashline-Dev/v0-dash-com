@@ -17,7 +17,28 @@ export async function generateMetadata({
   const event = await getPublicEventBySlug(slug)
   if (!event) return { title: "Event Not Found" }
 
-  const description = event.description?.slice(0, 160) ?? ""
+  // Build a rich description: date, time, host, location, then event description
+  const descParts: string[] = []
+  if (event.start_time) {
+    const d = new Date(event.start_time)
+    const dateStr = d.toLocaleDateString("en-US", {
+      weekday: "long", month: "long", day: "numeric", year: "numeric",
+      timeZone: event.timezone || "UTC",
+    })
+    const timeStr = d.toLocaleTimeString("en-US", {
+      hour: "numeric", minute: "2-digit",
+      timeZone: event.timezone || "UTC",
+    })
+    descParts.push(`${dateStr} at ${timeStr}`)
+  }
+  const host = (event as { community_name?: string | null; space_name?: string | null; organizer_name?: string | null }).community_name
+    || (event as { space_name?: string | null }).space_name
+    || (event as { organizer_name?: string | null }).organizer_name
+  if (host) descParts.push(`Hosted by ${host}`)
+  if (event.location_name) descParts.push(event.location_name)
+  if (event.description) descParts.push(event.description.slice(0, 120))
+
+  const description = descParts.join(" · ").slice(0, 300)
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://dashline.tech"
   const ogImageUrl = `${baseUrl}/api/og/event/${slug}`
 
