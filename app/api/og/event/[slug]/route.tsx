@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og"
+import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 import { getTemplateById } from "@/lib/event-templates"
 
@@ -46,10 +47,11 @@ export async function GET(
 
   const event = rows[0]
 
-  // If the event has an uploaded invitation or cover image, redirect to it
-  const uploadedImage = event.invitation_image_url || event.cover_image_url
-  if (uploadedImage) {
-    return Response.redirect(uploadedImage, 302)
+  // Prefer the generated invitation image (template render) as the OG image —
+  // it is already sized and styled for sharing. Fall back to cover image.
+  const ogImage = event.invitation_image_url || event.cover_image_url
+  if (ogImage) {
+    return NextResponse.redirect(ogImage as string, { status: 302 })
   }
 
   // Get template colors if a template is selected
