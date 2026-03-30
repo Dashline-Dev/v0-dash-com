@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og"
+import { NextResponse } from "next/server"
+import { get } from "@vercel/blob"
 import { neon } from "@neondatabase/serverless"
 import { getTemplateById } from "@/lib/event-templates"
 
@@ -46,10 +48,47 @@ export async function GET(
 
   const event = rows[0]
 
-  // If the event has an uploaded invitation or cover image, redirect to it
-  const uploadedImage = event.invitation_image_url || event.cover_image_url
-  if (uploadedImage) {
-    return Response.redirect(uploadedImage, 302)
+  // Prefer the generated invitation image (template render) as the OG image.
+  // Fall back to cover_image_url if present.
+  const rawImageUrl = (event.invitation_image_url || event.cover_image_url) as string | null
+
+  if (rawImageUrl) {
+    try {
+      // invitation_image_url is stored as a relative path like /api/file?pathname=...
+      // Extract the blob pathname and fetch it directly via @vercel/blob get()
+      // so external crawlers (Twitter, WhatsApp, etc.) receive the image bytes directly.
+      let blobPathname: string | null = null
+
+      if (rawImageUrl.startsWith("/api/file")) {
+        const qs = new URL(rawImageUrl, "http://localhost").searchParams
+        blobPathname = qs.get("pathname")
+      } else if (rawImageUrl.includes("blob.vercel-storage.com")) {
+        // Already a public blob URL — stream via fetch
+        const res = await fetch(rawImageUrl)
+        if (res.ok) {
+          return new NextResponse(res.body, {
+            headers: {
+              "Content-Type": res.headers.get("Content-Type") || "image/jpeg",
+              "Cache-Control": "public, max-age=3600",
+            },
+          })
+        }
+      }
+
+      if (blobPathname) {
+        const result = await get(blobPathname, { access: "private" }).catch(() => null)
+        if (result && result.statusCode !== 304) {
+          return new NextResponse(result.stream, {
+            headers: {
+              "Content-Type": result.blob.contentType || "image/jpeg",
+              "Cache-Control": "public, max-age=3600, s-maxage=86400",
+            },
+          })
+        }
+      }
+    } catch {
+      // Fall through to generated ImageResponse below
+    }
   }
 
   // Get template colors if a template is selected
