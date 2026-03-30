@@ -143,10 +143,10 @@ export async function getSpaceMembers(spaceId: string): Promise<SpaceMember[]> {
   const result = await sql(
     `SELECT
        sm.id, sm.space_id, sm.user_id, sm.role, sm.joined_at,
-       u.name AS user_name,
-       u.avatar_url AS user_avatar_url
+       up.display_name AS user_name,
+       up.avatar_url AS user_avatar_url
      FROM space_members sm
-     LEFT JOIN users u ON u.id = sm.user_id
+     LEFT JOIN user_profiles up ON up.neon_auth_id = sm.user_id
      WHERE sm.space_id = $1
      ORDER BY
        CASE sm.role WHEN 'admin' THEN 0 WHEN 'moderator' THEN 1 ELSE 2 END,
